@@ -183,23 +183,6 @@ public class InstanceManager {
         PerformanceManager.end();
     }
 
-    public static void setInstanceVisbility(Instance instance, boolean collapsed) {
-        MicrosoftAccount selectedAccount = AccountManager.getSelectedAccount();
-
-        if (selectedAccount != null) {
-            if (collapsed) {
-                // Closed It
-                if (!selectedAccount.collapsedInstances.contains(instance.launcher.name)) {
-                    selectedAccount.collapsedInstances.add(instance.launcher.name);
-                }
-            } else {
-                // Opened It
-                selectedAccount.collapsedInstances.remove(instance.launcher.name);
-            }
-            AccountManager.saveAccounts();
-        }
-    }
-
     /**
      * Removes an instance and deletes its directory.
      *

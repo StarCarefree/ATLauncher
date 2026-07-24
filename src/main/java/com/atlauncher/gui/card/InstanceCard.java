@@ -112,7 +112,6 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
     private MD3IconButton overflowAction;
 
     private final Instance instance;
-    private final JTextArea descArea = new JTextArea();
     private final ImagePanel image;
     private final JButton updateButton = new JButton(GetText.tr("Update"));
     private final JButton deleteButton = new JButton(GetText.tr("Delete"));
@@ -211,13 +210,6 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
 
         // the cover runs to the card's edges, so the padding belongs to the body instead
         setBorder(null);
-
-        this.descArea.setText(instance.getPackDescription());
-        this.descArea.setEditable(false);
-        this.descArea.setFocusable(false);
-        this.descArea.setHighlighter(null);
-        this.descArea.setLineWrap(true);
-        this.descArea.setWrapStyleWord(true);
 
         setupPlayPopupMenus();
         setupOpenPopupMenus();
@@ -639,10 +631,7 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
         reinstallMenuItem.addActionListener(e -> instance.startReinstall());
         cloneMenuItem.addActionListener(e -> instance.startClone());
         renameMenuItem.addActionListener(e -> instance.startRename());
-        changeDescriptionMenuItem.addActionListener(e -> {
-            instance.startChangeDescription();
-            descArea.setText(instance.launcher.description);
-        });
+        changeDescriptionMenuItem.addActionListener(e -> instance.startChangeDescription());
         changeImageMenuItem.addActionListener(e -> {
             instance.startChangeImage();
             image.setImage(instance.getImage().getImage());
@@ -922,10 +911,7 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
                     rightClickMenu.add(renameItem);
 
                     JMenuItem changeDescriptionItem = new JMenuItem(GetText.tr("Change Description"));
-                    changeDescriptionItem.addActionListener(l -> {
-                        instance.startChangeDescription();
-                        descArea.setText(instance.launcher.description);
-                    });
+                    changeDescriptionItem.addActionListener(l -> instance.startChangeDescription());
                     changeDescriptionItem.setVisible(instance.canChangeDescription());
                     rightClickMenu.add(changeDescriptionItem);
 

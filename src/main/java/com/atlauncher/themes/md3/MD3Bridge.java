@@ -457,10 +457,6 @@ public final class MD3Bridge {
         Color outlineVariant = scheme.get(MD3Color.OUTLINE_VARIANT);
         Color secondaryContainer = scheme.get(MD3Color.SECONDARY_CONTAINER);
 
-        defaults.put("CollapsiblePanel.normal", onSurface);
-        defaults.put("CollapsiblePanel.warning", tertiary);
-        defaults.put("CollapsiblePanel.error", error);
-
         defaults.put("Console.LogType.debug", scheme.get(MD3Color.TERTIARY));
         defaults.put("Console.LogType.error", error);
         defaults.put("Console.LogType.info", primary);

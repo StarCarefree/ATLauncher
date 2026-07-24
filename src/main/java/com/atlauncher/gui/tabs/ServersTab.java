@@ -19,32 +19,35 @@ package com.atlauncher.gui.tabs;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
 import javax.swing.JLayer;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.builders.HTMLBuilder;
-import com.atlauncher.constants.UIConstants;
 import com.atlauncher.gui.WheelScrollLayerUI;
 import com.atlauncher.gui.card.NilCard;
 import com.atlauncher.gui.card.ServerCard;
+import com.atlauncher.gui.layouts.CardGridLayout;
+import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.viewmodel.base.IServersTabViewModel;
 import com.atlauncher.viewmodel.impl.ServersTabViewModel;
-import com.formdev.flatlaf.icons.FlatSearchIcon;
 
 public class ServersTab extends HierarchyPanel implements Tab {
-    private JTextField searchBox;
+    /** Wide enough for a server name, and no wider - the grid needs the rest. */
+    private static final int SEARCH_COLUMNS = 18;
+
+    private MD3TextField searchBox;
 
     private JPanel panel;
     private JScrollPane scrollPane;
@@ -64,10 +67,18 @@ public class ServersTab extends HierarchyPanel implements Tab {
 
     @Override
     protected void onShow() {
-        JPanel topPanel = new JPanel();
-        topPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        JPanel toolbar = new JPanel(new BorderLayout());
+        toolbar.setOpaque(true);
+        toolbar.setBackground(MD3Color.surface());
+        toolbar.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
 
-        searchBox = new JTextField(16);
+        JPanel leading = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        leading.setOpaque(false);
+
+        searchBox = MD3TextField.search(GetText.tr("Search"));
+        searchBox.setName("serversSearchField");
+        searchBox.setColumns(SEARCH_COLUMNS);
+        searchBox.setLeadingIcon(MD3Icons.SEARCH);
         addDisposable(
                 viewModel.getSearchObservable().subscribe(it -> searchBox.setText(it.orElse(null))));
         searchBox.addKeyListener(new KeyAdapter() {
@@ -80,40 +91,32 @@ public class ServersTab extends HierarchyPanel implements Tab {
                 }
             }
         });
-        searchBox.putClientProperty("JTextField.placeholderText", GetText.tr("Search"));
-        searchBox.putClientProperty("JTextField.leadingIcon", new FlatSearchIcon());
-        searchBox.putClientProperty("JTextField.showClearButton", true);
-        searchBox.putClientProperty("JTextField.clearCallback", (Runnable) () -> viewModel.setSearchSubject(""));
-        topPanel.add(searchBox);
 
-        add(topPanel, BorderLayout.NORTH);
+        leading.add(searchBox);
+        toolbar.add(leading, BorderLayout.WEST);
 
-        panel = new JPanel();
+        add(toolbar, BorderLayout.NORTH);
+
+        // servers reflow into a grid, as instances do - the two are the same kind of thing and were
+        // laid out nothing alike, one full-width row per server against a wall of cards
+        panel = new JPanel(new CardGridLayout(ServerCard.CARD_WIDTH, ServerCard.MAX_CARD_WIDTH, MD3Spacing.L));
+        panel.setOpaque(false);
+        panel.setBorder(MD3Spacing.border(MD3Spacing.L));
+
         scrollPane = new JScrollPane(panel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(new JLayer<>(scrollPane, new WheelScrollLayerUI()), BorderLayout.CENTER);
 
-        panel.setLayout(new GridBagLayout());
-
         addDisposable(viewModel.getServersObservable().subscribe(servers -> {
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.gridx = gbc.gridy = 0;
-            gbc.weightx = 1.0;
-            gbc.insets = UIConstants.FIELD_INSETS_SMALL;
-            gbc.fill = GridBagConstraints.BOTH;
-
             panel.removeAll();
-            gbc.gridy = 0;
 
-            servers.forEach(server -> {
-                panel.add(new ServerCard(server), gbc);
-                gbc.gridy++;
-            });
+            servers.forEach(server -> panel.add(new ServerCard(server)));
 
-            if (panel.getComponentCount() == 0) {
-                panel.add(nilCard, gbc);
-            }
+            scrollPane.setViewportView(panel.getComponentCount() == 0 ? emptyState() : panel);
 
             validate();
             repaint();
@@ -122,6 +125,19 @@ public class ServersTab extends HierarchyPanel implements Tab {
 
         addDisposable(
                 viewModel.getViewPosition().subscribe(scrollPane.getVerticalScrollBar()::setValue));
+    }
+
+    /**
+     * The grid gives every child a column's width, which is not a shape the nil card was built for -
+     * so it is shown on its own rather than as a card in the grid.
+     */
+    private JPanel emptyState() {
+        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        wrapper.setOpaque(false);
+        wrapper.setBorder(MD3Spacing.border(MD3Spacing.L));
+        wrapper.add(nilCard);
+
+        return wrapper;
     }
 
     @Override

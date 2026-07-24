@@ -18,22 +18,17 @@
 package com.atlauncher.gui.tabs.accounts;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
-import java.awt.Insets;
-import java.awt.event.ItemEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.util.List;
 
-import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
+import javax.swing.JScrollPane;
 import javax.swing.event.HyperlinkEvent;
 
 import org.mini2Dx.gettext.GetText;
@@ -41,32 +36,36 @@ import org.mini2Dx.gettext.GetText;
 import com.atlauncher.App;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.data.MicrosoftAccount;
+import com.atlauncher.gui.card.AccountCard;
 import com.atlauncher.gui.dialogs.LoginWithMicrosoftDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
+import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.gui.tabs.Tab;
-import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.DialogManager;
-import com.atlauncher.utils.ComboItem;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.OS;
-import com.atlauncher.utils.SkinUtils;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.viewmodel.base.IAccountsViewModel;
 import com.atlauncher.viewmodel.impl.AccountsViewModel;
+import com.formdev.flatlaf.util.UIScale;
 
+/**
+ * The accounts you have signed in with, one card each.
+ */
 public class AccountsTab extends HierarchyPanel implements Tab {
     private static final long serialVersionUID = 2493791137600123223L;
 
+    /** The onboarding text is a paragraph, so it is capped rather than run across the window. */
+    private static final int READING_WIDTH = 560;
+
     private IAccountsViewModel viewModel;
 
-    private JLabel userSkin;
-    private JComboBox<ComboItem<String>> accountsComboBox;
-    private JButton deleteButton;
+    private JPanel accounts;
+    private JScrollPane scrollPane;
     private JButton loginWithMicrosoftButton;
-    private JMenuItem refreshAccessTokenMenuItem;
-    private JMenuItem updateSkin;
-    private JMenuItem changeSkin;
-    private JPopupMenu contextMenu; // Right click menu
 
     public AccountsTab() {
         super(new BorderLayout());
@@ -74,11 +73,85 @@ public class AccountsTab extends HierarchyPanel implements Tab {
 
     @Override
     protected void onShow() {
-        JPanel infoPanel = new JPanel();
-        infoPanel.setLayout(new BorderLayout());
-        infoPanel.setBorder(BorderFactory.createEmptyBorder(60, 250, 0, 250));
+        accounts = new JPanel(new CardGridLayout(AccountCard.CARD_WIDTH, AccountCard.MAX_CARD_WIDTH, MD3Spacing.L));
+        accounts.setOpaque(false);
+        accounts.setBorder(MD3Spacing.border(MD3Spacing.L));
 
-        JEditorPane infoTextPane = new JEditorPane("text/html", new HTMLBuilder().center().text(GetText.tr(
+        scrollPane = new JScrollPane(accounts, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        add(buildToolbar(), BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+
+        observe();
+    }
+
+    private JPanel buildToolbar() {
+        JPanel toolbar = new JPanel(new BorderLayout());
+        toolbar.setOpaque(true);
+        toolbar.setBackground(MD3Color.surface());
+        toolbar.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+
+        JPanel trailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(MD3Spacing.S), 0));
+        trailing.setOpaque(false);
+
+        // Microsoft's own sign-in artwork, which their brand terms require be used as supplied -
+        // so this is the one button on the page that is not a Material one
+        loginWithMicrosoftButton = new JButton();
+        loginWithMicrosoftButton.setName("loginWithMicrosoft");
+        loginWithMicrosoftButton.setBorderPainted(false);
+        loginWithMicrosoftButton.setContentAreaFilled(false);
+        loginWithMicrosoftButton.setToolTipText(GetText.tr("Sign In with Microsoft"));
+        loginWithMicrosoftButton.setIcon(Utils.getIconImage(
+                App.THEME.getResourcePath("image/providers", "sign-in-with-microsoft")));
+        loginWithMicrosoftButton.addActionListener(e -> addAccount());
+
+        trailing.add(loginWithMicrosoftButton);
+        toolbar.add(trailing, BorderLayout.EAST);
+
+        return toolbar;
+    }
+
+    private void addAccount() {
+        // TODO This should be handled by some reaction via listener
+        int numberOfAccountsBefore = viewModel.accountCount();
+
+        LoginWithMicrosoftDialog loginWithMicrosoftDialog = new LoginWithMicrosoftDialog();
+        loginWithMicrosoftDialog.setVisible(true);
+
+        if (numberOfAccountsBefore != viewModel.accountCount()) {
+            // account was added, so get the skin
+            if (loginWithMicrosoftDialog.account != null) {
+                loginWithMicrosoftDialog.account.updateSkin();
+            }
+
+            viewModel.pushNewAccounts();
+        }
+    }
+
+    /**
+     * What to show before there is an account to show. The launcher is unusable without one, so
+     * this is where a new user is told what they need and where to get it.
+     */
+    private JPanel buildEmptyState() {
+        JPanel empty = new JPanel();
+        empty.setLayout(new BoxLayout(empty, BoxLayout.Y_AXIS));
+        empty.setOpaque(false);
+        empty.setBorder(MD3Spacing.border(MD3Spacing.XXL, MD3Spacing.L));
+
+        JLabel heading = new JLabel(GetText.tr("No accounts yet"));
+        heading.setFont(MD3Type.font(MD3Type.TITLE_LARGE));
+        heading.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
+        heading.setForeground(MD3Color.onSurface());
+        heading.setAlignmentX(CENTER_ALIGNMENT);
+        empty.add(heading);
+        empty.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.M)));
+
+        JEditorPane info = new JEditorPane("text/html", new HTMLBuilder().center().text(GetText.tr(
                 "In order to login and use ATLauncher modpacks, " +
                     "you must authenticate with your existing " +
                     "Minecraft/Mojang account. You must own and have paid " +
@@ -90,145 +163,102 @@ public class AccountsTab extends HierarchyPanel implements Tab {
                     "Minecraft here</a>. ATLauncher doesn't work with cracked" +
                     " accounts."))
             .build());
-        infoTextPane.setEditable(false);
-        infoTextPane.setFocusable(false);
-        infoTextPane.addHyperlinkListener(e -> {
+        info.setEditable(false);
+        info.setFocusable(false);
+        info.setOpaque(false);
+        info.setAlignmentX(CENTER_ALIGNMENT);
+        info.setMaximumSize(new Dimension(UIScale.scale(READING_WIDTH), Integer.MAX_VALUE));
+        info.addHyperlinkListener(e -> {
             if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
                 OS.openWebBrowser(e.getURL());
             }
         });
 
-        infoPanel.add(infoTextPane);
+        empty.add(info);
 
-        JPanel rightPanel = new JPanel();
-        rightPanel.setLayout(new BorderLayout());
+        return empty;
+    }
 
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
+    /**
+     * Rebuilds the grid.
+     *
+     * <p>
+     * The view model reports accounts as a list of names and works on whichever one is "selected",
+     * a shape left from the combo box this page used to be. A card knows its own position instead,
+     * and points the view model at it before doing anything - which keeps the whole contract
+     * untouched while the page stops having a selection at all.
+     */
+    private void show(List<String> names) {
+        accounts.removeAll();
 
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 2;
-        Insets TOP_INSETS = new Insets(0, 0, 20, 0);
-        gbc.insets = TOP_INSETS;
-        gbc.anchor = GridBagConstraints.CENTER;
+        if (names.isEmpty()) {
+            scrollPane.setViewportView(buildEmptyState());
+            revalidate();
+            repaint();
 
-        accountsComboBox = new JComboBox<>();
-        accountsComboBox.setName("accountsTabAccountsComboBox");
-        accountsComboBox.addItemListener(e -> {
-            if (e.getStateChange() == ItemEvent.SELECTED) {
-                viewModel.setSelectedAccount(accountsComboBox.getSelectedIndex());
-            }
-        });
-        bottomPanel.add(accountsComboBox, gbc);
+            return;
+        }
 
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 2;
-        Insets BOTTOM_INSETS = new Insets(10, 0, 0, 0);
-        gbc.insets = BOTTOM_INSETS;
-        gbc.anchor = GridBagConstraints.CENTER;
-        JPanel buttons = new JPanel();
-        buttons.setLayout(new FlowLayout());
-        deleteButton = new JButton(GetText.tr("Delete"));
-        deleteButton.setVisible(false);
-        deleteButton.addActionListener(e -> {
-            int ret = DialogManager
-                .yesNoDialog()
-                .setTitle(GetText.tr("Delete"))
-                .setContent(GetText.tr("Are you sure you want " +
-                    "to delete this account?"))
-                .setType(DialogManager.WARNING).show();
-            if (ret == DialogManager.YES_OPTION) {
-                viewModel.deleteAccount();
-            }
-        });
-        loginWithMicrosoftButton = new JButton();
-        loginWithMicrosoftButton.setBorderPainted(false);
-        loginWithMicrosoftButton.setToolTipText(GetText.tr("Sign In with Microsoft"));
-        loginWithMicrosoftButton.setIcon(Utils.getIconImage(
-            App.THEME.getResourcePath("image/providers", "sign-in-with-microsoft")));
-        loginWithMicrosoftButton.addActionListener(e -> {
-            // TODO This should be handled by some reaction via listener
-            int numberOfAccountsBefore = viewModel.accountCount();
+        for (int i = 0; i < names.size(); i++) {
+            final int index = i;
 
-            LoginWithMicrosoftDialog loginWithMicrosoftDialog = new LoginWithMicrosoftDialog();
-            loginWithMicrosoftDialog.setVisible(true);
-
-            if (numberOfAccountsBefore != viewModel.accountCount()) {
-                // account was added, so get the skin
-                if (loginWithMicrosoftDialog.account != null) {
-                    loginWithMicrosoftDialog.account.updateSkin();
-                }
-
-                viewModel.pushNewAccounts();
-                accountsComboBox.setSelectedItem(AccountManager.getSelectedAccount());
-            }
-        });
-        buttons.add(deleteButton);
-        buttons.add(loginWithMicrosoftButton);
-        bottomPanel.add(buttons, gbc);
-
-        rightPanel.add(bottomPanel, BorderLayout.CENTER);
-
-        contextMenu = new JPopupMenu();
-
-        changeSkin = new JMenuItem(GetText.tr("Change Skin"));
-        changeSkin.addActionListener(e -> {
-            viewModel.changeSkin();
-
-            // TODO Have this done via listener
-            // To describe, userSkin icon should be reactive, not active.
+            viewModel.setSelectedAccount(index + 1);
             MicrosoftAccount account = viewModel.getSelectedAccount();
-            if (account != null) {
-                userSkin.setIcon(account.getMinecraftSkin());
+
+            if (account == null) {
+                continue;
             }
-        });
-        contextMenu.add(changeSkin);
 
-        updateSkin = new JMenuItem(GetText.tr("Reload Skin"));
-        updateSkin.addActionListener(e -> {
-            viewModel.updateSkin();
+            accounts.add(new AccountCard(account, () -> viewModel.setSelectedAccount(index + 1), actionsFor()));
+        }
 
-            // TODO Have this done via listener
-            // To describe, userSkin icon should be reactive, not active.
-            MicrosoftAccount account = viewModel.getSelectedAccount();
-            if (account != null) {
-                userSkin.setIcon(account.getMinecraftSkin());
-            }
-        });
-        contextMenu.add(updateSkin);
+        scrollPane.setViewportView(accounts);
+        revalidate();
+        repaint();
+    }
 
-        JMenuItem updateUsername = new JMenuItem(GetText.tr("Update Username"));
-        updateUsername.addActionListener(e -> viewModel.updateUsername());
-        contextMenu.add(updateUsername);
-
-        refreshAccessTokenMenuItem = new JMenuItem(GetText.tr("Refresh Access Token"));
-        refreshAccessTokenMenuItem.setVisible(false);
-        refreshAccessTokenMenuItem.addActionListener(e -> refreshAccessToken());
-        contextMenu.add(refreshAccessTokenMenuItem);
-
-        userSkin = new JLabel(SkinUtils.getDefaultSkin());
-        userSkin.addMouseListener(new MouseAdapter() {
+    /**
+     * The actions a card offers. They act on whatever the card pointed the view model at, so one
+     * instance serves every card.
+     */
+    private AccountCard.Actions actionsFor() {
+        return new AccountCard.Actions() {
             @Override
-            public void mousePressed(MouseEvent e) {
-                if (e.getButton() == MouseEvent.BUTTON3) {
-                    if (accountsComboBox.getSelectedIndex() != 0) {
-                        contextMenu.show(userSkin, e.getX(), e.getY());
-                    }
+            public void changeSkin() {
+                viewModel.changeSkin();
+                viewModel.pushNewAccounts();
+            }
+
+            @Override
+            public void reloadSkin() {
+                viewModel.updateSkin();
+                viewModel.pushNewAccounts();
+            }
+
+            @Override
+            public void updateUsername() {
+                viewModel.updateUsername();
+            }
+
+            @Override
+            public void refreshAccessToken() {
+                AccountsTab.this.refreshAccessToken();
+            }
+
+            @Override
+            public void delete() {
+                int ret = DialogManager
+                    .yesNoDialog()
+                    .setTitle(GetText.tr("Delete"))
+                    .setContent(GetText.tr("Are you sure you want " +
+                        "to delete this account?"))
+                    .setType(DialogManager.WARNING).show();
+
+                if (ret == DialogManager.YES_OPTION) {
+                    viewModel.deleteAccount();
                 }
             }
-        });
-        userSkin.setBorder(
-            BorderFactory.createEmptyBorder(0, 60, 0, 0));
-        add(infoPanel, BorderLayout.NORTH);
-        add(userSkin, BorderLayout.WEST);
-        add(rightPanel, BorderLayout.CENTER);
-
-        observe();
-
-        accountsComboBox.setSelectedIndex(0);
+        };
     }
 
     /**
@@ -274,34 +304,19 @@ public class AccountsTab extends HierarchyPanel implements Tab {
             LoginWithMicrosoftDialog loginWithMicrosoftDialog = new LoginWithMicrosoftDialog(account);
             loginWithMicrosoftDialog.setVisible(true);
         }
+
+        viewModel.pushNewAccounts();
     }
 
     /**
      * Start observing state changes from view model
      */
     private void observe() {
+        // the page no longer has a selected account of its own, but the view model still reports
+        // one; taking it keeps its contract satisfied
         viewModel.onAccountSelected(account -> {
-            if (account == null) {
-                deleteButton.setVisible(false);
-                userSkin.setIcon(SkinUtils.getDefaultSkin());
-                loginWithMicrosoftButton.setVisible(true);
-                refreshAccessTokenMenuItem.setVisible(false);
-            } else {
-                deleteButton.setVisible(true);
-                loginWithMicrosoftButton.setVisible(true);
-                refreshAccessTokenMenuItem.setVisible(true);
-
-                deleteButton.setText(GetText.tr("Delete"));
-                userSkin.setIcon(account.getMinecraftSkin());
-            }
         });
-        viewModel.onAccountsNamesChanged(accounts -> {
-            accountsComboBox.removeAllItems();
-            accountsComboBox.addItem(new ComboItem<>(null, GetText.tr("Add An Account")));
-            for (String account : accounts) {
-                accountsComboBox.addItem(new ComboItem<>(null, account));
-            }
-        });
+        viewModel.onAccountsNamesChanged(this::show);
     }
 
     @Override
@@ -322,13 +337,8 @@ public class AccountsTab extends HierarchyPanel implements Tab {
     @Override
     protected void onDestroy() {
         removeAll();
-        userSkin = null;
-        accountsComboBox = null;
-        deleteButton = null;
+        accounts = null;
+        scrollPane = null;
         loginWithMicrosoftButton = null;
-        refreshAccessTokenMenuItem = null;
-        updateSkin = null;
-        changeSkin = null;
-        contextMenu = null;
     }
 }

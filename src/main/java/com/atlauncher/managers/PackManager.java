@@ -129,23 +129,6 @@ public class PackManager {
         return packs;
     }
 
-    public static void setPackVisbility(Pack pack, boolean collapsed) {
-        MicrosoftAccount selectedAccount = AccountManager.getSelectedAccount();
-
-        if (pack != null && selectedAccount != null) {
-            if (collapsed) {
-                // Closed It
-                if (!selectedAccount.collapsedPacks.contains(pack.getName())) {
-                    selectedAccount.collapsedPacks.add(pack.getName());
-                }
-            } else {
-                // Opened It
-                selectedAccount.collapsedPacks.remove(pack.getName());
-            }
-            AccountManager.saveAccounts();
-        }
-    }
-
     public static String getPackInstallableCount() {
         int count = 0;
         for (Pack pack : Data.PACKS) {

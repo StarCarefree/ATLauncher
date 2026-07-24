@@ -57,10 +57,10 @@ public class BasicLauncherUiTest extends AbstractUiTest {
         navigateTo(UIConstants.LAUNCHER_ACCOUNTS_TAB);
         Pause.pause(1, TimeUnit.SECONDS);
 
-        JComboBoxFixture accountsTabAccountsComboBox = this.frame.comboBox("accountsTabAccountsComboBox");
-        accountsTabAccountsComboBox.requireVisible();
-        accountsTabAccountsComboBox.requireItemCount(2);
-        accountsTabAccountsComboBox.requireSelection(0);
+        // the accounts combo box became a card each, so the account is looked up by the name it
+        // was mocked with rather than by its position in a list
+        this.frame.button("loginWithMicrosoft").requireVisible();
+        this.frame.panel("accountCard.Example").requireVisible();
 
         // account selector now showing
         JComboBoxFixture accountSelector = this.frame.comboBox("accountSelector");
