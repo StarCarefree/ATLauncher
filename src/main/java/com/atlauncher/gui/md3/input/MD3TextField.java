@@ -33,7 +33,8 @@ import com.atlauncher.gui.md3.icon.MD3Icon;
  *
  * <pre>
  * OUTLINED  the default; works on any surface, and reads clearly in a dense form
- * FILLED    stronger presence; use where a field is the focus of its area, such as a search bar
+ * FILLED    stronger presence; use where a field is the focus of its area
+ * SEARCH    a toolbar's search box: a short stadium, no floating label, sized to sit beside chips
  * </pre>
  *
  * <p>
@@ -44,7 +45,7 @@ public class MD3TextField extends JTextField {
     public static final String UI_CLASS_ID = "MD3TextFieldUI";
 
     public enum Variant {
-        OUTLINED, FILLED
+        OUTLINED, FILLED, SEARCH
     }
 
     private Variant variant;
@@ -70,6 +71,20 @@ public class MD3TextField extends JTextField {
 
     public static MD3TextField filled(String label) {
         return new MD3TextField(label, Variant.FILLED);
+    }
+
+    /**
+     * A toolbar search box, already carrying its magnifier.
+     *
+     * <p>
+     * Shorter than a form field and fully rounded, so it sits on the same line as a row of chips
+     * instead of setting the height of the whole toolbar. Its label behaves as a placeholder - it
+     * never floats, it just gets out of the way once there is something typed.
+     *
+     * @param placeholder what the field searches, such as "Search packs"
+     */
+    public static MD3TextField search(String placeholder) {
+        return new MD3TextField(placeholder, Variant.SEARCH);
     }
 
     public Variant getVariant() {

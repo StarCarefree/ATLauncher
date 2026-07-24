@@ -65,6 +65,8 @@ import com.formdev.flatlaf.util.UIScale;
 public class MD3TextFieldUI extends BasicTextFieldUI {
     /** Height of the field box itself, excluding any supporting text. */
     private static final int BOX_HEIGHT = 56;
+    /** A search box has no label to make room for, so it takes the minimum touch target instead. */
+    private static final int SEARCH_HEIGHT = MD3Spacing.MIN_TOUCH_TARGET;
     /** Room above an outlined box for the half of the floated label that sits outside it. */
     private static final int LABEL_OVERFLOW = 8;
     /** Height reserved for the supporting text line. */
@@ -194,19 +196,31 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         super.uninstallListeners();
     }
 
-    private boolean shouldFloat() {
-        JTextComponent c = getComponent();
+    private static boolean isSearch(Component c) {
+        MD3TextField f = field(c);
 
-        if (c == null) {
-            return false;
-        }
+        return f != null && f.getVariant() == MD3TextField.Variant.SEARCH;
+    }
+
+    private boolean hasText() {
+        JTextComponent c = getComponent();
 
         // getText goes through the document, which does not exist yet while the component is
         // still inside its own constructor
-        Document document = c.getDocument();
-        boolean hasText = document != null && document.getLength() > 0;
+        Document document = c == null ? null : c.getDocument();
 
-        return c.isFocusOwner() || hasText;
+        return document != null && document.getLength() > 0;
+    }
+
+    private boolean shouldFloat() {
+        JTextComponent c = getComponent();
+
+        if (c == null || isSearch(c)) {
+            // a search box's label is a placeholder: it stays where it is and then disappears
+            return false;
+        }
+
+        return c.isFocusOwner() || hasText();
     }
 
     private void retarget() {
@@ -250,11 +264,15 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         return f != null && f.getSupportingText() != null && !f.getSupportingText().isEmpty() ? SUPPORTING_HEIGHT : 0;
     }
 
+    private static int boxHeight(Component c) {
+        return isSearch(c) ? SEARCH_HEIGHT : BOX_HEIGHT;
+    }
+
     /** The box, in component coordinates. */
     private static Rectangle boxBounds(JComponent c) {
         int top = UIScale.scale(labelOverflow(c));
 
-        return new Rectangle(0, top, c.getWidth(), UIScale.scale(BOX_HEIGHT));
+        return new Rectangle(0, top, c.getWidth(), UIScale.scale(boxHeight(c)));
     }
 
     private Color accentColor(MD3TextField f) {
@@ -312,7 +330,9 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
             Color accent = accentColor(f);
             float lineWidth = f.isFocusOwner() ? 2f : 1f;
 
-            if (f.getVariant() == MD3TextField.Variant.FILLED) {
+            if (f.getVariant() == MD3TextField.Variant.SEARCH) {
+                paintSearchContainer(g2, f, box);
+            } else if (f.getVariant() == MD3TextField.Variant.FILLED) {
                 paintFilledContainer(g2, f, box, accent, lineWidth);
             } else {
                 paintOutlinedContainer(g2, f, box, accent, lineWidth);
@@ -323,6 +343,21 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
             paintSupportingText(g2, f, box);
         } finally {
             g2.dispose();
+        }
+    }
+
+    /**
+     * A stadium with no indicator line. The container carries the whole shape, which is what lets a
+     * search box sit in a toolbar without a form field's structure around it.
+     */
+    private void paintSearchContainer(Graphics2D g, MD3TextField f, Rectangle box) {
+        Shape container = MD3Shape.rounded(box.x, box.y, box.width, box.height, MD3Shape.FULL);
+
+        MD3Paint.fill(g, container, f.isEnabled() ? MD3Color.surfaceContainerHigh()
+                : MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface()));
+
+        if (f.isEnabled() && f.isFocusOwner()) {
+            MD3Paint.outline(g, container, f.isError() ? MD3Color.error() : MD3Color.primary(), 1f);
         }
     }
 
@@ -425,6 +460,11 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
             return;
         }
 
+        // a placeholder is replaced by what the user types, rather than moving aside for it
+        if (isSearch(f) && hasText()) {
+            return;
+        }
+
         Font font = MD3Type.font(floatFraction > 0.5f ? MD3Type.BODY_SMALL : MD3Type.BODY_LARGE);
         Rectangle bounds = labelBounds(f, box);
         FontMetrics metrics = f.getFontMetrics(font);
@@ -454,7 +494,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
     public Dimension getPreferredSize(JComponent c) {
         Dimension size = super.getPreferredSize(c);
 
-        size.height = UIScale.scale(labelOverflow(c) + BOX_HEIGHT + supportingHeight(c));
+        size.height = UIScale.scale(labelOverflow(c) + boxHeight(c) + supportingHeight(c));
 
         return size;
     }
@@ -463,7 +503,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
     public Dimension getMinimumSize(JComponent c) {
         Dimension size = super.getMinimumSize(c);
 
-        size.height = UIScale.scale(labelOverflow(c) + BOX_HEIGHT + supportingHeight(c));
+        size.height = UIScale.scale(labelOverflow(c) + boxHeight(c) + supportingHeight(c));
 
         return size;
     }
@@ -478,7 +518,9 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
             MD3TextField f = field(c);
             boolean filled = f != null && f.getVariant() == MD3TextField.Variant.FILLED;
 
-            int top = filled ? MD3Spacing.XL : labelOverflow(c) + MD3Spacing.S;
+            // a search box has no label above the text, so it is padded evenly and the text lands
+            // on the box's centre line
+            int top = isSearch(c) ? MD3Spacing.S : (filled ? MD3Spacing.XL : labelOverflow(c) + MD3Spacing.S);
             int bottom = MD3Spacing.S + supportingHeight(c);
 
             // the icon's width is already in device pixels, so it is added after scaling the

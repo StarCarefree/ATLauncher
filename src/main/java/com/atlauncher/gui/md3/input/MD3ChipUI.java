@@ -19,6 +19,7 @@ package com.atlauncher.gui.md3.input;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Graphics;
 import java.awt.Insets;
 
 import javax.swing.AbstractButton;
@@ -27,6 +28,8 @@ import javax.swing.border.AbstractBorder;
 import javax.swing.plaf.ComponentUI;
 
 import com.atlauncher.gui.md3.button.MD3ButtonUI;
+import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
@@ -42,6 +45,9 @@ import com.formdev.flatlaf.util.UIScale;
  * and only the colours, shape and padding are re-answered.
  */
 public class MD3ChipUI extends MD3ButtonUI {
+    /** The chevron on a menu chip, and the room the border keeps clear for it. */
+    private static final int TRAILING_ICON_SIZE = 18;
+
     public static ComponentUI createUI(JComponent c) {
         return new MD3ChipUI();
     }
@@ -79,6 +85,25 @@ public class MD3ChipUI extends MD3ButtonUI {
 
     private static boolean isSelected(AbstractButton b) {
         return b.getModel().isSelected();
+    }
+
+    private static boolean hasMenu(Component c) {
+        return c instanceof MD3Chip && ((MD3Chip) c).hasMenu();
+    }
+
+    @Override
+    public void paint(Graphics g, JComponent c) {
+        super.paint(g, c);
+
+        if (!hasMenu(c)) {
+            return;
+        }
+
+        AbstractButton b = (AbstractButton) c;
+        int size = UIScale.scale(TRAILING_ICON_SIZE);
+
+        MD3Icon.of(MD3Icons.CHEVRON_DOWN, TRAILING_ICON_SIZE).withColor(contentColor(b)).paintIcon(c, g,
+                c.getWidth() - UIScale.scale(MD3Spacing.M) - size, (c.getHeight() - size) / 2);
     }
 
     @Override
@@ -120,8 +145,12 @@ public class MD3ChipUI extends MD3ButtonUI {
             boolean hasIcon = c instanceof AbstractButton && ((AbstractButton) c).getIcon() != null;
             int leading = hasIcon ? MD3Spacing.S : MD3Spacing.L;
 
+            // a menu chip's chevron is painted rather than laid out, so the label has to be kept
+            // out of the strip it occupies
+            int trailing = hasMenu(c) ? MD3Spacing.M + TRAILING_ICON_SIZE + MD3Spacing.XS : MD3Spacing.L;
+
             insets.set(UIScale.scale(MD3Spacing.XS), UIScale.scale(leading), UIScale.scale(MD3Spacing.XS),
-                    UIScale.scale(MD3Spacing.L));
+                    UIScale.scale(trailing));
 
             return insets;
         }

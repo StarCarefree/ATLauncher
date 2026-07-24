@@ -359,7 +359,7 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
             return version == null ? "" : version;
         }
 
-        return version == null || version.isEmpty() ? pack : pack + " \u00b7 " + version;
+        return version == null || version.isEmpty() ? pack : pack + " · " + version;
     }
 
     /**

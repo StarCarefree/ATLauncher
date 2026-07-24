@@ -90,6 +90,12 @@ public final class MD3Icons {
     public static final MD3Icon.Painter ARROW_FORWARD = g -> stroke(g,
             new Line2D.Float(5, 12, 19, 12), path(13, 6, 19, 12, 13, 18));
 
+    public static final MD3Icon.Painter ARROW_UPWARD = g -> stroke(g,
+            new Line2D.Float(12, 19, 12, 5), path(6, 11, 12, 5, 18, 11));
+
+    public static final MD3Icon.Painter ARROW_DOWNWARD = g -> stroke(g,
+            new Line2D.Float(12, 5, 12, 19), path(6, 13, 12, 19, 18, 13));
+
     public static final MD3Icon.Painter ADD = g -> stroke(g,
             new Line2D.Float(12, 5, 12, 19), new Line2D.Float(5, 12, 19, 12));
 

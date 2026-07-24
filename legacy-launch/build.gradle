@@ -12,3 +12,8 @@ version = rootProject.file('src/main/resources/version').text.trim().replace('.B
 application {
     mainClass = 'com.atlauncher.mclauncher.legacy.LegacyMCLauncher'
 }
+
+// as in the root project: sources are UTF-8, and the platform default is not to be trusted
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

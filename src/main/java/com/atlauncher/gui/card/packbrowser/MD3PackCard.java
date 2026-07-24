@@ -76,7 +76,7 @@ public abstract class MD3PackCard extends MD3Card {
     /** Roughly two lines at body-small in a 280dp card. */
     private static final int DESCRIPTION_LIMIT = 84;
 
-    /** Written as an escape because the build sets no source encoding. */
+    /** Named because {@link #truncateToWidth} needs to know how much room it takes. */
     private static final String ELLIPSIS = "\u2026";
 
     protected MD3PackCard() {

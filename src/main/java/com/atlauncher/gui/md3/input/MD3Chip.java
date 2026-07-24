@@ -18,8 +18,10 @@
 package com.atlauncher.gui.md3.input;
 
 import java.awt.event.ItemEvent;
+import java.util.function.Supplier;
 
 import javax.swing.Icon;
+import javax.swing.JPopupMenu;
 import javax.swing.JToggleButton;
 import javax.swing.UIManager;
 import javax.swing.plaf.ButtonUI;
@@ -40,6 +42,10 @@ import com.atlauncher.gui.md3.icon.MD3Icons;
  * <p>
  * The intended replacement for the rows of small buttons and combo boxes the pack browser and
  * instance list currently use for filtering.
+ *
+ * <p>
+ * A filter with more values than fit on screen - every Minecraft version, every CurseForge category
+ * - takes a {@link #setMenu(Supplier) menu} instead of a chip each.
  */
 public class MD3Chip extends JToggleButton {
     public static final String UI_CLASS_ID = "MD3ChipUI";
@@ -50,6 +56,10 @@ public class MD3Chip extends JToggleButton {
 
     private Variant variant;
     private Icon userIcon;
+    private Supplier<JPopupMenu> menuSupplier;
+
+    /** True while {@link #setSelected(boolean)} is applying a caller's decision. */
+    private boolean applyingSelection;
 
     public MD3Chip(String text) {
         this(text, Variant.FILTER);
@@ -60,6 +70,8 @@ public class MD3Chip extends JToggleButton {
 
         this.variant = variant;
 
+        setModel(new ChipModel());
+
         // a filter chip announces its own state with a tick, so the icon is managed here rather
         // than left to the caller to remember
         addItemListener(e -> {
@@ -68,11 +80,58 @@ public class MD3Chip extends JToggleButton {
             }
         });
 
+        addActionListener(e -> showMenu());
+
         updateUI();
     }
 
     public static MD3Chip filter(String text) {
         return new MD3Chip(text, Variant.FILTER);
+    }
+
+    /**
+     * Turns the chip into a menu of values rather than a switch. Built on each open, so it reflects
+     * whatever the source holds at that moment - which is what a list of Minecraft versions or a
+     * platform's categories needs, since neither is known when the chip is constructed.
+     *
+     * <p>
+     * The chip stops toggling itself: what its selected state means is now "a value is chosen", and
+     * only the caller knows that. Say so with {@link #setSelected(boolean)}.
+     */
+    public void setMenu(Supplier<JPopupMenu> menuSupplier) {
+        this.menuSupplier = menuSupplier;
+
+        revalidate();
+        repaint();
+    }
+
+    public boolean hasMenu() {
+        return menuSupplier != null;
+    }
+
+    private void showMenu() {
+        if (menuSupplier == null) {
+            return;
+        }
+
+        JPopupMenu menu = menuSupplier.get();
+
+        if (menu == null || menu.getComponentCount() == 0) {
+            return;
+        }
+
+        menu.show(this, 0, getHeight());
+    }
+
+    @Override
+    public void setSelected(boolean selected) {
+        applyingSelection = true;
+
+        try {
+            super.setSelected(selected);
+        } finally {
+            applyingSelection = false;
+        }
     }
 
     public static MD3Chip assist(String text, MD3Icon.Painter painter) {
@@ -127,5 +186,20 @@ public class MD3Chip extends JToggleButton {
         }
 
         setUI((ButtonUI) UIManager.getUI(this));
+    }
+
+    /**
+     * Keeps a menu chip from flipping its own state on click - the click opens the menu, and what
+     * the menu does to the selection is the caller's to decide.
+     */
+    private final class ChipModel extends JToggleButton.ToggleButtonModel {
+        @Override
+        public void setSelected(boolean selected) {
+            if (menuSupplier != null && !applyingSelection) {
+                return;
+            }
+
+            super.setSelected(selected);
+        }
     }
 }
