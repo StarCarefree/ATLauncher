@@ -29,10 +29,15 @@ import java.util.List;
 import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JPopupMenu;
+import javax.swing.UIDefaults;
 
 import com.atlauncher.App;
 import com.atlauncher.data.Language;
 import com.atlauncher.managers.LogManager;
+import com.atlauncher.themes.md3.MD3Bridge;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Scheme;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.Resources;
 import com.formdev.flatlaf.FlatDarculaLaf;
 import com.formdev.flatlaf.FlatDarkLaf;
@@ -144,6 +149,90 @@ public class ATLauncherLaf extends FlatLaf {
         return false;
     }
 
+    /**
+     * Whether this theme's colours come from a generated Material 3 scheme rather than from its own
+     * properties.
+     *
+     * <p>
+     * Every theme publishes the Material token set either way - see {@link #getDefaults()} - so MD3
+     * components can be written against colour roles alone and still look right under a theme that
+     * has never heard of Material. What this flag controls is the reverse direction: whether the
+     * generated scheme is also pushed back onto the stock Swing and FlatLaf keys, which is what
+     * restyles the components that have not been migrated yet.
+     *
+     * <p>
+     * Only the Material themes opt in for now. Once the component migration is finished, returning
+     * true here is what switches the remaining sixteen themes over to Material colour in one move -
+     * each keeping its own hue, because each seeds from its own accent.
+     */
+    public boolean isMaterialColors() {
+        return false;
+    }
+
+    /**
+     * The colour this theme's Material scheme is generated from.
+     *
+     * <p>
+     * Detected from the theme's own accent rather than hard coded, so a theme dropped into the
+     * resources folder gets a coherent palette without anyone having to maintain a lookup table.
+     * Override, or set {@code md.sys.seed.override} in the theme's properties, to pin it.
+     */
+    public int getSeedColor(UIDefaults defaults) {
+        return MD3Bridge.detectSeed(defaults, MD3Bridge.DEFAULT_SEED);
+    }
+
+    /**
+     * Layers the Material 3 design tokens on top of whatever the theme's properties produced.
+     *
+     * <p>
+     * Three things happen here, in order:
+     *
+     * <ol>
+     * <li>the full colour role set is generated from the theme's seed and published, so MD3
+     * components have roles to read under any theme;
+     * <li>the shape and focus tokens are applied to every theme - these are colour neutral and do
+     * not change any component's size, so no existing layout shifts;
+     * <li>for themes that opt in via {@link #isMaterialColors()}, the generated scheme is mapped
+     * back onto the stock Swing keys, restyling components that have not been migrated yet.
+     * </ol>
+     *
+     * <p>
+     * Wrapped in a catch-all: a theme that renders in the wrong colours is a bad afternoon, but a
+     * theme that throws while loading leaves the launcher with no look and feel at all.
+     */
+    @Override
+    public UIDefaults getDefaults() {
+        UIDefaults defaults = super.getDefaults();
+
+        try {
+            MD3Scheme scheme = MD3Scheme.from(getSeedColor(defaults), isDark());
+            scheme.applyTo(defaults);
+
+            MD3Bridge.applyShapeTokens(defaults, scheme.get(MD3Color.PRIMARY));
+
+            if (isMaterialColors()) {
+                MD3Bridge.applyColorTokens(defaults, scheme);
+            }
+        } catch (Throwable t) {
+            LogManager.logStackTrace("Error applying Material 3 design tokens", t);
+        }
+
+        return defaults;
+    }
+
+    /**
+     * Publishes the type scale. Separate from {@link #getDefaults()} because the fonts depend on
+     * the user's settings and locale, which are only safe to read once the look and feel is
+     * installed - see {@code App.modifyLAF}.
+     */
+    public void installTypeScale() {
+        try {
+            MD3Type.install(javax.swing.UIManager.getDefaults(), getNormalFont(), getBoldFont());
+        } catch (Throwable t) {
+            LogManager.logStackTrace("Error installing Material 3 type scale", t);
+        }
+    }
+
     @Override
     public List<Class<?>> getLafClassesForDefaultsLoading() {
         List<Class<?>> classes = new ArrayList<>();
@@ -199,6 +288,10 @@ public class ATLauncherLaf extends FlatLaf {
     }
 
     public void updateUIFonts() {
+        // the base fonts may have changed with the language, so the whole type scale has to be
+        // rebuilt before anything reads a role off it
+        installTypeScale();
+
         EventQueue.invokeLater(() -> {
             for (Window w : Window.getWindows()) {
                 updateFontInComponentTree(w);
@@ -227,6 +320,17 @@ public class ATLauncherLaf extends FlatLaf {
         if (children != null) {
             for (Component child : children) {
                 updateFontInComponentTree(child);
+            }
+        }
+
+        // a component styled from the type scale knows which role it is, so restore that rather
+        // than guessing from the point size the way the fallback below has to
+        if (c instanceof JComponent) {
+            Object role = ((JComponent) c).getClientProperty(MD3Type.TYPE_ROLE_KEY);
+
+            if (role instanceof MD3Type.Role) {
+                c.setFont(MD3Type.font((MD3Type.Role) role));
+                return;
             }
         }
 

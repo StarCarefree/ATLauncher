@@ -950,6 +950,9 @@ public class App {
 
         UIManager.put("Table.focusCellHighlightBorder", BorderFactory.createEmptyBorder(2, 5, 2, 5));
         UIManager.put("defaultFont", THEME.getNormalFont());
+
+        // has to come after defaultFont is in place, since the type scale is derived from it
+        THEME.installTypeScale();
         UIManager.put("Button.font", THEME.getNormalFont());
         UIManager.put("Toaster.font", THEME.getNormalFont());
         UIManager.put("ToolTip.font", THEME.getNormalFont());

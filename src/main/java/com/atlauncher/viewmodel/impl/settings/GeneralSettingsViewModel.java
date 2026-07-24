@@ -163,6 +163,8 @@ public class GeneralSettingsViewModel implements SettingsListener {
             themes = Arrays.asList(
                     new LauncherTheme("com.atlauncher.themes.Dark", "ATLauncher Dark (default)"),
                     new LauncherTheme("com.atlauncher.themes.Light", "ATLauncher Light"),
+                    new LauncherTheme("com.atlauncher.themes.MaterialDark", "Material Dark"),
+                    new LauncherTheme("com.atlauncher.themes.MaterialLight", "Material Light"),
                     new LauncherTheme("com.atlauncher.themes.MonokaiPro", "Monokai Pro"),
                     new LauncherTheme("com.atlauncher.themes.DraculaContrast", "Dracula Contrast"),
                     new LauncherTheme("com.atlauncher.themes.HiberbeeDark", "Hiberbee Dark"),
