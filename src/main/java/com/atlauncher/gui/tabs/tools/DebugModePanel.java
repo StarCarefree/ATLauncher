@@ -20,21 +20,14 @@ package com.atlauncher.gui.tabs.tools;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-import javax.swing.JLabel;
-
 import org.mini2Dx.gettext.GetText;
-
-import com.atlauncher.builders.HTMLBuilder;
 
 public class DebugModePanel extends AbstractToolPanel {
 
     public DebugModePanel(ToolsViewModel viewModel) {
-        super(GetText.tr("Debug Mode"));
+        super(GetText.tr("Debug Mode"), GetText.tr(
+                "Use this to relaunch ATLauncher in debug mode. This can be used to get more debug logs in order to help diagnose issues with ATLauncher."));
 
-        JLabel INFO_LABEL = new JLabel(new HTMLBuilder().center().split(70).text(GetText.tr(
-                "Use this to relaunch ATLauncher in debug mode. This can be used to get more debug logs in order to help diagnose issues with ATLauncher."))
-                .build());
-        MIDDLE_PANEL.add(INFO_LABEL);
         BOTTOM_PANEL.add(LAUNCH_BUTTON);
         LAUNCH_BUTTON.setEnabled(viewModel.isLaunchInDebugEnabled());
 

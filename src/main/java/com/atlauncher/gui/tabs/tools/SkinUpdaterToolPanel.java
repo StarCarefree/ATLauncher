@@ -20,11 +20,8 @@ package com.atlauncher.gui.tabs.tools;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import javax.swing.JLabel;
-
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.managers.DialogManager;
 
@@ -33,11 +30,10 @@ public class SkinUpdaterToolPanel extends AbstractToolPanel implements ActionLis
     private final ToolsViewModel viewModel;
 
     public SkinUpdaterToolPanel(ToolsViewModel viewModel) {
-        super(GetText.tr("Skin Updater"));
+        super(GetText.tr("Skin Updater"),
+                GetText.tr("This tool will update all your accounts skins on the launcher."));
+
         this.viewModel = viewModel;
-        JLabel INFO_LABEL = new JLabel(new HTMLBuilder().center().split(70)
-                .text(GetText.tr("This tool will update all your accounts skins on the launcher.")).build());
-        MIDDLE_PANEL.add(INFO_LABEL);
         BOTTOM_PANEL.add(LAUNCH_BUTTON);
         LAUNCH_BUTTON.addActionListener(this);
         viewModel.onSkinUpdaterEnabledChanged(LAUNCH_BUTTON::setEnabled);

@@ -23,25 +23,18 @@ import static java.lang.Math.min;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.Rectangle;
 import java.util.List;
 
 import javax.annotation.Nullable;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ButtonGroup;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
@@ -51,42 +44,54 @@ import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
 import com.atlauncher.builders.HTMLBuilder;
-import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.MCVersionRow;
 import com.atlauncher.data.minecraft.loaders.LoaderType;
 import com.atlauncher.data.minecraft.loaders.LoaderVersion;
 import com.atlauncher.gui.components.LockingPreservingCaretTextSetter;
+import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.input.MD3Chip;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.listener.StatefulTextKeyAdapter;
 import com.atlauncher.managers.DialogManager;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.viewmodel.base.ICreatePackViewModel;
 import com.atlauncher.viewmodel.impl.CreatePackViewModel;
 import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
+import com.formdev.flatlaf.util.UIScale;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
 public class CreatePackTab extends HierarchyPanel implements Tab {
-    private JTextField nameField;
+    /** Wide enough for a long instance name without the form running the width of the window. */
+    private static final int FIELD_WIDTH = 520;
+
+    private static final int DESCRIPTION_HEIGHT = 80;
+
+    private MD3TextField nameField;
     private JTextArea descriptionField;
-    private JCheckBox minecraftVersionReleasesFilterCheckbox;
-    private JCheckBox minecraftVersionExperimentsFilterCheckbox;
-    private JCheckBox minecraftVersionSnapshotsFilterCheckbox;
-    private JCheckBox minecraftVersionBetasFilterCheckbox;
-    private JCheckBox minecraftVersionAlphasFilterCheckbox;
-    private ButtonGroup loaderTypeButtonGroup;
-    private JRadioButton loaderTypeNoneRadioButton;
-    private JRadioButton loaderTypeFabricRadioButton;
-    private JRadioButton loaderTypeForgeRadioButton;
-    private JRadioButton loaderTypeLegacyFabricRadioButton;
-    private JRadioButton loaderTypeNeoForgeRadioButton;
-    private JRadioButton loaderTypePaperRadioButton;
-    private JRadioButton loaderTypePurpurRadioButton;
-    private JRadioButton loaderTypeQuiltRadioButton;
+    private MD3Chip minecraftVersionReleasesFilterCheckbox;
+    private MD3Chip minecraftVersionExperimentsFilterCheckbox;
+    private MD3Chip minecraftVersionSnapshotsFilterCheckbox;
+    private MD3Chip minecraftVersionBetasFilterCheckbox;
+    private MD3Chip minecraftVersionAlphasFilterCheckbox;
+    private MD3Chip loaderTypeNoneRadioButton;
+    private MD3Chip loaderTypeFabricRadioButton;
+    private MD3Chip loaderTypeForgeRadioButton;
+    private MD3Chip loaderTypeLegacyFabricRadioButton;
+    private MD3Chip loaderTypeNeoForgeRadioButton;
+    private MD3Chip loaderTypePaperRadioButton;
+    private MD3Chip loaderTypePurpurRadioButton;
+    private MD3Chip loaderTypeQuiltRadioButton;
     private JComboBox<ComboItem<LoaderVersion>> loaderVersionsDropDown;
-    private JButton createServerButton;
-    private JButton createInstanceButton;
+    private MD3Button createServerButton;
+    private MD3Button createInstanceButton;
     private ICreatePackViewModel viewModel;
     /**
      * Last time the loaderVersion has been changed.
@@ -139,42 +144,60 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
         return GetText.tr("Create Instance");
     }
 
+    /**
+     * A label over a section of the form, in the launcher's own type scale.
+     */
+    private static JLabel sectionLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(MD3Type.font(MD3Type.TITLE_SMALL, text));
+        label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
+        label.setForeground(MD3Color.primary());
+        label.setAlignmentX(LEFT_ALIGNMENT);
+        label.setBorder(MD3Spacing.border(MD3Spacing.L, 0, MD3Spacing.S, 0));
+
+        return label;
+    }
+
+    private static JPanel chipRow() {
+        JPanel row = new JPanel(new WrapLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S),
+                MD3Spacing.scale(MD3Spacing.S)));
+        row.setOpaque(false);
+        row.setAlignmentX(LEFT_ALIGNMENT);
+
+        return row;
+    }
+
     private void setupMainPanel() {
-        JPanel mainPanel = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setOpaque(false);
+        mainPanel.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L, 0, MD3Spacing.L));
+
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        header.setOpaque(false);
 
         // Name
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.EAST;
-        JLabel nameLabel = new JLabel(GetText.tr("Instance Name") + ":");
-        mainPanel.add(nameLabel, gbc);
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
+        nameField.setLabel(GetText.tr("Instance Name"));
+        nameField.setAlignmentX(LEFT_ALIGNMENT);
+        nameField.setMaximumSize(new Dimension(UIScale.scale(FIELD_WIDTH), nameField.getPreferredSize().height));
         LockingPreservingCaretTextSetter nameFieldSetter = new LockingPreservingCaretTextSetter(nameField);
         addDisposable(viewModel.name().subscribe((it) -> nameFieldSetter.setText(it.orElse(null))));
         nameField.addKeyListener(new StatefulTextKeyAdapter(
             (e) -> viewModel.setName(nameField.getText()),
             (e) -> nameFieldSetter.setLocked(true),
             (e) -> SwingUtilities.invokeLater(() -> nameFieldSetter.setLocked(false))));
-        mainPanel.add(nameField, gbc);
+        header.add(nameField);
 
         // Description
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabel descriptionLabel = new JLabel(GetText.tr("Description") + ":");
-        mainPanel.add(descriptionLabel, gbc);
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
+        header.add(sectionLabel(GetText.tr("Description")));
+
         JScrollPane descriptionScrollPane = new JScrollPane(
             JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         descriptionScrollPane.setBorder(new FlatScrollPaneBorder());
-        descriptionScrollPane.setPreferredSize(new Dimension(450, 80));
+        descriptionScrollPane.setAlignmentX(LEFT_ALIGNMENT);
+        descriptionScrollPane.setPreferredSize(new Dimension(UIScale.scale(FIELD_WIDTH),
+                UIScale.scale(DESCRIPTION_HEIGHT)));
+        descriptionScrollPane.setMaximumSize(descriptionScrollPane.getPreferredSize());
         descriptionScrollPane.setViewportView(descriptionField);
 
         descriptionField.setLineWrap(true);
@@ -185,71 +208,41 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
             (e) -> viewModel.setDescription(descriptionField.getText()),
             (e) -> descriptionFieldSetter.setLocked(true),
             (e) -> SwingUtilities.invokeLater(() -> descriptionFieldSetter.setLocked(false))));
-        mainPanel.add(descriptionScrollPane, gbc);
+        header.add(descriptionScrollPane);
 
-        // Minecraft Version
-        gbc.gridx = 0;
-        gbc.gridy += 2;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.NORTHEAST;
-        JPanel minecraftVersionPanel = new JPanel();
-        minecraftVersionPanel.setLayout(new BoxLayout(minecraftVersionPanel, BoxLayout.Y_AXIS));
-        JLabel minecraftVersionLabel = new JLabel(GetText.tr("Minecraft Version") + ":");
-        minecraftVersionPanel.add(minecraftVersionLabel);
-        minecraftVersionPanel.add(Box.createVerticalStrut(20));
-        JPanel minecraftVersionFilterPanel = new JPanel();
-        minecraftVersionFilterPanel.setLayout(new BoxLayout(minecraftVersionFilterPanel, BoxLayout.Y_AXIS));
-        JLabel minecraftVersionFilterLabel = new JLabel(GetText.tr("Filter"));
-        addDisposable(viewModel.font().subscribe(minecraftVersionFilterLabel::setFont));
-        minecraftVersionFilterPanel.add(minecraftVersionFilterLabel);
+        // Minecraft Version, and which kinds of it to list
+        header.add(sectionLabel(GetText.tr("Minecraft Version")));
 
-        // Release checkbox
+        JPanel minecraftVersionFilterPanel = chipRow();
+
         setupReleaseCheckbox(minecraftVersionFilterPanel);
-
-        // Experiments checkbox
         setupExperimentsCheckbox(minecraftVersionFilterPanel);
-
-        // Snapshots checkbox
         setupSnapshotsCheckbox(minecraftVersionFilterPanel);
-
-        // Old Betas checkbox
         setupOldBetasCheckbox(minecraftVersionFilterPanel);
-
-        // Old Alphas checkbox
         setupOldAlphasCheckbox(minecraftVersionFilterPanel);
 
-        minecraftVersionPanel.add(minecraftVersionFilterPanel);
-        mainPanel.add(minecraftVersionPanel, gbc);
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
+        header.add(minecraftVersionFilterPanel);
+        header.add(Box.createVerticalStrut(MD3Spacing.scale(MD3Spacing.M)));
+
+        mainPanel.add(header, BorderLayout.NORTH);
+
+        // the version list is what this page is mostly about, so it takes the space left over
+        // rather than sitting in a 450x300 box with empty window around it
         JScrollPane minecraftVersionScrollPane = new JScrollPane(
             JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         minecraftVersionScrollPane.setBorder(new FlatScrollPaneBorder());
-        minecraftVersionScrollPane.setPreferredSize(new Dimension(450, 300));
         setupMinecraftVersionsTable();
         minecraftVersionScrollPane.setViewportView(minecraftVersionTable);
-        mainPanel.add(minecraftVersionScrollPane, gbc);
+        mainPanel.add(minecraftVersionScrollPane, BorderLayout.CENTER);
+
+        JPanel footer = new JPanel();
+        footer.setLayout(new BoxLayout(footer, BoxLayout.Y_AXIS));
+        footer.setOpaque(false);
 
         // Loader Type
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.EAST;
-        JLabel loaderTypeLabel = new JLabel(GetText.tr("Loader") + "?");
-        mainPanel.add(loaderTypeLabel, gbc);
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        loaderTypeButtonGroup.add(loaderTypeNoneRadioButton);
-        loaderTypeButtonGroup.add(loaderTypeFabricRadioButton);
-        loaderTypeButtonGroup.add(loaderTypeForgeRadioButton);
-        loaderTypeButtonGroup.add(loaderTypeLegacyFabricRadioButton);
-        loaderTypeButtonGroup.add(loaderTypeNeoForgeRadioButton);
-        loaderTypeButtonGroup.add(loaderTypePaperRadioButton);
-        loaderTypeButtonGroup.add(loaderTypePurpurRadioButton);
-        loaderTypeButtonGroup.add(loaderTypeQuiltRadioButton);
-        JPanel loaderTypePanel = new JPanel(new FlowLayout());
+        footer.add(sectionLabel(GetText.tr("Loader")));
+
+        JPanel loaderTypePanel = chipRow();
 
         setupLoaderNoneButton(loaderTypePanel);
         setupLoaderFabricButton(loaderTypePanel);
@@ -260,18 +253,20 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
         setupLoaderPurpurButton(loaderTypePanel);
         setupLoaderQuiltButton(loaderTypePanel);
 
-        mainPanel.add(loaderTypePanel, gbc);
+        footer.add(loaderTypePanel);
 
         // Loader Version
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
+        JPanel loaderVersionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S), 0));
+        loaderVersionPanel.setOpaque(false);
+        loaderVersionPanel.setAlignmentX(LEFT_ALIGNMENT);
+        loaderVersionPanel.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
+
         JLabel loaderVersionLabel = new JLabel(GetText.tr("Loader Version") + ":");
-        mainPanel.add(loaderVersionLabel, gbc);
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
+        loaderVersionLabel.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
+        loaderVersionLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
+        loaderVersionLabel.setForeground(MD3Color.onSurfaceVariant());
+        loaderVersionPanel.add(loaderVersionLabel);
+
         addDisposable(viewModel.loaderVersionsDropDownEnabled().subscribe(loaderVersionsDropDown::setEnabled));
 
         addDisposable(viewModel.loaderVersions().subscribe((loaderVersionsOptional) -> {
@@ -332,7 +327,11 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
                 setEmpty();
             }
         }));
-        mainPanel.add(loaderVersionsDropDown, gbc);
+
+        loaderVersionPanel.add(loaderVersionsDropDown);
+        footer.add(loaderVersionPanel);
+
+        mainPanel.add(footer, BorderLayout.SOUTH);
         add(mainPanel, BorderLayout.CENTER);
     }
 
@@ -584,8 +583,17 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
     }
 
     private void setupBottomPanel() {
-        JPanel bottomPanel = new JPanel(new FlowLayout());
-        bottomPanel.add(createServerButton);
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setOpaque(false);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        actions.setOpaque(false);
+        actions.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
+
+        bottomPanel.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bottomPanel.add(actions, BorderLayout.CENTER);
+
+        actions.add(createServerButton);
         createServerButton.addActionListener((event) -> { // user has no instances, they may not be aware this is not
             // how to play
             if (viewModel.warnUserAboutServer()) {
@@ -606,7 +614,7 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
             .subscribe((reason) -> createInstanceButton.setToolTipText(reason.orElse(null))));
         addDisposable(viewModel.createInstanceEnabled().subscribe(createInstanceButton::setEnabled));
         addDisposable(viewModel.createServerEnabled().subscribe(createServerButton::setEnabled));
-        bottomPanel.add(createInstanceButton);
+        actions.add(createInstanceButton);
         createInstanceButton.addActionListener((event) -> viewModel.createInstance());
         add(bottomPanel, BorderLayout.SOUTH);
     }
@@ -629,25 +637,24 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
     @Override
     protected void onShow() {
         hasScrolledToSelection = false;
-        nameField = new JTextField(32);
+        nameField = new MD3TextField(GetText.tr("Instance Name"));
         descriptionField = new JTextArea(2, 40);
-        minecraftVersionReleasesFilterCheckbox = new JCheckBox(getReleasesText());
-        minecraftVersionExperimentsFilterCheckbox = new JCheckBox(getExperimentsText());
-        minecraftVersionSnapshotsFilterCheckbox = new JCheckBox(getSnapshotsText());
-        minecraftVersionBetasFilterCheckbox = new JCheckBox(getBetasText());
-        minecraftVersionAlphasFilterCheckbox = new JCheckBox(getAlphasText());
-        loaderTypeButtonGroup = new ButtonGroup();
-        loaderTypeNoneRadioButton = new JRadioButton(getNoneText());
-        loaderTypeFabricRadioButton = new JRadioButton("Fabric");
-        loaderTypeForgeRadioButton = new JRadioButton("Forge");
-        loaderTypeLegacyFabricRadioButton = new JRadioButton("Legacy Fabric");
-        loaderTypeNeoForgeRadioButton = new JRadioButton("NeoForge");
-        loaderTypePaperRadioButton = new JRadioButton("Paper");
-        loaderTypePurpurRadioButton = new JRadioButton("Purpur");
-        loaderTypeQuiltRadioButton = new JRadioButton("Quilt");
+        minecraftVersionReleasesFilterCheckbox = MD3Chip.filter(getReleasesText());
+        minecraftVersionExperimentsFilterCheckbox = MD3Chip.filter(getExperimentsText());
+        minecraftVersionSnapshotsFilterCheckbox = MD3Chip.filter(getSnapshotsText());
+        minecraftVersionBetasFilterCheckbox = MD3Chip.filter(getBetasText());
+        minecraftVersionAlphasFilterCheckbox = MD3Chip.filter(getAlphasText());
+        loaderTypeNoneRadioButton = MD3Chip.filter(getNoneText());
+        loaderTypeFabricRadioButton = MD3Chip.filter("Fabric");
+        loaderTypeForgeRadioButton = MD3Chip.filter("Forge");
+        loaderTypeLegacyFabricRadioButton = MD3Chip.filter("Legacy Fabric");
+        loaderTypeNeoForgeRadioButton = MD3Chip.filter("NeoForge");
+        loaderTypePaperRadioButton = MD3Chip.filter("Paper");
+        loaderTypePurpurRadioButton = MD3Chip.filter("Purpur");
+        loaderTypeQuiltRadioButton = MD3Chip.filter("Quilt");
         loaderVersionsDropDown = new JComboBox<>();
-        createServerButton = new JButton(getCreateServerText());
-        createInstanceButton = new JButton(getCreateInstanceText());
+        createServerButton = MD3Button.outlined(getCreateServerText());
+        createInstanceButton = MD3Button.filled(getCreateInstanceText());
 
         setupMainPanel();
         setupBottomPanel();
@@ -663,7 +670,6 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
         minecraftVersionSnapshotsFilterCheckbox = null;
         minecraftVersionBetasFilterCheckbox = null;
         minecraftVersionAlphasFilterCheckbox = null;
-        loaderTypeButtonGroup = null;
         loaderTypeNoneRadioButton = null;
         loaderTypeFabricRadioButton = null;
         loaderTypeForgeRadioButton = null;

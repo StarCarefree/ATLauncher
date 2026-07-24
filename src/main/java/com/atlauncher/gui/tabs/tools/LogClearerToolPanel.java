@@ -17,22 +17,16 @@
  */
 package com.atlauncher.gui.tabs.tools;
 
-import javax.swing.JLabel;
-
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.managers.DialogManager;
 
 public class LogClearerToolPanel extends AbstractToolPanel {
 
     public LogClearerToolPanel(ToolsViewModel viewModel) {
-        super(GetText.tr("Log Clearer"));
+        super(GetText.tr("Log Clearer"), GetText.tr(
+                "This tool clears out all logs created by the launcher (not included those made by instances) to free up space and old junk."));
 
-        JLabel INFO_LABEL = new JLabel(new HTMLBuilder().center().split(70).text(GetText.tr(
-                "This tool clears out all logs created by the launcher (not included those made by instances) to free up space and old junk."))
-                .build());
-        MIDDLE_PANEL.add(INFO_LABEL);
         BOTTOM_PANEL.add(LAUNCH_BUTTON);
         LAUNCH_BUTTON.addActionListener(e -> {
             if (e.getSource() == LAUNCH_BUTTON) {

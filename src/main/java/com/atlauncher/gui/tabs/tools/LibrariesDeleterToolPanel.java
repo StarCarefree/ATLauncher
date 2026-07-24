@@ -17,22 +17,16 @@
  */
 package com.atlauncher.gui.tabs.tools;
 
-import javax.swing.JLabel;
-
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.managers.DialogManager;
 
 public class LibrariesDeleterToolPanel extends AbstractToolPanel {
 
     public LibrariesDeleterToolPanel(ToolsViewModel viewModel) {
-        super(GetText.tr("Libraries Deleter"));
+        super(GetText.tr("Libraries Deleter"), GetText.tr(
+                "This tool clears out all the libraries used by Minecraft. Instances may need to be reinstalled if launching them once doesn't download all libraries."));
 
-        JLabel INFO_LABEL = new JLabel(new HTMLBuilder().center().split(70).text(GetText.tr(
-                "This tool clears out all the libraries used by Minecraft. Instances may need to be reinstalled if launching them once doesn't download all libraries."))
-                .build());
-        MIDDLE_PANEL.add(INFO_LABEL);
         BOTTOM_PANEL.add(LAUNCH_BUTTON);
         LAUNCH_BUTTON.addActionListener(e -> {
             if (e.getSource() == LAUNCH_BUTTON) {

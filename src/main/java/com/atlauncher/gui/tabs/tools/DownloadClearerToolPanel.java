@@ -17,22 +17,16 @@
  */
 package com.atlauncher.gui.tabs.tools;
 
-import javax.swing.JLabel;
-
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.managers.DialogManager;
 
 public class DownloadClearerToolPanel extends AbstractToolPanel {
 
     public DownloadClearerToolPanel(ToolsViewModel viewModel) {
-        super(GetText.tr("Download Clearer"));
+        super(GetText.tr("Download Clearer"), GetText.tr(
+                "This tool clears out all the downloads done by the launcher. This will not affect any instances, but means new pack installs may take longer as it needs to redownload mods."));
 
-        JLabel INFO_LABEL = new JLabel(new HTMLBuilder().center().split(70).text(GetText.tr(
-                "This tool clears out all the downloads done by the launcher. This will not affect any instances, but means new pack installs may take longer as it needs to redownload mods."))
-                .build());
-        MIDDLE_PANEL.add(INFO_LABEL);
         BOTTOM_PANEL.add(LAUNCH_BUTTON);
         LAUNCH_BUTTON.addActionListener(e -> {
             if (e.getSource() == LAUNCH_BUTTON) {

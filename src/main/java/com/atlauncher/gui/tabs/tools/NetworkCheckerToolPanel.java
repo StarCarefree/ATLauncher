@@ -20,8 +20,6 @@ package com.atlauncher.gui.tabs.tools;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import javax.swing.JLabel;
-
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.builders.HTMLBuilder;
@@ -34,15 +32,11 @@ public class NetworkCheckerToolPanel extends AbstractToolPanel implements Action
     private final ToolsViewModel viewModel;
 
     public NetworkCheckerToolPanel(ToolsViewModel viewModel) {
-        super(GetText.tr("Network Checker"));
-        this.viewModel = viewModel;
+        super(GetText.tr("Network Checker"), GetText.tr(
+            "This tool does various tests on your network and determines any issues that may pop up with "
+                + "connecting to our file servers and to other servers."));
 
-        JLabel INFO_LABEL = new JLabel(new HTMLBuilder().center().split(70)
-            .text(GetText.tr(
-                "This tool does various tests on your network and determines any issues that may pop up with "
-                    + "connecting to our file servers and to other servers."))
-            .build());
-        MIDDLE_PANEL.add(INFO_LABEL);
+        this.viewModel = viewModel;
         BOTTOM_PANEL.add(LAUNCH_BUTTON);
         LAUNCH_BUTTON.addActionListener(this);
         viewModel.onCanRunNetworkCheckerChanged(LAUNCH_BUTTON::setEnabled);

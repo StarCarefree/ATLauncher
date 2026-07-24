@@ -18,15 +18,16 @@
 package com.atlauncher.gui.tabs.tools;
 
 import java.awt.BorderLayout;
-import java.awt.GridLayout;
 
-import javax.swing.BorderFactory;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 import org.mini2Dx.gettext.GetText;
 
+import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.gui.tabs.Tab;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 
 public class ToolsTab extends HierarchyPanel implements Tab {
 
@@ -34,14 +35,16 @@ public class ToolsTab extends HierarchyPanel implements Tab {
 
     public ToolsTab() {
         super(new BorderLayout());
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
     }
 
     @Override
     protected void onShow() {
-        JPanel mainPanel = new JPanel();
-
-        mainPanel.setLayout(new GridLayout(3, 2, 10, 10));
+        // the tools reflow with the window rather than being pinned to a three by two grid, which
+        // stretched six cards to whatever shape the window happened to be
+        JPanel mainPanel = new JPanel(
+                new CardGridLayout(AbstractToolPanel.CARD_WIDTH, AbstractToolPanel.MAX_CARD_WIDTH, MD3Spacing.L));
+        mainPanel.setOpaque(false);
+        mainPanel.setBorder(MD3Spacing.border(MD3Spacing.L));
 
         mainPanel.add(new NetworkCheckerToolPanel(viewModel));
         mainPanel.add(new LogClearerToolPanel(viewModel));
@@ -50,7 +53,14 @@ public class ToolsTab extends HierarchyPanel implements Tab {
         mainPanel.add(new SkinUpdaterToolPanel(viewModel));
         mainPanel.add(new LibrariesDeleterToolPanel(viewModel));
 
-        add(mainPanel, BorderLayout.CENTER);
+        JScrollPane scrollPane = new JScrollPane(mainPanel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        add(scrollPane, BorderLayout.CENTER);
     }
 
     @Override
