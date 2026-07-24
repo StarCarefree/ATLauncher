@@ -17,15 +17,24 @@
  */
 package com.atlauncher.themes.md3.token;
 
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Font;
 import java.awt.font.TextAttribute;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import javax.swing.AbstractButton;
+import javax.swing.ComboBoxModel;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
+import javax.swing.text.JTextComponent;
 
 import com.formdev.flatlaf.util.UIScale;
 
@@ -184,6 +193,73 @@ public final class MD3Type {
 
         // the platform's own face, which is chosen for having the coverage this one lacks
         return new Font(Font.SANS_SERIF, font.getStyle(), font.getSize()).deriveFont(font.getSize2D());
+    }
+
+    /**
+     * Makes sure a component - and everything inside it - can draw the text it holds, swapping the
+     * theme's face for the platform's wherever it cannot.
+     *
+     * <p>
+     * For controls, where {@link #font(Role, String)} cannot be used because the text is not known
+     * at the call site: a combo box of language names, a list of translated options. The language
+     * picker was the plainest case - every non-Latin language in it was drawn as empty boxes, which
+     * is a hard thing to pick your own language out of.
+     */
+    public static void ensureCanDisplay(Component component) {
+        if (component == null) {
+            return;
+        }
+
+        Font font = component.getFont();
+
+        if (font != null && !canDisplay(font, textOf(component))) {
+            component.setFont(new Font(Font.SANS_SERIF, font.getStyle(), font.getSize())
+                    .deriveFont(font.getSize2D()));
+        }
+
+        if (component instanceof Container) {
+            for (Component child : ((Container) component).getComponents()) {
+                ensureCanDisplay(child);
+            }
+        }
+    }
+
+    private static boolean canDisplay(Font font, List<String> texts) {
+        for (String text : texts) {
+            if (text != null && !text.isEmpty() && font.canDisplayUpTo(text) >= 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Everything a component will draw. A combo box is asked for every item, not just the selected
+     * one - the list it opens has to be legible too.
+     */
+    private static List<String> textOf(Component component) {
+        List<String> texts = new ArrayList<>();
+
+        if (component instanceof JLabel) {
+            texts.add(((JLabel) component).getText());
+        } else if (component instanceof AbstractButton) {
+            texts.add(((AbstractButton) component).getText());
+        } else if (component instanceof JTextComponent) {
+            texts.add(((JTextComponent) component).getText());
+        } else if (component instanceof JComboBox) {
+            ComboBoxModel<?> model = ((JComboBox<?>) component).getModel();
+
+            for (int i = 0; i < model.getSize(); i++) {
+                Object item = model.getElementAt(i);
+
+                if (item != null) {
+                    texts.add(item.toString());
+                }
+            }
+        }
+
+        return texts;
     }
 
     /**

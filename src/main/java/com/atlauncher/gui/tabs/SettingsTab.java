@@ -18,17 +18,20 @@
 package com.atlauncher.gui.tabs;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.FlowLayout;
 import java.util.Arrays;
 import java.util.List;
 
 import javax.annotation.Nullable;
-import javax.swing.JButton;
 import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
+import javax.swing.JScrollPane;
 
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.App;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.nav.MD3Tabs;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.gui.tabs.settings.BackupsSettingsTab;
 import com.atlauncher.gui.tabs.settings.CommandsSettingsTab;
@@ -39,6 +42,7 @@ import com.atlauncher.gui.tabs.settings.LoggingSettingsTab;
 import com.atlauncher.gui.tabs.settings.ModsSettingsTab;
 import com.atlauncher.gui.tabs.settings.NetworkSettingsTab;
 import com.atlauncher.network.Analytics;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.viewmodel.impl.settings.BackupsSettingsViewModel;
 import com.atlauncher.viewmodel.impl.settings.CommandsSettingsViewModel;
 import com.atlauncher.viewmodel.impl.settings.EnvironmentVariablesViewModel;
@@ -51,9 +55,13 @@ import com.atlauncher.viewmodel.impl.settings.SettingsViewModel;
 
 public class SettingsTab extends HierarchyPanel implements Tab {
     @Nullable
-    private JTabbedPane tabbedPane;
+    private MD3Tabs tabs;
     @Nullable
-    private JButton saveButton;
+    private JPanel sections;
+    @Nullable
+    private CardLayout sectionLayout;
+    @Nullable
+    private MD3Button saveButton;
 
     private SettingsViewModel viewModel;
 
@@ -85,7 +93,7 @@ public class SettingsTab extends HierarchyPanel implements Tab {
     @Nullable
     private CommandsSettingsTab commandSettingsTab;
     @Nullable
-    private List<Tab> tabs;
+    private List<Tab> sectionTabs;
 
     private int selectedTabIndex = 0;
 
@@ -110,10 +118,11 @@ public class SettingsTab extends HierarchyPanel implements Tab {
     @SuppressWarnings("null")
     @Override
     protected void onShow() {
-        saveButton = new JButton(GetText.tr("Save"));
-        tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-
-        tabbedPane.setFont(App.THEME.getNormalFont().deriveFont(17.0F));
+        saveButton = MD3Button.filled(GetText.tr("Save"));
+        tabs = new MD3Tabs();
+        sectionLayout = new CardLayout();
+        sections = new JPanel(sectionLayout);
+        sections.setOpaque(false);
 
         generalSettingsTab = new GeneralSettingsTab(generalSettingsViewModel);
         modsSettingsTab = new ModsSettingsTab(modsSettingsViewModel);
@@ -123,37 +132,70 @@ public class SettingsTab extends HierarchyPanel implements Tab {
         backupsSettingsTab = new BackupsSettingsTab(backupSettingsViewModel);
         commandSettingsTab = new CommandsSettingsTab(commandsSettingsViewModel);
         environmentVariablesTab = new EnvironmentVariablesTab(environmentVariablesViewModel);
-        tabs = Arrays.asList(
+        sectionTabs = Arrays.asList(
                 new Tab[] { this.generalSettingsTab, this.modsSettingsTab, this.javaSettingsTab,
                         this.networkSettingsTab, this.loggingSettingsTab, this.backupsSettingsTab,
                         this.commandSettingsTab, this.environmentVariablesTab });
 
-        for (Tab tab : this.tabs) {
-            this.tabbedPane.addTab(tab.getTitle(), (JPanel) tab);
+        for (int i = 0; i < sectionTabs.size(); i++) {
+            Tab tab = sectionTabs.get(i);
+
+            // each section scrolls on its own: they are now a list of full-width rows rather than a
+            // grid sized to whatever fitted, and the longer ones do not fit a window
+            JScrollPane scrollPane = new JScrollPane((JPanel) tab, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            scrollPane.setBorder(null);
+            scrollPane.setOpaque(false);
+            scrollPane.getViewport().setOpaque(false);
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+            sections.add(scrollPane, String.valueOf(i));
+            tabs.addTab(tab.getTitle()).setName("settingsSection." + tab.getAnalyticsScreenViewName());
         }
-        tabbedPane.setOpaque(true);
-        tabbedPane.setSelectedIndex(selectedTabIndex);
 
-        add(tabbedPane, BorderLayout.CENTER);
+        tabs.setSelectedIndex(selectedTabIndex);
+        sectionLayout.show(sections, String.valueOf(selectedTabIndex));
 
-        JPanel bottomPanel = new JPanel();
-        bottomPanel.add(saveButton);
+        add(tabs, BorderLayout.NORTH);
+        add(sections, BorderLayout.CENTER);
+        add(buildSaveBar(), BorderLayout.SOUTH);
 
-        add(bottomPanel, BorderLayout.SOUTH);
         addDisposable(viewModel.getSaveEnabled().subscribe(saveButton::setEnabled));
         saveButton.addActionListener(arg0 -> viewModel.save());
 
-        tabbedPane.addChangeListener(e -> {
-            selectedTabIndex = tabbedPane.getSelectedIndex();
+        tabs.addChangeListener(e -> {
+            selectedTabIndex = tabs.getSelectedIndex();
+            sectionLayout.show(sections, String.valueOf(selectedTabIndex));
             Analytics.sendScreenView(
-                    ((Tab) tabbedPane.getSelectedComponent()).getAnalyticsScreenViewName() + " Settings");
+                    sectionTabs.get(selectedTabIndex).getAnalyticsScreenViewName() + " Settings");
         });
+    }
+
+    /**
+     * Settings apply on save rather than as they are changed, so the button that does it stays
+     * visible whichever section is open and wherever it has been scrolled to.
+     */
+    private JPanel buildSaveBar() {
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        actions.setOpaque(false);
+        actions.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
+        actions.add(saveButton);
+
+        bar.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bar.add(actions, BorderLayout.CENTER);
+
+        return bar;
     }
 
     @Override
     protected void onDestroy() {
         removeAll();
-        tabbedPane = null;
+        tabs = null;
+        sections = null;
+        sectionLayout = null;
         saveButton = null;
 
         generalSettingsTab = null;
@@ -164,7 +206,7 @@ public class SettingsTab extends HierarchyPanel implements Tab {
         loggingSettingsTab = null;
         backupsSettingsTab = null;
         commandSettingsTab = null;
-        tabs = null;
+        sectionTabs = null;
     }
 
     @Override

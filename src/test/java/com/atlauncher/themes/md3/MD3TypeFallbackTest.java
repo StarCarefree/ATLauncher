@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Font;
 
+import javax.swing.JComboBox;
 import javax.swing.UIManager;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -57,6 +58,32 @@ public class MD3TypeFallbackTest {
 
         assertTrue(font.canDisplayUpTo(chinese) < 0,
                 "the font chosen for this text still cannot draw it, so the card shows empty boxes");
+    }
+
+    /**
+     * The language picker shows every language in its own language, so this is the control the
+     * launcher most needs a face with the coverage for.
+     */
+    @Test
+    public void testAControlIsGivenAFontForWhatIsInside() {
+        JComboBox<String> languages = new JComboBox<>(new String[] { "English", "中文", "日本語" });
+        languages.setFont(MD3Type.font(MD3Type.BODY_LARGE));
+
+        MD3Type.ensureCanDisplay(languages);
+
+        assertTrue(languages.getFont().canDisplayUpTo("中文") < 0,
+                "the language list still cannot draw its own entries, so they show as empty boxes");
+    }
+
+    @Test
+    public void testAControlWithNothingUnusualKeepsItsFont() {
+        JComboBox<String> plain = new JComboBox<>(new String[] { "CurseForge", "Modrinth" });
+        Font before = MD3Type.font(MD3Type.BODY_LARGE);
+        plain.setFont(before);
+
+        MD3Type.ensureCanDisplay(plain);
+
+        assertEquals(before, plain.getFont(), "a Latin-only control was pushed off the theme's face");
     }
 
     @Test

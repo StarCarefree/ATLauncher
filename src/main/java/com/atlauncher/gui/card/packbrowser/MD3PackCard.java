@@ -44,6 +44,7 @@ import org.mini2Dx.gettext.GetText;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.MD3Menus;
+import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Badge;
@@ -85,7 +86,7 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
     /** Roughly two lines at body-small in a 280dp card. */
     private static final int DESCRIPTION_LIMIT = 84;
 
-    /** Named because {@link #truncateToWidth} needs to know how much room it takes. */
+    /** Marks a summary that was cut short of its character limit before it was even wrapped. */
     private static final String ELLIPSIS = "\u2026";
 
     private JPanel coverWrapper;
@@ -314,12 +315,6 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
 
     /**
      * Breaks a summary across two lines that are guaranteed to fit.
-     *
-     * <p>
-     * Measured with {@link FontMetrics} and emitted as an explicit {@code <br>} rather than left to
-     * Swing's HTML engine. A {@code width} on an HTML block is honoured inconsistently - the label
-     * lays the text out at its natural width and then clips, which loses whole words from the
-     * middle of the sentence rather than trimming the end.
      */
     private static String wrapToTwoLines(FontMetrics metrics, String description, int width) {
         if (description == null || description.trim().isEmpty()) {
@@ -329,72 +324,8 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
         // the character limit is measured against the narrowest card, so a stretched one is allowed
         // proportionally more of the summary rather than being trimmed to fit a card it is not
         int limit = DESCRIPTION_LIMIT * width / UIScale.scale(CARD_WIDTH - MD3Spacing.L - MD3Spacing.S);
-        String shortened = shorten(description, limit);
-        String[] words = shortened.split(" ");
-        StringBuilder line = new StringBuilder();
-        List<String> lines = new ArrayList<>();
 
-        for (String word : words) {
-            String candidate = line.length() == 0 ? word : line + " " + word;
-
-            if (metrics.stringWidth(candidate) <= width || line.length() == 0) {
-                line.setLength(0);
-                line.append(candidate);
-
-                continue;
-            }
-
-            lines.add(line.toString());
-            line.setLength(0);
-            line.append(word);
-
-            if (lines.size() == 2) {
-                break;
-            }
-        }
-
-        if (lines.size() < 2 && line.length() > 0) {
-            lines.add(line.toString());
-        }
-
-        // anything that did not fit is signalled on the last line rather than silently dropped
-        int used = 0;
-
-        for (String rendered : lines) {
-            used += rendered.length() + 1;
-        }
-
-        if (used < shortened.length() && !lines.isEmpty()) {
-            int last = lines.size() - 1;
-            lines.set(last, truncateToWidth(metrics, lines.get(last), width));
-        }
-
-        StringBuilder html = new StringBuilder("<html>");
-
-        for (int i = 0; i < lines.size(); i++) {
-            if (i > 0) {
-                html.append("<br>");
-            }
-
-            html.append(escapeHtml(lines.get(i)));
-        }
-
-        return html.append("</html>").toString();
-    }
-
-    private static String truncateToWidth(FontMetrics metrics, String text, int width) {
-        String candidate = text + ELLIPSIS;
-
-        while (candidate.length() > ELLIPSIS.length() + 1 && metrics.stringWidth(candidate) > width) {
-            text = text.substring(0, text.length() - 1);
-            candidate = text + ELLIPSIS;
-        }
-
-        return candidate;
-    }
-
-    private static String escapeHtml(String text) {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        return MD3Text.wrapToLines(metrics, shorten(description, limit), width, 2);
     }
 
     private JComponent buildActions(AbstractButton primary, AbstractButton... overflow) {

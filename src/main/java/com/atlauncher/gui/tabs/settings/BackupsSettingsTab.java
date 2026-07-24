@@ -17,24 +17,19 @@
  */
 package com.atlauncher.gui.tabs.settings;
 
-import java.awt.GridBagConstraints;
 import java.awt.event.ItemEvent;
 import java.io.File;
 
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
-import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.builders.HTMLBuilder;
-import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.BackupMode;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.gui.components.JLabelWithHover;
@@ -56,18 +51,6 @@ public class BackupsSettingsTab extends AbstractSettingsTab {
     protected void onShow() {
         // Backup mode
 
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover backupModeLabel = new JLabelWithHover(GetText.tr("Backup Mode") + ":", HELP_ICON, GetText.tr(
-                "When backing up an instance, what should get backed up? Mainly used for when doing automated backups."));
-
-        add(backupModeLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         JComboBox<ComboItem<BackupMode>> backupMode = new JComboBox<>();
         backupMode.addItem(new ComboItem<>(BackupMode.NORMAL, GetText.tr("Backup saves, configs and options only")));
         backupMode.addItem(new ComboItem<>(BackupMode.NORMAL_PLUS_MODS,
@@ -79,26 +62,11 @@ public class BackupsSettingsTab extends AbstractSettingsTab {
         });
         addDisposable(viewModel.getBackupMode().subscribe(backupMode::setSelectedIndex));
 
-        add(backupMode, gbc);
+        addRow(GetText.tr("Backup Mode"), GetText.tr(
+                "When backing up an instance, what should get backed up? Mainly used for when doing automated backups."),
+            backupMode);
 
         // Custom Backups Path
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 1;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover backupsPathLabel = new JLabelWithHover(GetText.tr("Backups Folder") + ":", HELP_ICON,
-                new HTMLBuilder().center().split(100).text(GetText.tr(
-                        "This setting allows you to change the Backups folder that the launcher uses to store instance backups. By default this is the backups folder where the launcher is installed."))
-                        .build());
-        add(backupsPathLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        JPanel backupsPathPanel = new JPanel();
-        backupsPathPanel.setLayout(new BoxLayout(backupsPathPanel, BoxLayout.X_AXIS));
 
         JTextField backupsPath = new JTextField(16);
         backupsPathChecker = new JLabelWithHover("", null, null);
@@ -133,35 +101,19 @@ public class BackupsSettingsTab extends AbstractSettingsTab {
             }
         });
 
-        backupsPathPanel.add(backupsPath);
-        backupsPathPanel.add(Box.createHorizontalStrut(5));
-        backupsPathPanel.add(backupsPathChecker);
-        backupsPathPanel.add(Box.createHorizontalStrut(5));
-        backupsPathPanel.add(backupsPathResetButton);
-        backupsPathPanel.add(Box.createHorizontalStrut(5));
-        backupsPathPanel.add(backupsPathBrowseButton);
-
-        add(backupsPathPanel, gbc);
+        addWideRow(GetText.tr("Backups Folder"), GetText.tr(
+                "This setting allows you to change the Backups folder that the launcher uses to store instance backups. By default this is the backups folder where the launcher is installed."),
+            group(backupsPath, backupsPathChecker, backupsPathResetButton, backupsPathBrowseButton));
 
         // Enable automatic backup after launch
 
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover enableAutomaticBackupAfterLaunchLabel = new JLabelWithHover(
-                GetText.tr("Enable Automatic Backup After Launch") + "?", HELP_ICON,
-                GetText.tr("If a backup should run after launching an instance."));
-        add(enableAutomaticBackupAfterLaunchLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.CHECKBOX_FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         JCheckBox enableAutomaticBackupAfterLaunch = new JCheckBox();
         enableAutomaticBackupAfterLaunch
                 .addItemListener(e -> viewModel.setEnableAutoBackup(e.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getEnableAutoBackup().subscribe(enableAutomaticBackupAfterLaunch::setSelected));
-        add(enableAutomaticBackupAfterLaunch, gbc);
+        addRow(GetText.tr("Enable Automatic Backup After Launch"),
+            GetText.tr("If a backup should run after launching an instance."),
+            enableAutomaticBackupAfterLaunch);
     }
 
     private void showBackupsPathWarning() {

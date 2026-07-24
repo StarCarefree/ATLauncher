@@ -17,36 +17,30 @@
  */
 package com.atlauncher.gui.tabs.settings;
 
-import java.awt.BorderLayout;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Map;
 
-import javax.swing.BorderFactory;
-import javax.swing.BoxLayout;
 import javax.swing.JButton;
-import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.viewmodel.impl.settings.EnvironmentVariablesViewModel;
 import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
 
 public class EnvironmentVariablesTab extends AbstractSettingsTab {
+    private static final int TABLE_WIDTH = 600;
+    private static final int TABLE_HEIGHT = 400;
 
     private final EnvironmentVariablesViewModel viewModel;
     private JTable table;
@@ -55,7 +49,6 @@ public class EnvironmentVariablesTab extends AbstractSettingsTab {
 
     public EnvironmentVariablesTab(EnvironmentVariablesViewModel viewModel) {
         this.viewModel = viewModel;
-        setLayout(new BorderLayout());
     }
 
     @Override
@@ -94,16 +87,6 @@ public class EnvironmentVariablesTab extends AbstractSettingsTab {
             }
         });
 
-        JLabel infoLabel = new JLabel(new HTMLBuilder()
-                .center()
-                .text(GetText.tr(
-                        "This page allows you to manage environment variables for your Minecraft instances."
-                                + "<br/>Double-click a variable name or value in the table below to edit it."))
-                .build());
-        infoLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        infoLabel.setHorizontalAlignment(SwingConstants.CENTER);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         addButton = new JButton(GetText.tr("Add"));
         addButton.addActionListener(e -> {
             String key = DialogManager.okDialog().setTitle(GetText.tr("Environment Variable Name"))
@@ -125,39 +108,23 @@ public class EnvironmentVariablesTab extends AbstractSettingsTab {
         deleteButton.addActionListener(e -> deleteSelected());
         clearButton = new JButton(GetText.tr("Clear"));
         clearButton.addActionListener(e -> clearAll());
-        buttonPanel.add(addButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(clearButton);
 
-        // Stack info label and buttons vertically at the top
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.add(infoLabel, BorderLayout.NORTH);
-        topPanel.add(buttonPanel, BorderLayout.CENTER);
+        addRow(GetText.tr("Environment Variables"),
+            GetText.tr(
+                "These are passed to every Minecraft instance the launcher starts. Double-click a name or value below to edit it."),
+            group(addButton, deleteButton, clearButton));
 
         JScrollPane scrollPane = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setPreferredSize(new Dimension(600, 400));
-        scrollPane.setMaximumSize(new Dimension(600, 400));
-        scrollPane.setMinimumSize(new Dimension(600, 200));
+        scrollPane.setPreferredSize(new Dimension(TABLE_WIDTH, TABLE_HEIGHT));
         scrollPane.setBorder(new FlatScrollPaneBorder());
         scrollPane.setViewportView(table);
 
-        // Fixed-width content panel
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setPreferredSize(new Dimension(600, 480));
-        contentPanel.setMaximumSize(new Dimension(600, 1000));
-        contentPanel.setMinimumSize(new Dimension(600, 200));
-        contentPanel.add(topPanel);
-        contentPanel.add(scrollPane);
+        addWideRow(GetText.tr("Variables"), null, scrollPane);
 
-        // Center the content panel in the tab
-        setLayout(new FlowLayout(FlowLayout.CENTER, 0, 20));
-        add(contentPanel);
-
-        // Set column widths: Name = 1/3, Value = 2/3 of 600px
-        table.getColumnModel().getColumn(0).setPreferredWidth(600 / 3);
-        table.getColumnModel().getColumn(1).setPreferredWidth(600 - (600 / 3));
+        // Set column widths: Name = 1/3, Value = 2/3
+        table.getColumnModel().getColumn(0).setPreferredWidth(TABLE_WIDTH / 3);
+        table.getColumnModel().getColumn(1).setPreferredWidth(TABLE_WIDTH - (TABLE_WIDTH / 3));
 
         addDisposable(viewModel.getEnvironmentVariablesObservable().subscribe(vars -> {
             SwingUtilities.invokeLater(() -> {
