@@ -47,7 +47,15 @@ public class News {
     @SerializedName("created_at")
     private String createdAt;
 
-    private String getFormattedDate() {
+    public String getTitle() {
+        return this.title;
+    }
+
+    public String getContent() {
+        return this.content;
+    }
+
+    public String getFormattedDate() {
         DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSX");
         SimpleDateFormat formatter = new SimpleDateFormat(App.settings.dateFormat + " HH:mm:ss a");
 

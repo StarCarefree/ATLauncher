@@ -18,7 +18,6 @@
 package com.atlauncher.viewmodel.impl;
 
 import java.util.List;
-import java.util.Optional;
 
 import com.atlauncher.data.AbstractNews;
 import com.atlauncher.managers.NewsManager;
@@ -28,36 +27,12 @@ import com.gitlab.doomsdayrs.lib.rxswing.schedulers.SwingSchedulers;
 import io.reactivex.rxjava3.core.Observable;
 
 public class NewsViewModel implements INewsViewModel {
-    private final Observable<Optional<String>> newsHTML = NewsManager
+    private final Observable<List<AbstractNews>> news = NewsManager
             .getNews()
-            .map(NewsViewModel::newsAsHTML)
             .observeOn(SwingSchedulers.edt());
 
     @Override
-    public Observable<Optional<String>> getNewsHTML() {
-        return newsHTML;
-    }
-
-    /**
-     * Takes a list of news items from GraphQL query and transforms into HTML.
-     *
-     * @return An optional value containing the HTML for displaying on the News Panel
-     */
-    static Optional<String> newsAsHTML(List<AbstractNews> newsItems) {
-        if (newsItems == null || newsItems.isEmpty()) {
-            return Optional.empty();
-        }
-
-        StringBuilder news = new StringBuilder("<html>");
-
-        for (AbstractNews newsItem : newsItems) {
-            news.append(newsItem.htmlEntry).append("<hr/>");
-        }
-
-        // remove the last <hr/>
-        news = new StringBuilder(news.substring(0, news.length() - 5));
-        news.append("</html>");
-
-        return Optional.of(news.toString());
+    public Observable<List<AbstractNews>> getNews() {
+        return news;
     }
 }

@@ -24,6 +24,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -31,6 +32,7 @@ import java.util.Locale;
 import javax.swing.AbstractButton;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -39,7 +41,7 @@ import javax.swing.SwingConstants;
 
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.gui.components.BackgroundImageLabel;
+import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.MD3Menus;
 import com.atlauncher.gui.md3.button.MD3Button;
@@ -52,6 +54,7 @@ import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
+import com.atlauncher.workers.BackgroundImageWorker;
 import com.formdev.flatlaf.util.UIScale;
 
 /**
@@ -67,10 +70,16 @@ import com.formdev.flatlaf.util.UIScale;
  * Subclasses keep their own buttons and listeners. Pass the one that matters as {@code primary} and
  * the rest as overflow; see {@link MD3Menus} for why they are not rebuilt as menu items.
  */
-public abstract class MD3PackCard extends MD3Card {
-    protected static final int CARD_WIDTH = 280;
-    /** 16:9 against the card width. */
-    protected static final int COVER_HEIGHT = 158;
+public abstract class MD3PackCard extends MD3Card implements CardGridLayout.WidthAware {
+    /** The narrowest a card is laid out at, and what everything below is measured against. */
+    public static final int CARD_WIDTH = 280;
+
+    /** The widest the grid may stretch one to. */
+    public static final int MAX_CARD_WIDTH = 400;
+
+    /** 16:9 against the card width, whatever that turns out to be. */
+    protected static final int COVER_HEIGHT = coverHeight(CARD_WIDTH);
+
     protected static final int MAX_BADGES = 3;
 
     /** Roughly two lines at body-small in a 280dp card. */
@@ -79,11 +88,47 @@ public abstract class MD3PackCard extends MD3Card {
     /** Named because {@link #truncateToWidth} needs to know how much room it takes. */
     private static final String ELLIPSIS = "\u2026";
 
+    private JPanel coverWrapper;
+    private JLabel summary;
+    private String description;
+
+    /** Scaled; -1 until the grid has said how wide this card is. */
+    private int layoutWidth = -1;
+
     protected MD3PackCard() {
         super(Variant.FILLED, new BorderLayout());
 
         // the cover runs to the card's edges, so padding belongs to the body
         setBorder(null);
+    }
+
+    private static int coverHeight(int width) {
+        return Math.round(width * 9f / 16f);
+    }
+
+    /**
+     * Takes the width the grid worked out and re-measures everything that depends on it: the cover
+     * keeps its aspect, and the summary re-wraps rather than leaving the extra width blank.
+     */
+    @Override
+    public void setLayoutWidth(int width) {
+        if (width <= 0 || width == layoutWidth) {
+            return;
+        }
+
+        layoutWidth = width;
+
+        if (coverWrapper != null) {
+            coverWrapper.setPreferredSize(new Dimension(width, coverHeight(width)));
+        }
+
+        refreshSummary();
+    }
+
+    private int contentWidth() {
+        int width = layoutWidth > 0 ? layoutWidth : UIScale.scale(CARD_WIDTH);
+
+        return width - UIScale.scale(MD3Spacing.L) - UIScale.scale(MD3Spacing.S);
     }
 
     /**
@@ -101,15 +146,55 @@ public abstract class MD3PackCard extends MD3Card {
     }
 
     /**
-     * Artwork from a URL, fetched in the background. Most platforms give a square icon rather than
-     * a banner, so it is centred rather than stretched.
+     * Artwork from a URL, fetched in the background.
+     *
+     * <p>
+     * Fetched at the widest a card can be and scaled down to whatever it actually got, rather than
+     * re-fetched every time the window is dragged. Scaled to fit, not to fill: most platforms give
+     * a square icon rather than a banner, and cropping one to the cover's shape cuts the middle out
+     * of the logo.
      */
     protected static JComponent coverFromUrl(String url) {
-        BackgroundImageLabel label = new BackgroundImageLabel(url, UIScale.scale(CARD_WIDTH),
-                UIScale.scale(COVER_HEIGHT));
-        label.setHorizontalAlignment(SwingConstants.CENTER);
+        return new Cover(url);
+    }
 
-        return label;
+    private static final class Cover extends JLabel {
+        Cover(String url) {
+            setHorizontalAlignment(SwingConstants.CENTER);
+            setVisible(url == null);
+
+            if (url != null) {
+                new BackgroundImageWorker(this, url, UIScale.scale(MAX_CARD_WIDTH),
+                        UIScale.scale(coverHeight(MAX_CARD_WIDTH))).execute();
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Icon icon = getIcon();
+
+            if (icon == null || icon.getIconWidth() <= 0 || icon.getIconHeight() <= 0) {
+                super.paintComponent(g);
+
+                return;
+            }
+
+            double scale = Math.min(getWidth() / (double) icon.getIconWidth(),
+                    getHeight() / (double) icon.getIconHeight());
+
+            Graphics2D g2 = MD3Paint.setup(g);
+
+            try {
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g2.translate((getWidth() - icon.getIconWidth() * scale) / 2,
+                        (getHeight() - icon.getIconHeight() * scale) / 2);
+                g2.scale(scale, scale);
+                icon.paintIcon(this, g2, 0, 0);
+            } finally {
+                g2.dispose();
+            }
+        }
     }
 
     private JComponent buildCover(JComponent cover) {
@@ -136,6 +221,8 @@ public abstract class MD3PackCard extends MD3Card {
             wrapper.add(cover, BorderLayout.CENTER);
         }
 
+        coverWrapper = wrapper;
+
         return wrapper;
     }
 
@@ -147,7 +234,7 @@ public abstract class MD3PackCard extends MD3Card {
         body.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.M, MD3Spacing.S));
 
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(MD3Type.font(MD3Type.TITLE_MEDIUM));
+        titleLabel.setFont(MD3Type.font(MD3Type.TITLE_MEDIUM, title));
         titleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_MEDIUM);
         titleLabel.setForeground(MD3Color.onSurface());
         titleLabel.setAlignmentX(LEFT_ALIGNMENT);
@@ -185,27 +272,44 @@ public abstract class MD3PackCard extends MD3Card {
      * loses its baseline.
      */
     private JComponent buildSummary(String description) {
-        int contentWidth = UIScale.scale(CARD_WIDTH - MD3Spacing.L - MD3Spacing.S);
         Font font = MD3Type.font(MD3Type.BODY_SMALL);
 
-        JLabel summary = new JLabel();
+        this.description = description;
+        this.summary = new JLabel();
+
         summary.setFont(font);
         summary.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
         summary.setForeground(MD3Color.onSurfaceVariant());
         summary.setAlignmentX(LEFT_ALIGNMENT);
         summary.setVerticalAlignment(SwingConstants.TOP);
-        summary.setText(wrapToTwoLines(summary.getFontMetrics(font), description, contentWidth));
 
         if (description != null && !description.trim().isEmpty()) {
             summary.setToolTipText(description);
         }
 
-        Dimension fixed = new Dimension(contentWidth, summary.getFontMetrics(font).getHeight() * 2);
+        refreshSummary();
+
+        return summary;
+    }
+
+    /**
+     * Re-wraps the summary to the card's current width. Pinned to two lines at every width - a card
+     * that grew a third line as the window widened would break its row's baseline.
+     */
+    private void refreshSummary() {
+        if (summary == null) {
+            return;
+        }
+
+        int width = contentWidth();
+        FontMetrics metrics = summary.getFontMetrics(summary.getFont());
+
+        summary.setText(wrapToTwoLines(metrics, description, width));
+
+        Dimension fixed = new Dimension(width, metrics.getHeight() * 2);
         summary.setPreferredSize(fixed);
         summary.setMinimumSize(fixed);
         summary.setMaximumSize(fixed);
-
-        return summary;
     }
 
     /**
@@ -222,7 +326,11 @@ public abstract class MD3PackCard extends MD3Card {
             return " ";
         }
 
-        String[] words = shorten(description).split(" ");
+        // the character limit is measured against the narrowest card, so a stretched one is allowed
+        // proportionally more of the summary rather than being trimmed to fit a card it is not
+        int limit = DESCRIPTION_LIMIT * width / UIScale.scale(CARD_WIDTH - MD3Spacing.L - MD3Spacing.S);
+        String shortened = shorten(description, limit);
+        String[] words = shortened.split(" ");
         StringBuilder line = new StringBuilder();
         List<String> lines = new ArrayList<>();
 
@@ -256,7 +364,7 @@ public abstract class MD3PackCard extends MD3Card {
             used += rendered.length() + 1;
         }
 
-        if (used < shorten(description).length() && !lines.isEmpty()) {
+        if (used < shortened.length() && !lines.isEmpty()) {
             int last = lines.size() - 1;
             lines.set(last, truncateToWidth(metrics, lines.get(last), width));
         }
@@ -359,37 +467,31 @@ public abstract class MD3PackCard extends MD3Card {
      * which is what the old cards did and what made them 155px tall regardless of content; at this
      * length, dropping the syntax reads better than honouring it.
      */
-    private static String shorten(String description) {
+    private static String shorten(String description, int limit) {
         String flat = description
                 .replaceAll("!?\\[([^\\]]*)\\]\\([^)]*\\)", "$1")
                 .replaceAll("[*_`#>]", "")
                 .replaceAll("\\s+", " ")
                 .trim();
 
-        if (flat.length() <= DESCRIPTION_LIMIT) {
+        if (flat.length() <= limit) {
             return flat;
         }
 
-        int cut = flat.lastIndexOf(' ', DESCRIPTION_LIMIT);
+        int cut = flat.lastIndexOf(' ', limit);
 
-        // written as an escape: the build sets no source encoding, so a literal ellipsis fails to
-        // compile wherever the platform default is not UTF-8
-        return flat.substring(0, cut < 0 ? DESCRIPTION_LIMIT : cut) + ELLIPSIS;
+        return flat.substring(0, cut < 0 ? limit : cut) + ELLIPSIS;
     }
 
     /**
-     * Every card is the same width so the grid stays regular; height follows the content.
+     * The width the grid gave this card, or its natural one until it has been asked. Height follows
+     * the content, and every card in a row is given the same width, so the row stays regular.
      */
     @Override
     public Dimension getPreferredSize() {
         Dimension size = super.getPreferredSize();
-        size.width = UIScale.scale(CARD_WIDTH);
+        size.width = layoutWidth > 0 ? layoutWidth : UIScale.scale(CARD_WIDTH);
 
         return size;
-    }
-
-    @Override
-    public Dimension getMaximumSize() {
-        return getPreferredSize();
     }
 }

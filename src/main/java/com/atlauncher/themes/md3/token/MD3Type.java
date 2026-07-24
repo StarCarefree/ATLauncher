@@ -164,6 +164,29 @@ public final class MD3Type {
     }
 
     /**
+     * The font for a role, guaranteed to be able to draw the given text.
+     *
+     * <p>
+     * A theme's face covers Latin and little else. Swing substitutes missing glyphs per character
+     * only inside its HTML renderer - a plain label draws them as empty boxes - so any label showing
+     * text the launcher did not write should resolve its font this way. That is most of them: pack
+     * names and descriptions come from six platforms, instance names from the user, and even a date
+     * carries a localised marker.
+     *
+     * @param text what the component will draw, or null to skip the check
+     */
+    public static Font font(Role role, String text) {
+        Font font = font(role);
+
+        if (text == null || text.isEmpty() || font.canDisplayUpTo(text) < 0) {
+            return font;
+        }
+
+        // the platform's own face, which is chosen for having the coverage this one lacks
+        return new Font(Font.SANS_SERIF, font.getStyle(), font.getSize()).deriveFont(font.getSize2D());
+    }
+
+    /**
      * The line height for a role, scaled for the current display.
      */
     public static int lineHeight(Role role) {

@@ -17,7 +17,9 @@
  */
 package com.atlauncher.viewmodel.base;
 
-import java.util.Optional;
+import java.util.List;
+
+import com.atlauncher.data.AbstractNews;
 
 import io.reactivex.rxjava3.core.Observable;
 
@@ -27,7 +29,11 @@ import io.reactivex.rxjava3.core.Observable;
 public interface INewsViewModel {
 
     /**
-     * Observable of news HTML to display
+     * Observable of the news items to display, most recent first.
+     *
+     * <p>
+     * The articles themselves rather than one HTML document of all of them: the view presents each
+     * as its own card, so it needs the title and date apart from the body.
      */
-    Observable<Optional<String>> getNewsHTML();
+    Observable<List<AbstractNews>> getNews();
 }

@@ -33,6 +33,21 @@ public class AbstractNews {
     public final String htmlEntry;
 
     /**
+     * The headline, on its own.
+     */
+    public final String title;
+
+    /**
+     * When it was published, already formatted to the user's date preference.
+     */
+    public final String date;
+
+    /**
+     * The body, as HTML. Excludes the title and date, which the view presents itself.
+     */
+    public final String content;
+
+    /**
      * Source object, just in case you want to use it.
      */
     public final Object source;
@@ -45,6 +60,9 @@ public class AbstractNews {
     public AbstractNews(News fileNews) {
         source = fileNews;
         htmlEntry = fileNews.getHTML();
+        title = fileNews.getTitle();
+        date = fileNews.getFormattedDate();
+        content = fileNews.getContent();
     }
 
     /**
@@ -55,7 +73,9 @@ public class AbstractNews {
     public AbstractNews(GeneralNew networkNews) {
         final SimpleDateFormat formatter = new SimpleDateFormat(App.settings.dateFormat + " HH:mm:ss a");
         source = networkNews;
-        htmlEntry = "<h2>" + networkNews.title() + " (" + formatter.format(networkNews.createdAt()) + ")</h2>" + "<p>"
-            + networkNews.content() + "</p>";
+        title = networkNews.title();
+        date = formatter.format(networkNews.createdAt());
+        content = networkNews.content();
+        htmlEntry = "<h2>" + title + " (" + date + ")</h2>" + "<p>" + content + "</p>";
     }
 }

@@ -47,7 +47,8 @@ import com.atlauncher.evnt.manager.RelocalizationManager;
 import com.atlauncher.evnt.manager.TabChangeManager;
 import com.atlauncher.evnt.manager.ThemeManager;
 import com.atlauncher.gui.WheelScrollLayerUI;
-import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.card.packbrowser.MD3PackCard;
+import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.nav.MD3Tabs;
@@ -69,7 +70,6 @@ import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.Utils;
-import com.formdev.flatlaf.util.UIScale;
 
 public final class PacksBrowserTab extends JPanel
     implements Tab, RelocalizationListener, ThemeListener, TabChangeListener, PacksNavigationPanel.Listener {
@@ -118,9 +118,10 @@ public final class PacksBrowserTab extends JPanel
     private void initComponents() {
         // content panel
 
-        // cards form a grid that reflows with the window rather than one full-width card per row
-        contentPanel.setLayout(new WrapLayout(FlowLayout.LEFT, UIScale.scale(MD3Spacing.L),
-                UIScale.scale(MD3Spacing.L)));
+        // cards form a grid that reflows with the window, sharing out the width rather than
+        // leaving whatever does not divide evenly as a gutter down the right of the page
+        contentPanel.setLayout(new CardGridLayout(MD3PackCard.CARD_WIDTH, MD3PackCard.MAX_CARD_WIDTH,
+                MD3Spacing.L));
         contentPanel.setBorder(MD3Spacing.border(MD3Spacing.L));
 
         // platform message panel
