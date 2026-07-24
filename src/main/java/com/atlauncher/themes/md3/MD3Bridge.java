@@ -173,8 +173,6 @@ public final class MD3Bridge {
         Color surfaceContainerHighest = scheme.get(MD3Color.SURFACE_CONTAINER_HIGHEST);
         Color primary = scheme.get(MD3Color.PRIMARY);
         Color onPrimary = scheme.get(MD3Color.ON_PRIMARY);
-        Color primaryContainer = scheme.get(MD3Color.PRIMARY_CONTAINER);
-        Color onPrimaryContainer = scheme.get(MD3Color.ON_PRIMARY_CONTAINER);
         Color secondaryContainer = scheme.get(MD3Color.SECONDARY_CONTAINER);
         Color onSecondaryContainer = scheme.get(MD3Color.ON_SECONDARY_CONTAINER);
         Color tertiary = scheme.get(MD3Color.TERTIARY);
@@ -453,7 +451,6 @@ public final class MD3Bridge {
      */
     private static void applyLauncherColorTokens(UIDefaults defaults, MD3Scheme scheme) {
         Color primary = scheme.get(MD3Color.PRIMARY);
-        Color surface = scheme.get(MD3Color.SURFACE);
         Color onSurface = scheme.get(MD3Color.ON_SURFACE);
         Color error = scheme.get(MD3Color.ERROR);
         Color tertiary = scheme.get(MD3Color.TERTIARY);

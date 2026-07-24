@@ -1,6 +1,6 @@
 /*
  * ATLauncher - https://github.com/ATLauncher/ATLauncher
- * Copyright (C) 2013-2022 ATLauncher
+ * Copyright (C) 2013-2026 ATLauncher
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 package com.atlauncher.gui;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.SystemTray;
@@ -25,13 +26,13 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
 import javax.swing.WindowConstants;
 
 import com.atlauncher.App;
@@ -41,8 +42,12 @@ import com.atlauncher.data.Pack;
 import com.atlauncher.evnt.listener.RelocalizationListener;
 import com.atlauncher.evnt.manager.RelocalizationManager;
 import com.atlauncher.evnt.manager.TabChangeManager;
-import com.atlauncher.gui.components.LauncherBottomBar;
+import com.atlauncher.gui.components.LauncherAppBar;
 import com.atlauncher.gui.dialogs.InstanceInstallerDialog;
+import com.atlauncher.gui.md3.button.MD3IconButton;
+import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.nav.MD3NavigationRail;
 import com.atlauncher.gui.tabs.AboutTab;
 import com.atlauncher.gui.tabs.CreatePackTab;
 import com.atlauncher.gui.tabs.InstancesTab;
@@ -58,12 +63,51 @@ import com.atlauncher.managers.LogManager;
 import com.atlauncher.managers.PackManager;
 import com.atlauncher.managers.PerformanceManager;
 import com.atlauncher.network.Analytics;
+import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.utils.Utils;
 
+/**
+ * The launcher's main window: a navigation rail, a top app bar, and one page at a time.
+ *
+ * <p>
+ * Replaces the right-hand tab strip, whose 32pt vertical labels spent about a tenth of the window's
+ * width naming nine places. The rail says the same things in 80dp, and the app bar picks up the
+ * account picker and launcher-wide actions that used to sit in a fifty pixel bar along the bottom.
+ *
+ * <p>
+ * Creating a pack is the header action rather than a rail destination: it is something you do, not
+ * somewhere you go, and Material puts exactly that on the rail's header.
+ *
+ * <p>
+ * Destinations are identified throughout by their {@link UIConstants} constant, not by their
+ * position on the rail. Those constants are persisted in settings and passed to
+ * {@link TabChangeManager}, so they have to stay stable however the navigation is arranged.
+ */
 public final class LauncherFrame extends JFrame implements RelocalizationListener {
-    public JTabbedPane tabbedPane;
+    /** Rail order, top to bottom. -1 marks a visual break between groups. */
+    private static final int[] RAIL_DESTINATIONS = {
+            UIConstants.LAUNCHER_NEWS_TAB,
+            UIConstants.LAUNCHER_PACKS_TAB,
+            UIConstants.LAUNCHER_INSTANCES_TAB,
+            UIConstants.LAUNCHER_SERVERS_TAB,
+            UIConstants.LAUNCHER_ACCOUNTS_TAB,
+            -1,
+            UIConstants.LAUNCHER_TOOLS_TAB,
+            UIConstants.LAUNCHER_SETTINGS_TAB,
+            UIConstants.LAUNCHER_ABOUT_TAB };
 
-    private Map<Integer, Tab> tabs = new HashMap<>();
+    private final Map<Integer, Tab> tabs = new LinkedHashMap<>();
+    /** Rail position to destination constant, skipping the separators. */
+    private final List<Integer> railOrder = new ArrayList<>();
+
+    private final MD3NavigationRail rail = new MD3NavigationRail();
+    private final LauncherAppBar appBar = new LauncherAppBar();
+    private final CardLayout cards = new CardLayout();
+    private final JPanel content = new JPanel(cards);
+
+    private int selectedDestination = -1;
+    /** Stops the rail's own change event from re-entering the navigation it just caused. */
+    private boolean navigating;
 
     public LauncherFrame(boolean show) {
         LogManager.info("Launcher opening");
@@ -80,28 +124,22 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
         setMinimumSize(new Dimension(1200, 700));
         setLocationRelativeTo(null);
 
-        try {
-            if (App.settings.rememberWindowSizePosition && App.settings.launcherSize != null) {
-                setSize(App.settings.launcherSize);
-            }
-
-            if (App.settings.rememberWindowSizePosition && App.settings.launcherPosition != null) {
-                setLocation(App.settings.launcherPosition);
-            }
-        } catch (Exception e) {
-            LogManager.logStackTrace("Error setting custom remembered window size settings", e);
-        }
-
-        LogManager.info("Setting up Bottom Bar");
-        LauncherBottomBar bottomBar = new LauncherBottomBar();
-        LogManager.info("Finished Setting up Bottom Bar");
+        restoreWindowBounds();
 
         LogManager.info("Setting up Tabs");
-        setupTabs(); // Setup the JTabbedPane
+        createTabs();
+        buildNavigation();
         LogManager.info("Finished Setting up Tabs");
 
-        this.add(tabbedPane, BorderLayout.CENTER);
-        this.add(bottomBar, BorderLayout.SOUTH);
+        JPanel body = new JPanel(new BorderLayout());
+        body.setOpaque(false);
+        body.add(appBar, BorderLayout.NORTH);
+        body.add(content, BorderLayout.CENTER);
+
+        add(rail, BorderLayout.WEST);
+        add(body, BorderLayout.CENTER);
+
+        navigateTo(App.settings.selectedTabOnStartup);
 
         if (show) {
             LogManager.info("Showing Launcher");
@@ -123,25 +161,26 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
 
         RelocalizationManager.addListener(this);
 
-        if (App.packToInstall != null) {
-            Pack pack = PackManager.getPackBySafeName(App.packToInstall);
+        installRequestedPack();
+        rememberWindowBounds();
+    }
 
-            if (pack != null && pack.isSemiPublic() && !PackManager.canViewSemiPublicPackByCode(pack.getCode())) {
-                LogManager.error("Error automatically installing " + pack.getName() + " as you don't have the "
-                        + "pack added to the launcher!");
-            } else {
-                if (AccountManager.getSelectedAccount() == null || pack == null) {
-                    LogManager
-                            .error("Error automatically installing " + (pack == null ? "pack" : pack.getName()) + "!");
-                } else {
-                    InstanceInstallerDialog instanceInstallerDialog = new InstanceInstallerDialog(pack);
-                    instanceInstallerDialog.setVisible(true);
-                }
+    private void restoreWindowBounds() {
+        try {
+            if (App.settings.rememberWindowSizePosition && App.settings.launcherSize != null) {
+                setSize(App.settings.launcherSize);
             }
+
+            if (App.settings.rememberWindowSizePosition && App.settings.launcherPosition != null) {
+                setLocation(App.settings.launcherPosition);
+            }
+        } catch (Exception e) {
+            LogManager.logStackTrace("Error setting custom remembered window size settings", e);
         }
+    }
 
+    private void rememberWindowBounds() {
         addComponentListener(new ComponentAdapter() {
-
             @Override
             public void componentResized(ComponentEvent evt) {
                 Component c = (Component) evt.getSource();
@@ -164,79 +203,151 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
         });
     }
 
-    /**
-     * Setup the individual tabs used in the Launcher sidebar
-     */
-    private void setupTabs() {
-        tabbedPane = new JTabbedPane(JTabbedPane.RIGHT);
-        tabbedPane.setName("mainTabs");
+    private void installRequestedPack() {
+        if (App.packToInstall == null) {
+            return;
+        }
 
-        PerformanceManager.start("newsTab");
-        NewsTab newsTab = new NewsTab();
-        this.tabs.put(UIConstants.LAUNCHER_NEWS_TAB, newsTab);
-        PerformanceManager.end("newsTab");
+        Pack pack = PackManager.getPackBySafeName(App.packToInstall);
 
-        PerformanceManager.start("createPackTab");
-        CreatePackTab createPackTab = new CreatePackTab();
-        this.tabs.put(UIConstants.LAUNCHER_CREATE_PACK_TAB, createPackTab);
-        PerformanceManager.end("createPackTab");
+        if (pack != null && pack.isSemiPublic() && !PackManager.canViewSemiPublicPackByCode(pack.getCode())) {
+            LogManager.error("Error automatically installing " + pack.getName() + " as you don't have the "
+                    + "pack added to the launcher!");
+
+            return;
+        }
+
+        if (AccountManager.getSelectedAccount() == null || pack == null) {
+            LogManager.error("Error automatically installing " + (pack == null ? "pack" : pack.getName()) + "!");
+
+            return;
+        }
+
+        InstanceInstallerDialog instanceInstallerDialog = new InstanceInstallerDialog(pack);
+        instanceInstallerDialog.setVisible(true);
+    }
+
+    private void createTabs() {
+        addTab(UIConstants.LAUNCHER_NEWS_TAB, "newsTab", new NewsTab());
+        addTab(UIConstants.LAUNCHER_CREATE_PACK_TAB, "createPackTab", new CreatePackTab());
 
         PerformanceManager.start("packsBrowserTab");
         PacksBrowserTab packsBrowserTab = new PacksBrowserTab();
-        this.tabs.put(UIConstants.LAUNCHER_PACKS_TAB, packsBrowserTab);
+        tabs.put(UIConstants.LAUNCHER_PACKS_TAB, packsBrowserTab);
         App.launcher.setPacksBrowserPanel(packsBrowserTab);
         PerformanceManager.end("packsBrowserTab");
 
-        PerformanceManager.start("instancesTab");
-        InstancesTab instancesTab = new InstancesTab();
-        this.tabs.put(UIConstants.LAUNCHER_INSTANCES_TAB, instancesTab);
-        PerformanceManager.end("instancesTab");
+        addTab(UIConstants.LAUNCHER_INSTANCES_TAB, "instancesTab", new InstancesTab());
+        addTab(UIConstants.LAUNCHER_SERVERS_TAB, "serversTab", new ServersTab());
+        addTab(UIConstants.LAUNCHER_ACCOUNTS_TAB, "accountsTab", new AccountsTab());
+        addTab(UIConstants.LAUNCHER_TOOLS_TAB, "toolsTab", new ToolsTab());
+        addTab(UIConstants.LAUNCHER_SETTINGS_TAB, "settingsTab", new SettingsTab());
+        addTab(UIConstants.LAUNCHER_ABOUT_TAB, "aboutTab", new AboutTab());
+    }
 
-        PerformanceManager.start("serversTab");
-        ServersTab serversTab = new ServersTab();
-        this.tabs.put(UIConstants.LAUNCHER_SERVERS_TAB, serversTab);
-        PerformanceManager.end("serversTab");
+    private void addTab(int destination, String timing, Tab tab) {
+        PerformanceManager.start(timing);
+        tabs.put(destination, tab);
+        PerformanceManager.end(timing);
+    }
 
-        PerformanceManager.start("accountsTab");
-        AccountsTab accountsTab = new AccountsTab();
-        this.tabs.put(UIConstants.LAUNCHER_ACCOUNTS_TAB, accountsTab);
-        PerformanceManager.end("accountsTab");
-
-        PerformanceManager.start("toolsTab");
-        ToolsTab toolsTab = new ToolsTab();
-        this.tabs.put(UIConstants.LAUNCHER_TOOLS_TAB, toolsTab);
-        PerformanceManager.end("toolsTab");
-
-        PerformanceManager.start("settingsTab");
-        SettingsTab settingsTab = new SettingsTab();
-        this.tabs.put(UIConstants.LAUNCHER_SETTINGS_TAB, settingsTab);
-        PerformanceManager.end("settingsTab");
-
-        PerformanceManager.start("aboutTab");
-        AboutTab aboutTab = new AboutTab();
-        PerformanceManager.end("aboutTab");
-        this.tabs.put(UIConstants.LAUNCHER_ABOUT_TAB, aboutTab);
-
-        tabbedPane.setFont(App.THEME.getTabFont());
-        for (Tab tab : this.tabs.values()) {
-            this.tabbedPane.addTab(tab.getTitle(), (JPanel) tab);
+    private void buildNavigation() {
+        for (Map.Entry<Integer, Tab> entry : tabs.entrySet()) {
+            content.add((JPanel) entry.getValue(), String.valueOf(entry.getKey()));
         }
-        tabbedPane.setOpaque(true);
-        tabbedPane.setSelectedIndex(App.settings.selectedTabOnStartup);
-        TabChangeManager.post(tabbedPane.getSelectedIndex());
 
-        tabbedPane.addChangeListener(e -> {
-            Analytics.sendScreenView(((Tab) tabbedPane.getSelectedComponent()).getAnalyticsScreenViewName());
-            TabChangeManager.post(tabbedPane.getSelectedIndex());
+        content.setOpaque(true);
+        content.setBackground(MD3Color.surface());
+
+        MD3IconButton create = new MD3IconButton(MD3Icon.of(MD3Icons.ADD), tabs
+                .get(UIConstants.LAUNCHER_CREATE_PACK_TAB).getTitle(), MD3IconButton.Variant.FILLED);
+        create.setName("createPackAction");
+        create.addActionListener(e -> navigateTo(UIConstants.LAUNCHER_CREATE_PACK_TAB));
+        rail.setHeader(create);
+
+        for (int destination : RAIL_DESTINATIONS) {
+            if (destination < 0) {
+                rail.addSeparator();
+
+                continue;
+            }
+
+            rail.addDestination(iconFor(destination), tabs.get(destination).getTitle())
+                    .setName("nav." + destination);
+            railOrder.add(destination);
+        }
+
+        rail.setName("mainNavigation");
+        rail.addChangeListener(e -> {
+            if (!navigating) {
+                navigateTo(railOrder.get(rail.getSelectedIndex()));
+            }
         });
+    }
+
+    private static MD3Icon.Painter iconFor(int destination) {
+        switch (destination) {
+            case UIConstants.LAUNCHER_NEWS_TAB:
+                return MD3Icons.HOME;
+            case UIConstants.LAUNCHER_PACKS_TAB:
+                return MD3Icons.SEARCH;
+            case UIConstants.LAUNCHER_INSTANCES_TAB:
+                return MD3Icons.PACKAGE;
+            case UIConstants.LAUNCHER_SERVERS_TAB:
+                return MD3Icons.LIST_VIEW;
+            case UIConstants.LAUNCHER_ACCOUNTS_TAB:
+                return MD3Icons.PERSON;
+            case UIConstants.LAUNCHER_TOOLS_TAB:
+                return MD3Icons.TUNE;
+            case UIConstants.LAUNCHER_SETTINGS_TAB:
+                return MD3Icons.SETTINGS;
+            case UIConstants.LAUNCHER_ABOUT_TAB:
+            default:
+                return MD3Icons.INFO;
+        }
+    }
+
+    /**
+     * Shows a destination, identified by its {@link UIConstants} constant.
+     */
+    public void navigateTo(int destination) {
+        Tab tab = tabs.get(destination);
+
+        if (tab == null || destination == selectedDestination) {
+            return;
+        }
+
+        selectedDestination = destination;
+
+        navigating = true;
+
+        try {
+            cards.show(content, String.valueOf(destination));
+            // create-pack is reached from the header, so it has no rail position to light up
+            rail.setSelectedIndex(railOrder.indexOf(destination));
+            appBar.setTitle(tab.getTitle());
+        } finally {
+            navigating = false;
+        }
+
+        Analytics.sendScreenView(tab.getAnalyticsScreenViewName());
+        TabChangeManager.post(destination);
+    }
+
+    public int getSelectedDestination() {
+        return selectedDestination;
     }
 
     @Override
     public void onRelocalization() {
-        for (Entry<Integer, Tab> entry : this.tabs.entrySet()) {
-            this.tabbedPane.setTitleAt(entry.getKey(), entry.getValue().getTitle());
+        for (int i = 0; i < railOrder.size(); i++) {
+            rail.setLabelAt(i, tabs.get(railOrder.get(i)).getTitle());
         }
 
-        tabbedPane.setFont(App.THEME.getTabFont());
+        Tab selected = tabs.get(selectedDestination);
+
+        if (selected != null) {
+            appBar.setTitle(selected.getTitle());
+        }
     }
 }

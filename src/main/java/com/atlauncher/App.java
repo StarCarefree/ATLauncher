@@ -1228,7 +1228,10 @@ public class App {
      *
      * @param destination as defined in UIConstants
      */
+    /**
+     * @param destination one of the {@code LAUNCHER_*_TAB} constants in {@code UIConstants}
+     */
     public static void navigate(int destination) {
-        App.launcherFrame.tabbedPane.setSelectedIndex(destination);
+        App.launcherFrame.navigateTo(destination);
     }
 }

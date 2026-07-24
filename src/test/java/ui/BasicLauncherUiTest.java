@@ -23,35 +23,38 @@ import java.util.concurrent.TimeUnit;
 
 import org.assertj.swing.core.GenericTypeMatcher;
 import org.assertj.swing.core.matcher.JButtonMatcher;
-import org.assertj.swing.data.Index;
 import org.assertj.swing.finder.WindowFinder;
 import org.assertj.swing.fixture.DialogFixture;
 import org.assertj.swing.fixture.JButtonFixture;
 import org.assertj.swing.fixture.JComboBoxFixture;
 import org.assertj.swing.fixture.JPanelFixture;
-import org.assertj.swing.fixture.JTabbedPaneFixture;
 import org.assertj.swing.timing.Condition;
 import org.assertj.swing.timing.Pause;
 import org.assertj.swing.timing.Timeout;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import com.atlauncher.constants.UIConstants;
 import com.atlauncher.gui.card.InstanceCard;
 
 import ui.mocks.MockHelper;
 
 public class BasicLauncherUiTest extends AbstractUiTest {
+    private void navigateTo(int destination) {
+        this.frame.panel("nav." + destination).click();
+    }
+
     @Test
     @Tag("ui")
     public void testTheLauncherOpens() {
         this.frame.button("checkForUpdates").requireVisible();
 
-        JTabbedPaneFixture mainTabsFixture = this.frame.tabbedPane("mainTabs");
-        mainTabsFixture.requireVisible();
-        mainTabsFixture.requireTitle("News", Index.atIndex(0));
-        mainTabsFixture.requireSelectedTab(Index.atIndex(0));
+        // the navigation rail replaced the tab strip; destinations are named after the UIConstants
+        // value they select, so the test does not depend on their labels or on rail order
+        this.frame.panel("mainNavigation").requireVisible();
+        this.frame.label("appBarTitle").requireText("News");
 
-        mainTabsFixture.selectTab("Accounts");
+        navigateTo(UIConstants.LAUNCHER_ACCOUNTS_TAB);
         Pause.pause(1, TimeUnit.SECONDS);
 
         JComboBoxFixture accountsTabAccountsComboBox = this.frame.comboBox("accountsTabAccountsComboBox");
@@ -62,7 +65,9 @@ public class BasicLauncherUiTest extends AbstractUiTest {
         // account selector now showing
         JComboBoxFixture accountSelector = this.frame.comboBox("accountSelector");
         accountSelector.requireVisible();
-        mainTabsFixture.selectTab("Create Pack");
+
+        // creating a pack is the rail's header action rather than a destination
+        this.frame.button("createPackAction").click();
         Pause.pause(1, TimeUnit.SECONDS);
 
         MockHelper.mockJson(mockServer, "GET", "download.nodecdn.net",
@@ -104,7 +109,7 @@ public class BasicLauncherUiTest extends AbstractUiTest {
         installSuccessDialog.requireVisible();
         installSuccessDialog.button(JButtonMatcher.withText("Ok")).click();
 
-        mainTabsFixture.selectTab("Instances");
+        navigateTo(UIConstants.LAUNCHER_INSTANCES_TAB);
         Pause.pause(1, TimeUnit.SECONDS);
 
         JPanelFixture instancesPanel = this.frame.panel("instancesPanel");

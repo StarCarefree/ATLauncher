@@ -34,6 +34,13 @@ import org.junit.jupiter.api.Test;
  *
  * <p>
  * The sheets land in {@code build/md3-preview} and are the visual baseline for reviewing a change.
+ *
+ * <p>
+ * One caveat when reading them. A component measures its text with the font rendering context the
+ * desktop implies - on Windows that means LCD subpixel advances - while a {@link
+ * java.awt.image.BufferedImage} can only render greyscale antialiased glyphs, which are marginally
+ * wider. A long label can therefore appear a character short in a sheet and be perfectly intact on
+ * screen. Trust the sheets for layout, colour and state; check text extents in a running window.
  */
 public class MD3GalleryRenderTest {
     private static final String[] THEMES = {

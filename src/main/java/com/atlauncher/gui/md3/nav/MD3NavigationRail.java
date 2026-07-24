@@ -114,7 +114,7 @@ public class MD3NavigationRail extends JPanel {
             return;
         }
 
-        int next = Math.floorMod(selectedIndex + delta, destinations.size());
+        int next = Math.floorMod(Math.max(0, selectedIndex) + delta, destinations.size());
         setSelectedIndex(next);
     }
 
@@ -139,7 +139,10 @@ public class MD3NavigationRail extends JPanel {
         repaint();
     }
 
-    public void addDestination(MD3Icon.Painter icon, String label) {
+    /**
+     * @return the destination component, so a caller can name it for lookup in tests or tooling
+     */
+    public JComponent addDestination(MD3Icon.Painter icon, String label) {
         Destination destination = new Destination(icon, label, destinations.size());
 
         destinations.add(destination);
@@ -152,6 +155,8 @@ public class MD3NavigationRail extends JPanel {
 
         revalidate();
         repaint();
+
+        return destination;
     }
 
     /**
@@ -165,8 +170,24 @@ public class MD3NavigationRail extends JPanel {
         return selectedIndex;
     }
 
+    /**
+     * Relabels a destination in place, for when the language changes.
+     */
+    public void setLabelAt(int index, String label) {
+        if (index < 0 || index >= destinations.size()) {
+            return;
+        }
+
+        destinations.get(index).setLabel(label);
+    }
+
+    /**
+     * @param index the destination to mark active, or -1 for none - which is what a window shows
+     *              while it is on a destination the rail does not list, such as one reached from the
+     *              header action
+     */
     public void setSelectedIndex(int index) {
-        if (index == selectedIndex || index < 0 || index >= destinations.size()) {
+        if (index == selectedIndex || index < -1 || index >= destinations.size()) {
             return;
         }
 
@@ -215,20 +236,22 @@ public class MD3NavigationRail extends JPanel {
     /**
      * One destination: a pill indicator, a glyph, and a label beneath it.
      */
-    private final class Destination extends JComponent {
+    private final class Destination extends JPanel {
         private static final int INDICATOR_WIDTH = 56;
         private static final int ITEM_HEIGHT = 56;
 
         private final MD3Icon.Painter painter;
-        private final String label;
         private final int index;
         private final MD3StateLayer stateLayer;
+
+        private String label;
 
         Destination(MD3Icon.Painter painter, String label, int index) {
             this.painter = painter;
             this.label = label;
             this.index = index;
 
+            setOpaque(false);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             setToolTipText(label);
             setFont(MD3Type.font(MD3Type.LABEL_MEDIUM));
@@ -245,6 +268,14 @@ public class MD3NavigationRail extends JPanel {
                     }
                 }
             });
+        }
+
+        void setLabel(String label) {
+            this.label = label;
+
+            setToolTipText(label);
+            revalidate();
+            repaint();
         }
 
         private boolean isActive() {

@@ -25,12 +25,14 @@ import java.awt.FlowLayout;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
@@ -47,6 +49,8 @@ import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.container.MD3ListItem;
+import com.atlauncher.gui.md3.feedback.MD3CircularProgress;
+import com.atlauncher.gui.md3.feedback.MD3LinearProgress;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3Chip;
@@ -114,7 +118,7 @@ public final class MD3Gallery {
         BufferedImage image = new BufferedImage(size.width, size.height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        applyDesktopFontHints(g);
         g.setColor(MD3Color.surface());
         g.fillRect(0, 0, size.width, size.height);
         root.paint(g);
@@ -127,6 +131,25 @@ public final class MD3Gallery {
         }
 
         ImageIO.write(image, "png", file);
+    }
+
+    /**
+     * Copies the desktop's own font rendering hints onto an offscreen canvas.
+     *
+     * <p>
+     * Matters more than it looks. A component measures itself with the font rendering context the
+     * desktop hints imply, and forcing a different antialiasing mode at paint time gives the glyphs
+     * different advances than the widths the layout was computed from - which shows up as the last
+     * character of a long label being shaved off in the capture but not in the running launcher.
+     */
+    public static void applyDesktopFontHints(Graphics2D g) {
+        Object hints = Toolkit.getDefaultToolkit().getDesktopProperty("awt.font.desktophints");
+
+        if (hints instanceof Map) {
+            g.addRenderingHints((Map<?, ?>) hints);
+        } else {
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        }
     }
 
     private static void layoutTree(Component component) {
@@ -152,6 +175,7 @@ public final class MD3Gallery {
         root.add(section("Icons", icons()));
         root.add(section("Text fields", textFields()));
         root.add(section("Switches and chips", switchesAndChips()));
+        root.add(section("Progress", progress()));
         root.add(section("Navigation", navigation()));
         root.add(section("Cards", cards()));
         root.add(section("List items", listItems()));
@@ -401,6 +425,43 @@ public final class MD3Gallery {
         }
 
         return row;
+    }
+
+    private static JComponent progress() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(false);
+
+        JPanel linear = flow();
+        linear.add(tag("LINEAR"));
+
+        for (int value : new int[] { 0, 35, 72, 100 }) {
+            MD3LinearProgress bar = new MD3LinearProgress(0, 100);
+            bar.setValue(value);
+            bar.setPreferredSize(new Dimension(160, bar.getPreferredSize().height));
+            linear.add(bar);
+        }
+
+        MD3LinearProgress captioned = new MD3LinearProgress(0, 100);
+        captioned.setValue(48);
+        captioned.setString("12/25 Tasks Done");
+        captioned.setStringPainted(true);
+        captioned.setPreferredSize(new Dimension(180, captioned.getPreferredSize().height));
+        linear.add(captioned);
+
+        JPanel circular = flow();
+        circular.add(tag("CIRCULAR"));
+
+        for (int value : new int[] { 25, 60, 90 }) {
+            MD3CircularProgress ring = new MD3CircularProgress();
+            ring.setValue(value);
+            circular.add(ring);
+        }
+
+        panel.add(linear);
+        panel.add(circular);
+
+        return panel;
     }
 
     private static JComponent navigation() {

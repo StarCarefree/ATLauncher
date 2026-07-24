@@ -82,7 +82,7 @@ public class MD3SchemeTest {
             UIDefaults defaults = new UIDefaults();
             scheme.applyTo(defaults);
 
-            for (String role : MD3Color.ALL_ROLES) {
+            for (String role : MD3Color.roles()) {
                 assertNotNull(defaults.get(role), role + " missing from the " + (dark ? "dark" : "light") + " scheme");
                 assertTrue(defaults.get(role) instanceof Color, role + " is not a colour");
             }

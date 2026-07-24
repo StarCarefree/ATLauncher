@@ -52,6 +52,7 @@ import com.atlauncher.constants.Constants;
 import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.Contributor;
 import com.atlauncher.gui.components.BackgroundImageLabel;
+import com.atlauncher.gui.components.SocialLinks;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.themes.ATLauncherLaf;
@@ -67,6 +68,7 @@ public class AboutTab extends HierarchyPanel implements Tab {
     private JLabel contributorsLabel;
     private JScrollPane contributorsScrollPane;
     private JPanel authorsList;
+    private JPanel socialLinks;
 
     private IAboutTabViewModel viewModel;
 
@@ -171,6 +173,18 @@ public class AboutTab extends HierarchyPanel implements Tab {
                 contributorsScrollPane.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
                 add(contributorsScrollPane);
             }
+            // Where to find us. These used to sit in a bar along the bottom of every screen; this
+            // is where someone goes when they are actually looking for them.
+            {
+                socialLinks = SocialLinks.panel();
+                socialLinks.setAlignmentX(Component.LEFT_ALIGNMENT);
+                socialLinks.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+
+                Box box = Box.createHorizontalBox();
+                box.add(socialLinks);
+                box.add(Box.createHorizontalGlue());
+                add(box);
+            }
         }
 
         add(Box.createVerticalStrut(5));
@@ -254,6 +268,7 @@ public class AboutTab extends HierarchyPanel implements Tab {
         contributorsLabel = null;
         authorsList = null;
         contributorsScrollPane = null;
+        socialLinks = null;
     }
 
     /**

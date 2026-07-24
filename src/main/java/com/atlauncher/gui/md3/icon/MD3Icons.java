@@ -219,6 +219,11 @@ public final class MD3Icons {
         g.fill(dot(12, 16.4f, 1.3f));
     };
 
+    public static final MD3Icon.Painter TERMINAL = g -> {
+        stroke(g, new RoundRectangle2D.Float(3.5f, 5, 17, 14, 2.5f, 2.5f),
+                path(7, 10, 10, 12.5f, 7, 15), new Line2D.Float(12.5f, 15.5f, 17, 15.5f));
+    };
+
     public static final MD3Icon.Painter VISIBILITY = g -> {
         Path2D.Float eye = new Path2D.Float();
         eye.moveTo(2.5f, 12);

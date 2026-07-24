@@ -20,6 +20,8 @@ package com.atlauncher.gui.md3.nav;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.event.ActionListener;
 
 import javax.swing.JComponent;
@@ -66,6 +68,7 @@ public class MD3TopAppBar extends JPanel {
         setBackground(MD3Color.surface());
         setBorder(MD3Spacing.border(0, MD3Spacing.XS));
 
+        titleLabel.setName("appBarTitle");
         titleLabel.setFont(MD3Type.font(MD3Type.TITLE_LARGE));
         titleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
         titleLabel.setForeground(MD3Color.onSurface());
@@ -77,11 +80,22 @@ public class MD3TopAppBar extends JPanel {
 
         leading.add(titleLabel);
 
-        add(leading, BorderLayout.WEST);
+        // FlowLayout stacks its row against the top of whatever height BorderLayout hands it, so
+        // the title and actions would sit 12dp high in a 64dp bar. Wrapping centres them without
+        // pinning either side to a fixed height.
+        add(centred(leading), BorderLayout.WEST);
         add(centre, BorderLayout.CENTER);
-        add(trailing, BorderLayout.EAST);
+        add(centred(trailing), BorderLayout.EAST);
 
         setTitle(title);
+    }
+
+    private static JPanel centred(JComponent inner) {
+        JPanel wrapper = new JPanel(new GridBagLayout());
+        wrapper.setOpaque(false);
+        wrapper.add(inner, new GridBagConstraints());
+
+        return wrapper;
     }
 
     public void setTitle(String title) {

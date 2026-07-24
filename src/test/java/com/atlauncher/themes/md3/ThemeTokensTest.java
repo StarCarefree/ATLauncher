@@ -72,7 +72,7 @@ public class ThemeTokensTest {
         for (String className : THEMES) {
             install(className);
 
-            for (String role : MD3Color.ALL_ROLES) {
+            for (String role : MD3Color.roles()) {
                 assertNotNull(UIManager.getColor(role), role + " missing under " + className);
             }
 

@@ -104,12 +104,19 @@ public final class MD3Type {
     public static final Role LABEL_MEDIUM = new Role("labelMedium", 12f, true, 14, 0.042f);
     public static final Role LABEL_SMALL = new Role("labelSmall", 11f, true, 14, 0.045f);
 
-    public static final Role[] ALL = {
+    private static final Role[] ALL = {
             DISPLAY_LARGE, DISPLAY_MEDIUM, DISPLAY_SMALL,
             HEADLINE_LARGE, HEADLINE_MEDIUM, HEADLINE_SMALL,
             TITLE_LARGE, TITLE_MEDIUM, TITLE_SMALL,
             BODY_LARGE, BODY_MEDIUM, BODY_SMALL,
             LABEL_LARGE, LABEL_MEDIUM, LABEL_SMALL };
+
+    /**
+     * @return every role in the scale, in display order
+     */
+    public static Role[] roles() {
+        return ALL.clone();
+    }
 
     /**
      * Derived fonts, keyed by the base face they came from. Entries fall out on their own once a
@@ -183,6 +190,8 @@ public final class MD3Type {
 
         Font font = base.deriveFont(role.emphasised ? Font.BOLD : Font.PLAIN, UIScale.scale(role.size));
 
+        // FontMetrics.stringWidth does account for TextAttribute.TRACKING, so a tracked font still
+        // measures itself correctly and nothing downstream needs to compensate
         if (Math.abs(role.tracking) >= TRACKING_THRESHOLD) {
             Map<TextAttribute, Object> attributes = new HashMap<>();
             attributes.put(TextAttribute.TRACKING, role.tracking);

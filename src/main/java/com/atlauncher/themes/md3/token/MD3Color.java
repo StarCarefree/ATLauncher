@@ -100,8 +100,8 @@ public final class MD3Color {
     public static final String ON_TERTIARY_FIXED = PREFIX + "onTertiaryFixed";
     public static final String ON_TERTIARY_FIXED_VARIANT = PREFIX + "onTertiaryFixedVariant";
 
-    /** Every role, in the order {@link MD3Scheme} writes them. Useful for diagnostics. */
-    public static final String[] ALL_ROLES = {
+    /** Every role, in the order {@link MD3Scheme} writes them. Reached through {@link #roles()}. */
+    private static final String[] ALL_ROLES = {
             PRIMARY, ON_PRIMARY, PRIMARY_CONTAINER, ON_PRIMARY_CONTAINER, INVERSE_PRIMARY,
             SECONDARY, ON_SECONDARY, SECONDARY_CONTAINER, ON_SECONDARY_CONTAINER,
             TERTIARY, ON_TERTIARY, TERTIARY_CONTAINER, ON_TERTIARY_CONTAINER,
@@ -117,6 +117,13 @@ public final class MD3Color {
             TERTIARY_FIXED, TERTIARY_FIXED_DIM, ON_TERTIARY_FIXED, ON_TERTIARY_FIXED_VARIANT };
 
     private static final Color FALLBACK = Color.GRAY;
+
+    /**
+     * @return every colour role, useful for diagnostics and for asserting a theme published them all
+     */
+    public static String[] roles() {
+        return ALL_ROLES.clone();
+    }
 
     private MD3Color() {
     }
