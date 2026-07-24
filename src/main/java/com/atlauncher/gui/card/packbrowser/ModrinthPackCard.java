@@ -29,6 +29,11 @@ import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import javax.swing.border.TitledBorder;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.atlauncher.gui.md3.container.MD3Badge;
+
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
@@ -46,34 +51,18 @@ import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.utils.OS;
 
-public class ModrinthPackCard extends JPanel implements RelocalizationListener {
+public class ModrinthPackCard extends MD3PackCard implements RelocalizationListener {
     private final JButton installButton = new JButton(GetText.tr("Install"));
     private final JButton createServerButton = new JButton(GetText.tr("Create Server"));
     private final JButton websiteButton = new JButton(GetText.tr("Website"));
 
     public ModrinthPackCard(final ModrinthSearchHit searchHit) {
         super();
-        setLayout(new BorderLayout());
-        setBorder(BorderFactory.createTitledBorder(null, searchHit.title, TitledBorder.LEADING,
-                TitledBorder.DEFAULT_POSITION, App.THEME.getBoldFont().deriveFont(15f)));
 
         RelocalizationManager.addListener(this);
 
         String imageUrl = searchHit.iconUrl;
 
-        JSplitPane splitter = new JSplitPane();
-
-        BackgroundImageLabel imageLabel = new BackgroundImageLabel(imageUrl, 150, 150);
-        imageLabel.setPreferredSize(new Dimension(300, 150));
-        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        splitter.setLeftComponent(imageLabel);
-
-        JPanel actionsPanel = new JPanel(new BorderLayout());
-        splitter.setRightComponent(actionsPanel);
-        splitter.setEnabled(false);
-
-        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
-        buttonsPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
 
         installButton.addActionListener(e -> {
             if (AccountManager.getSelectedAccount() == null) {
@@ -90,7 +79,6 @@ public class ModrinthPackCard extends JPanel implements RelocalizationListener {
                 instanceInstallerDialog.setVisible(true);
             }
         });
-        buttonsPanel.add(installButton);
 
         createServerButton.addActionListener(e -> {
             // user has no instances, they may not be aware this is not how to play
@@ -120,26 +108,15 @@ public class ModrinthPackCard extends JPanel implements RelocalizationListener {
                 instanceInstallerDialog.setVisible(true);
             }
         });
-        buttonsPanel.add(createServerButton);
 
         websiteButton.addActionListener(
                 e -> OS.openWebBrowser(String.format("https://modrinth.com/modpack/%s", searchHit.slug)));
-        buttonsPanel.add(websiteButton);
 
-        JTextArea descArea = new JTextArea();
-        descArea.setText(searchHit.description);
-        descArea.setLineWrap(true);
-        descArea.setEditable(false);
-        descArea.setFocusable(false);
-        descArea.setHighlighter(null);
-        descArea.setWrapStyleWord(true);
-        descArea.setCaretPosition(0);
+        List<MD3Badge> badges = new ArrayList<>();
+        addDownloads(badges, searchHit.downloads);
 
-        actionsPanel.add(descArea, BorderLayout.CENTER);
-        actionsPanel.add(buttonsPanel, BorderLayout.SOUTH);
-        actionsPanel.setPreferredSize(new Dimension(actionsPanel.getPreferredSize().width, 155));
-
-        add(splitter, BorderLayout.CENTER);
+        build(searchHit.title, coverFromUrl(imageUrl), searchHit.description, badges, installButton,
+                createServerButton, websiteButton);
     }
 
     @Override

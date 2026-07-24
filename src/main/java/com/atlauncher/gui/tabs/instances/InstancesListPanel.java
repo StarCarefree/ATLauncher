@@ -17,24 +17,32 @@
  */
 package com.atlauncher.gui.tabs.instances;
 
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+import java.awt.FlowLayout;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.builders.HTMLBuilder;
-import com.atlauncher.constants.UIConstants;
 import com.atlauncher.gui.card.InstanceCard;
 import com.atlauncher.gui.card.NilCard;
+import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.gui.tabs.InstancesTab;
 import com.atlauncher.managers.PerformanceManager;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.viewmodel.base.IInstancesTabViewModel;
-import com.google.common.collect.Lists;
+import com.formdev.flatlaf.util.UIScale;
 
+/**
+ * The instances, as a grid of cards that reflows with the window.
+ *
+ * <p>
+ * Previously one full-width card per row, which meant a 1200px window showed three instances and
+ * spent most of its area on empty card. The same window now shows twelve.
+ */
 public final class InstancesListPanel extends HierarchyPanel {
-
     private final InstancesTab instancesTab;
     private final IInstancesTabViewModel viewModel;
 
@@ -46,9 +54,15 @@ public final class InstancesListPanel extends HierarchyPanel {
             });
 
     public InstancesListPanel(InstancesTab instancesTab, final IInstancesTabViewModel viewModel) {
-        super(new GridBagLayout());
+        super(new WrapLayout(FlowLayout.LEFT, UIScale.scale(MD3Spacing.L), UIScale.scale(MD3Spacing.L)));
+
         this.instancesTab = instancesTab;
         this.viewModel = viewModel;
+
+        setOpaque(true);
+        setBackground(MD3Color.surface());
+        setBorder(MD3Spacing.border(MD3Spacing.L));
+
         PerformanceManager.start("Displaying Instances");
     }
 
@@ -63,48 +77,42 @@ public final class InstancesListPanel extends HierarchyPanel {
         addDisposable(viewModel.getInstancesList()
                 .map(instancesList -> {
                     viewModel.setIsLoading(true);
+
                     return instancesList.instances.stream().map(instance -> new InstanceCard(
                             instance.instance,
                             instance.hasUpdate,
                             instancesList.instanceTitleFormat)).collect(Collectors.toList());
-                }).subscribe(instances -> {
-                    final GridBagConstraints gbc = new GridBagConstraints();
-                    gbc.gridx = gbc.gridy = 0;
-                    gbc.weightx = 1.0;
-                    gbc.insets = UIConstants.FIELD_INSETS;
-                    gbc.fill = GridBagConstraints.BOTH;
+                }).subscribe(this::render));
+    }
 
-                    removeAll();
+    private void render(List<InstanceCard> instances) {
+        removeAll();
 
-                    if (instances.isEmpty()) {
-                        this.add(this.nilCard, gbc);
-                    } else {
-                        PerformanceManager.start("Render cards");
-                        // Portion up into chunks of 10, to make rendering easier
-                        Lists.partition(instances, 10).forEach(subInstances -> {
-                            instances.forEach(instance -> {
-                                this.add(
-                                        instance,
-                                        gbc);
-                                gbc.gridy++;
-                            });
+        if (instances.isEmpty()) {
+            add(nilCard);
+        } else {
+            PerformanceManager.start("Render cards");
 
-                            validate();
-                            repaint();
-                        });
-                        PerformanceManager.end("Render cards");
-                    }
+            for (InstanceCard instance : instances) {
+                add(instance);
+            }
 
-                    viewModel.setIsLoading(false); // Broken, reason above
+            PerformanceManager.end("Render cards");
+        }
 
-                    // After repainting is done, let scroll view resume
-                    invokeLater(() -> instancesTab.setScroll(viewModel.getScroll()));
-                    PerformanceManager.end("Displaying Instances");
-                }));
+        revalidate();
+        repaint();
+
+        viewModel.setIsLoading(false);
+
+        // once the cards are laid out there is somewhere to scroll back to
+        invokeLater(() -> instancesTab.setScroll(viewModel.getScroll()));
+        PerformanceManager.end("Displaying Instances");
     }
 
     @Override
-    protected void createViewModel() {}
+    protected void createViewModel() {
+    }
 
     @Override
     protected void onDestroy() {

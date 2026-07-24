@@ -1,0 +1,18 @@
+{
+  "id": "1.21.4",
+  "type": "release",
+  "libraries": [],
+  "launcher": {
+    "name": "Vanilla 1.21.4",
+    "pack": "Minecraft",
+    "description": "A plain Minecraft install.",
+    "version": "1.21.4",
+    "isPlayable": true,
+    "vanillaInstance": true,
+    "enableEditingMods": true,
+    "mods": [],
+    "packId": 0,
+    "externalPackId": 0,
+    "hash": ""
+  }
+}

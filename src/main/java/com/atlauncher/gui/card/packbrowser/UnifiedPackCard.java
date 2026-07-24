@@ -26,12 +26,18 @@ import java.util.Locale;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JEditorPane;
+import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.SwingConstants;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.text.html.HTMLDocument;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.atlauncher.gui.md3.container.MD3Badge;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -57,47 +63,29 @@ import com.atlauncher.utils.Markdown;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 
-public class UnifiedPackCard extends JPanel implements RelocalizationListener {
+public class UnifiedPackCard extends MD3PackCard implements RelocalizationListener {
     private final JButton installButton = new JButton(GetText.tr("Install"));
     private final JButton createServerButton = new JButton(GetText.tr("Create Server"));
     private final JButton websiteButton = new JButton(GetText.tr("Website"));
 
     public UnifiedPackCard(final UnifiedModPackResultsFragment result) {
         super();
-        setLayout(new BorderLayout());
-        setBorder(new IconTitledBorder(result.name(), App.THEME.getBoldFont().deriveFont(15f),
-                Utils.getIconImage(App.THEME.getResourcePath("image/modpack-platform",
-                        result.platform().toString().toLowerCase(Locale.ENGLISH)))));
 
         RelocalizationManager.addListener(this);
 
-        JSplitPane splitter = new JSplitPane();
+        // ATLauncher's own packs have their artwork on disk already; every other platform's arrives
+        // over the network
+        JComponent cover = null;
 
         if (result.platform() == ModPackPlatformType.ATLAUNCHER) {
             try {
-                splitter.setLeftComponent(
-                        new PackImagePanel(PackManager.getPackByID(Integer.parseInt(result.id()))));
+                cover = new PackImagePanel(PackManager.getPackByID(Integer.parseInt(result.id())));
             } catch (InvalidPack | NumberFormatException e) {
-                // ignored
+                // no artwork; the card falls back to a plain container
             }
         } else {
-            String imageUrl = null;
-            if (result.iconUrl() != null) {
-                imageUrl = result.iconUrl();
-            }
-
-            BackgroundImageLabel imageLabel = new BackgroundImageLabel(imageUrl, 150, 150);
-            imageLabel.setPreferredSize(new Dimension(300, 150));
-            imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-            splitter.setLeftComponent(imageLabel);
+            cover = coverFromUrl(result.iconUrl());
         }
-
-        JPanel actionsPanel = new JPanel(new BorderLayout());
-        splitter.setRightComponent(actionsPanel);
-        splitter.setEnabled(false);
-
-        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
-        buttonsPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
 
         installButton.addActionListener(e -> {
             if (AccountManager.getSelectedAccount() == null) {
@@ -114,7 +102,6 @@ public class UnifiedPackCard extends JPanel implements RelocalizationListener {
                 instanceInstallerDialog.setVisible(true);
             }
         });
-        buttonsPanel.add(installButton);
 
         createServerButton.addActionListener(e -> {
             // user has no instances, they may not be aware this is not how to play
@@ -144,7 +131,6 @@ public class UnifiedPackCard extends JPanel implements RelocalizationListener {
                 instanceInstallerDialog.setVisible(true);
             }
         });
-        buttonsPanel.add(createServerButton);
 
         boolean showCreateServerButton = result.platform() == ModPackPlatformType.MODRINTH
                 || result.platform() == ModPackPlatformType.CURSEFORGE;
@@ -158,30 +144,9 @@ public class UnifiedPackCard extends JPanel implements RelocalizationListener {
         createServerButton.setVisible(showCreateServerButton);
 
         websiteButton.addActionListener(e -> OS.openWebBrowser(result.url()));
-        buttonsPanel.add(websiteButton);
 
-        JEditorPane descArea = new JEditorPane("text/html",
-                String.format("<html>%s</html>", Markdown.render(result.summary())));
-
-        Font font = App.THEME.getNormalFont();
-        String bodyRule = "p { font-family: " + font.getFamily() + "; " +
-                "font-size: " + font.getSize() + "pt; }";
-        ((HTMLDocument) descArea.getDocument()).getStyleSheet().addRule(bodyRule);
-        descArea.setEditable(false);
-        descArea.setFocusable(false);
-        descArea.setHighlighter(null);
-        descArea.addHyperlinkListener(e -> {
-            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                OS.openWebBrowser(e.getURL());
-            }
-        });
-
-        actionsPanel.add(new JScrollPane(descArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER), BorderLayout.CENTER);
-        actionsPanel.add(buttonsPanel, BorderLayout.SOUTH);
-        actionsPanel.setPreferredSize(new Dimension(0, 155));
-
-        add(splitter, BorderLayout.CENTER);
+        build(result.name(), cover, result.summary(), new ArrayList<>(), installButton,
+                createServerButton, websiteButton);
     }
 
     @Override

@@ -18,22 +18,30 @@
 package com.atlauncher.gui.card;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.List;
 
-import javax.swing.BorderFactory;
+import javax.swing.AbstractButton;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
+import javax.swing.JSeparator;
 import javax.swing.JTextArea;
 
 import org.mini2Dx.gettext.GetText;
@@ -44,7 +52,8 @@ import com.atlauncher.constants.Constants;
 import com.atlauncher.data.BackupMode;
 import com.atlauncher.data.Instance;
 import com.atlauncher.data.minecraft.loaders.LoaderType;
-import com.atlauncher.gui.components.CollapsiblePanel;
+import com.atlauncher.evnt.listener.RelocalizationListener;
+import com.atlauncher.evnt.manager.RelocalizationManager;
 import com.atlauncher.gui.components.DropDownButton;
 import com.atlauncher.gui.components.ImagePanel;
 import com.atlauncher.gui.dialogs.AddModsDialog;
@@ -52,19 +61,56 @@ import com.atlauncher.gui.dialogs.EditModsDialog;
 import com.atlauncher.gui.dialogs.InstanceExportDialog;
 import com.atlauncher.gui.dialogs.InstanceSettingsDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
+import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3IconButton;
+import com.atlauncher.gui.md3.container.MD3Badge;
+import com.atlauncher.gui.md3.container.MD3Card;
+import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.InstanceManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Shape;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.OS;
+import com.formdev.flatlaf.util.UIScale;
 
 /**
- * <p/>
- * Class for displaying instances in the Instance Tab
+ * One instance, as a Material 3 card.
+ *
+ * <p>
+ * The old card was a collapsible titled panel carrying fourteen visible controls - eight buttons and
+ * six dropdowns holding twenty more items - which made every instance look equally urgent and left
+ * no room for the cover art. Here the cover leads, the metadata is a row of badges, playing is the
+ * one filled button, and everything else lives behind the overflow.
+ *
+ * <p>
+ * Nothing was dropped. The original buttons and menus are still constructed and still hold all the
+ * wiring; they are simply no longer laid out, and the overflow menu is built from them on each
+ * open. That keeps one source of truth for what each action does and for when it applies -
+ * {@code setEditInstanceMenuItemVisbility} still decides which loader entries appear, and the menu
+ * follows without knowing anything about loaders.
  */
-public class InstanceCard extends CollapsiblePanel {
+public class InstanceCard extends MD3Card implements RelocalizationListener {
+    private static final int CARD_WIDTH = 280;
+    private static final int MAX_BADGES = 3;
+    /** 16:9 against the card width. */
+    private static final int COVER_HEIGHT = 158;
+
+    private final String titleFormat;
+
+    private JLabel titleLabel;
+    private JLabel subtitleLabel;
+    private MD3Button playAction;
+    private MD3IconButton overflowAction;
+
     private final Instance instance;
     private final JTextArea descArea = new JTextArea();
     private final ImagePanel image;
@@ -156,110 +202,323 @@ public class InstanceCard extends CollapsiblePanel {
     private final boolean hasUpdate;
 
     public InstanceCard(Instance instance, boolean hasUpdate, String instanceTitleFormat) {
-        super(instance, instanceTitleFormat);
+        super(Variant.FILLED, new BorderLayout());
+
         this.instance = instance;
         this.image = new ImagePanel(() -> instance.getImage().getImage());
         this.hasUpdate = hasUpdate;
+        this.titleFormat = instanceTitleFormat;
 
-        JSplitPane splitter = new JSplitPane();
-        splitter.setLeftComponent(this.image);
-        JPanel rightPanel = new JPanel();
-        splitter.setRightComponent(rightPanel);
-        splitter.setEnabled(false);
+        // the cover runs to the card's edges, so the padding belongs to the body instead
+        setBorder(null);
 
         this.descArea.setText(instance.getPackDescription());
-        this.descArea.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
         this.descArea.setEditable(false);
         this.descArea.setFocusable(false);
         this.descArea.setHighlighter(null);
         this.descArea.setLineWrap(true);
         this.descArea.setWrapStyleWord(true);
-        this.descArea.setEditable(false);
-
-        if (instance.canChangeDescription()) {
-            this.descArea.addMouseListener(new MouseAdapter() {
-                @Override
-                public void mouseClicked(MouseEvent e) {
-                    if (e.getClickCount() == 2) {
-                        instance.startChangeDescription();
-                        descArea.setText(instance.getPackDescription());
-                    }
-                }
-            });
-        }
-
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 2));
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 2));
-
-        JSplitPane as = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        as.setEnabled(false);
-        as.setTopComponent(top);
-        as.setBottomComponent(bottom);
-        as.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
-
-        top.add(this.playButton);
-        top.add(this.updateButton);
-        top.add(this.getHelpButton);
-        top.add(this.editInstanceButton);
-        top.add(this.backupButton);
-        top.add(this.settingsButton);
-
-        bottom.add(this.deleteButton);
-        bottom.add(this.exportButton);
 
         setupPlayPopupMenus();
         setupOpenPopupMenus();
         setupButtonPopupMenus();
+        applyAvailabilityRules();
 
-        // check it can be exported
-        this.exportButton.setVisible(instance.canBeExported());
-
-        this.getHelpButton.setVisible(instance.showGetHelpButton());
-
-        if (!instance.isUpdatable()) {
-            this.updateButton.setVisible(instance.isUpdatable());
-        }
-
-        if (instance.isExternalPack() || instance.launcher.vanillaInstance) {
-            this.serversButton.setVisible(false);
-        }
-
-        if (instance.getPack() != null && instance.getPack().system) {
-            this.serversButton.setVisible(false);
-        }
-
-        this.openWebsite.setVisible(instance.hasWebsite());
-
-        if (instance.launcher.enableCurseForgeIntegration
-                && (ConfigManager.getConfigItem("platforms.curseforge.modsEnabled", true)
-                        || (ConfigManager.getConfigItem("platforms.modrinth.modsEnabled", true)
-                                && this.instance.launcher.loaderVersion != null))) {
-            bottom.add(this.addButton);
-        }
-
-        if (instance.launcher.enableEditingMods) {
-            bottom.add(this.editButton);
-        }
-
-        bottom.add(this.serversButton);
-        bottom.add(this.openWebsite);
-        bottom.add(this.openButton);
-
-        rightPanel.setLayout(new BorderLayout());
-        rightPanel.setPreferredSize(new Dimension(rightPanel.getPreferredSize().width, 155));
-        rightPanel.add(new JScrollPane(this.descArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER), BorderLayout.CENTER);
-        rightPanel.add(as, BorderLayout.SOUTH);
-
-        this.getContentPane().setLayout(new BorderLayout());
-        this.getContentPane().add(splitter, BorderLayout.CENTER);
-
-        if (!hasUpdate) {
-            this.updateButton.setVisible(false);
-        }
+        add(buildCover(), BorderLayout.NORTH);
+        add(buildBody(), BorderLayout.CENTER);
 
         this.addActionListeners();
         this.addMouseListeners();
+
+        RelocalizationManager.addListener(this);
+    }
+
+    /**
+     * Hides the actions that do not apply to this instance. They stay constructed - the overflow
+     * menu reads their visibility rather than repeating the conditions.
+     */
+    private void applyAvailabilityRules() {
+        exportButton.setVisible(instance.canBeExported());
+        getHelpButton.setVisible(instance.showGetHelpButton());
+        updateButton.setVisible(instance.isUpdatable() && hasUpdate);
+        openWebsite.setVisible(instance.hasWebsite());
+
+        boolean serversApply = !instance.isExternalPack() && !instance.launcher.vanillaInstance
+                && (instance.getPack() == null || !instance.getPack().system);
+        serversButton.setVisible(serversApply);
+
+        addButton.setVisible(instance.launcher.enableCurseForgeIntegration
+                && (ConfigManager.getConfigItem("platforms.curseforge.modsEnabled", true)
+                        || (ConfigManager.getConfigItem("platforms.modrinth.modsEnabled", true)
+                                && instance.launcher.loaderVersion != null)));
+
+        editButton.setVisible(instance.launcher.enableEditingMods);
+
+        playButton.setEnabled(instance.launcher.isPlayable);
+    }
+
+    /**
+     * The cover art, clipped to the card's top corners.
+     */
+    private JComponent buildCover() {
+        JPanel cover = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintChildren(Graphics g) {
+                Graphics2D g2 = MD3Paint.setup(g);
+
+                try {
+                    // rounding a box twice this tall leaves only the top two corners curved
+                    g2.clip(MD3Shape.rounded(0, 0, getWidth(), getHeight() * 2f, MD3Shape.CARD));
+                    super.paintChildren(g2);
+                } finally {
+                    g2.dispose();
+                }
+            }
+        };
+
+        cover.setOpaque(false);
+        cover.add(image, BorderLayout.CENTER);
+        cover.setPreferredSize(new Dimension(UIScale.scale(CARD_WIDTH), UIScale.scale(COVER_HEIGHT)));
+
+        return cover;
+    }
+
+    private JComponent buildBody() {
+        JPanel body = new JPanel();
+        body.setLayout(new BoxLayout(body, BoxLayout.Y_AXIS));
+        body.setOpaque(false);
+        body.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.M, MD3Spacing.S));
+
+        titleLabel = new JLabel(instance.launcher.name);
+        titleLabel.setFont(MD3Type.font(MD3Type.TITLE_MEDIUM));
+        titleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_MEDIUM);
+        titleLabel.setForeground(MD3Color.onSurface());
+        titleLabel.setAlignmentX(LEFT_ALIGNMENT);
+        titleLabel.setToolTipText(formattedTitle());
+
+        subtitleLabel = new JLabel(subtitleText());
+        subtitleLabel.setFont(MD3Type.font(MD3Type.BODY_SMALL));
+        subtitleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
+        subtitleLabel.setForeground(MD3Color.onSurfaceVariant());
+        subtitleLabel.setAlignmentX(LEFT_ALIGNMENT);
+
+        JPanel badges = new JPanel(new WrapLayout(FlowLayout.LEFT, UIScale.scale(MD3Spacing.XS), 0));
+        badges.setOpaque(false);
+        badges.setAlignmentX(LEFT_ALIGNMENT);
+
+        for (MD3Badge badge : buildBadges()) {
+            badges.add(badge);
+        }
+
+        JPanel actions = new JPanel(new BorderLayout());
+        actions.setOpaque(false);
+        actions.setAlignmentX(LEFT_ALIGNMENT);
+        actions.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
+
+        playAction = MD3Button.filled(GetText.tr("Play"), MD3Icon.of(MD3Icons.PLAY));
+        playAction.setEnabled(instance.launcher.isPlayable);
+        playAction.addActionListener(e -> play(false));
+
+        overflowAction = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"));
+        overflowAction.addActionListener(e -> {
+            JPopupMenu menu = buildOverflowMenu();
+            menu.show(overflowAction, 0, overflowAction.getHeight());
+        });
+
+        actions.add(playAction, BorderLayout.WEST);
+        actions.add(overflowAction, BorderLayout.EAST);
+
+        body.add(titleLabel);
+        body.add(subtitleLabel);
+        body.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
+        body.add(badges);
+        body.add(actions);
+
+        return body;
+    }
+
+    private String formattedTitle() {
+        try {
+            return String.format(titleFormat, instance.launcher.name, instance.launcher.pack,
+                    instance.launcher.version, instance.id);
+        } catch (Throwable t) {
+            return instance.launcher.name;
+        }
+    }
+
+    private String subtitleText() {
+        String pack = instance.launcher.pack;
+        String version = instance.launcher.version;
+
+        // an instance usually keeps its pack's name, and repeating it under the title says nothing
+        if (pack != null && pack.equals(instance.launcher.name)) {
+            pack = null;
+        }
+
+        if (pack == null || pack.isEmpty()) {
+            return version == null ? "" : version;
+        }
+
+        return version == null || version.isEmpty() ? pack : pack + " \u00b7 " + version;
+    }
+
+    /**
+     * Every card is the same width so the grid stays regular. Height follows the content, since a
+     * card with four badges genuinely needs a line more than one with none.
+     */
+    @Override
+    public Dimension getPreferredSize() {
+        Dimension size = super.getPreferredSize();
+        size.width = UIScale.scale(CARD_WIDTH);
+
+        return size;
+    }
+
+    @Override
+    public Dimension getMaximumSize() {
+        return getPreferredSize();
+    }
+
+    /**
+     * At most three badges, in descending order of what the user needs to know.
+     *
+     * <p>
+     * The cap is a layout constraint as much as an editorial one - a fourth badge wraps onto a
+     * second line that the card's height was not measured for, and the wrapped row is then clipped.
+     * It is also the right call on its own: a card that says five things at once says nothing.
+     */
+    private List<MD3Badge> buildBadges() {
+        List<MD3Badge> badges = new ArrayList<>();
+
+        if (!instance.launcher.isPlayable) {
+            badges.add(MD3Badge.problem(GetText.tr("Corrupted")));
+        } else if (hasUpdate) {
+            badges.add(MD3Badge.notable(GetText.tr("Update available")));
+        }
+
+        if (instance.id != null && !instance.id.isEmpty()) {
+            badges.add(MD3Badge.neutral(instance.id));
+        }
+
+        if (instance.launcher.loaderVersion != null && badges.size() < MAX_BADGES) {
+            // the loader's name is what identifies an instance; its patch version is detail, and
+            // detail that is often longer than the badge it would sit in
+            MD3Badge loader = MD3Badge.neutral(instance.launcher.loaderVersion.type);
+            loader.setToolTipText(instance.launcher.loaderVersion.toString());
+            badges.add(loader);
+        }
+
+        int mods = instance.launcher.mods == null ? 0 : instance.launcher.mods.size();
+
+        if (mods > 0 && badges.size() < MAX_BADGES) {
+            // #. {0} is the number of mods installed in an instance
+            badges.add(MD3Badge.neutral(GetText.tr("{0} mods", mods)));
+        }
+
+        return badges;
+    }
+
+    /**
+     * Built fresh on every open, so it always reflects the current state of the actions behind it -
+     * including their translated labels after a language change.
+     */
+    private JPopupMenu buildOverflowMenu() {
+        setEditInstanceMenuItemVisbility();
+
+        JPopupMenu menu = new JPopupMenu();
+
+        addAction(menu, playOfflinePlayMenuItem);
+        addAction(menu, updateButton);
+        menu.addSeparator();
+
+        addSubmenu(menu, editInstanceButton, editInstancePopupMenu);
+        addAction(menu, addButton);
+        addAction(menu, editButton);
+        addAction(menu, settingsButton);
+        menu.addSeparator();
+
+        addSubmenu(menu, backupButton, backupPopupMenu);
+        addAction(menu, openButton, GetText.tr("Open Folder"), () -> OS.openFileExplorer(instance.getRoot()));
+        addSubmenu(menu, null, openPopupMenu);
+        addAction(menu, exportButton);
+        menu.addSeparator();
+
+        addAction(menu, serversButton);
+        addAction(menu, openWebsite);
+        addSubmenu(menu, getHelpButton, getHelpPopupMenu);
+        menu.addSeparator();
+
+        addAction(menu, deleteButton);
+
+        return menu;
+    }
+
+    private static void addAction(JPopupMenu menu, AbstractButton source) {
+        if (!source.isVisible()) {
+            return;
+        }
+
+        menu.add(delegateTo(source));
+    }
+
+    private static void addAction(JPopupMenu menu, AbstractButton source, String text, Runnable action) {
+        if (!source.isVisible()) {
+            return;
+        }
+
+        JMenuItem item = new JMenuItem(text);
+        item.setEnabled(source.isEnabled());
+        item.addActionListener(e -> action.run());
+        menu.add(item);
+    }
+
+    /**
+     * Folds a dropdown button's menu in as a submenu, or straight into the parent when there is no
+     * button to name it after.
+     */
+    private static void addSubmenu(JPopupMenu menu, AbstractButton source, JPopupMenu contents) {
+        if (source != null && !source.isVisible()) {
+            return;
+        }
+
+        if (source == null) {
+            for (Component c : contents.getComponents()) {
+                copyInto(menu, c);
+            }
+
+            return;
+        }
+
+        JMenu submenu = new JMenu(source.getText());
+        submenu.setEnabled(source.isEnabled());
+
+        for (Component c : contents.getComponents()) {
+            copyInto(submenu.getPopupMenu(), c);
+        }
+
+        if (submenu.getMenuComponentCount() > 0) {
+            menu.add(submenu);
+        }
+    }
+
+    private static void copyInto(JPopupMenu target, Component source) {
+        if (source instanceof JMenuItem && source.isVisible()) {
+            target.add(delegateTo((JMenuItem) source));
+        } else if (source instanceof JSeparator) {
+            target.addSeparator();
+        }
+    }
+
+    /**
+     * A menu item that forwards to the control holding the real action, so behaviour lives in one
+     * place no matter how it is surfaced.
+     */
+    private static JMenuItem delegateTo(AbstractButton source) {
+        JMenuItem item = new JMenuItem(source.getText());
+        item.setEnabled(source.isEnabled());
+        item.addActionListener(e -> source.doClick());
+
+        return item;
     }
 
     private void setupPlayPopupMenus() {
@@ -622,7 +881,7 @@ public class InstanceCard extends CollapsiblePanel {
 
                     JMenuItem playOfflineButton = new JMenuItem(GetText.tr("Play Offline"));
                     playOfflineButton.addActionListener(l -> play(true));
-                    rightClickMenu.add(playOnlineButton);
+                    rightClickMenu.add(playOfflineButton);
 
                     if (instance.isUpdatable()) {
                         rightClickMenu.addSeparator();
@@ -659,7 +918,7 @@ public class InstanceCard extends CollapsiblePanel {
                     rightClickMenu.add(supportPackItem);
 
                     JMenuItem renameItem = new JMenuItem(GetText.tr("Rename"));
-                    renameMenuItem.addActionListener(l -> instance.startRename());
+                    renameItem.addActionListener(l -> instance.startRename());
                     rightClickMenu.add(renameItem);
 
                     JMenuItem changeDescriptionItem = new JMenuItem(GetText.tr("Change Description"));

@@ -29,6 +29,8 @@ import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.border.TitledBorder;
 
+import java.util.ArrayList;
+
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
@@ -48,7 +50,7 @@ import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.utils.OS;
 
-public class ATLauncherPackCard extends JPanel implements RelocalizationListener {
+public class ATLauncherPackCard extends MD3PackCard implements RelocalizationListener {
     private final JButton installButton = new JButton(GetText.tr("Install"));
     private final JButton createServerButton = new JButton(GetText.tr("Create Server"));
     private final JButton discordInviteButton = new JButton("Discord");
@@ -61,78 +63,21 @@ public class ATLauncherPackCard extends JPanel implements RelocalizationListener
     public ATLauncherPackCard(final Pack pack) {
         super();
         this.pack = pack;
-        setLayout(new BorderLayout());
-        setBorder(BorderFactory.createTitledBorder(null, pack.name, TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION,
-                App.THEME.getBoldFont().deriveFont(15f)));
 
         RelocalizationManager.addListener(this);
 
-        JSplitPane splitter = new JSplitPane();
-        splitter.setLeftComponent(new PackImagePanel(pack));
-        JPanel actionsPanel = new JPanel(new BorderLayout());
-        splitter.setRightComponent(actionsPanel);
-        splitter.setEnabled(false);
-
-        JPanel top = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 2));
-        JPanel bottom = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 2));
-
-        JSplitPane as = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        as.setEnabled(false);
-        as.setTopComponent(top);
-        as.setBottomComponent(bottom);
-        as.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
-
-        top.add(this.installButton);
-        top.add(this.createServerButton);
-
-        if (pack.getDiscordInviteURL() != null) {
-            bottom.add(this.discordInviteButton);
-        }
-
-        if (pack.getSupportURL() != null) {
-            bottom.add(this.supportButton);
-        }
-
-        if (pack.getWebsiteURL() != null) {
-            bottom.add(this.websiteButton);
-        }
-
-        if (!this.pack.isSystem()) {
-            bottom.add(this.serversButton);
-
-            bottom.add(this.modsButton);
-        }
-
-        JTextArea descArea = new JTextArea();
-        descArea.setText(pack.getDescription());
-        descArea.setLineWrap(true);
-        descArea.setEditable(false);
-        descArea.setFocusable(false);
-        descArea.setHighlighter(null);
-        descArea.setWrapStyleWord(true);
-        descArea.setCaretPosition(0);
-
-        actionsPanel.add(new JScrollPane(descArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER), BorderLayout.CENTER);
-        actionsPanel.add(as, BorderLayout.SOUTH);
-        actionsPanel.setPreferredSize(new Dimension(actionsPanel.getPreferredSize().width, 155));
-
-        add(splitter, BorderLayout.CENTER);
+        // the visibility rules the two button rows used to encode; the overflow menu reads them
+        this.discordInviteButton.setVisible(pack.getDiscordInviteURL() != null);
+        this.supportButton.setVisible(pack.getSupportURL() != null);
+        this.websiteButton.setVisible(pack.getWebsiteURL() != null);
+        this.serversButton.setVisible(!pack.isSystem());
+        this.modsButton.setVisible(!pack.isSystem() && pack.getVersionCount() != 0);
+        this.createServerButton.setVisible(pack.canCreateServer());
 
         this.addActionListeners();
 
-        if (this.pack.getVersionCount() == 0) {
-            this.modsButton.setVisible(false);
-        }
-
-        if (!this.pack.canCreateServer()) {
-            this.createServerButton.setVisible(false);
-        }
-
-        if (this.pack.system) {
-            actionsPanel.add(top, BorderLayout.SOUTH);
-            actionsPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
-        }
+        build(pack.name, new PackImagePanel(pack), pack.getDescription(), new ArrayList<>(), installButton,
+                createServerButton, modsButton, serversButton, websiteButton, supportButton, discordInviteButton);
     }
 
     public Pack getPack() {

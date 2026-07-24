@@ -1,0 +1,48 @@
+{
+  "id": "1.20.1",
+  "type": "release",
+  "libraries": [],
+  "launcher": {
+    "name": "All the Mods 9",
+    "pack": "All the Mods 9",
+    "description": "A large kitchen sink modpack.",
+    "version": "0.2.60",
+    "isPlayable": true,
+    "vanillaInstance": false,
+    "enableEditingMods": true,
+    "enableCurseForgeIntegration": true,
+    "loaderVersion": {
+      "type": "NeoForge",
+      "version": "47.1.106"
+    },
+    "mods": [
+      {
+        "name": "a",
+        "version": "1",
+        "file": "a.jar",
+        "type": "Mods",
+        "optional": false,
+        "disabled": false
+      },
+      {
+        "name": "b",
+        "version": "1",
+        "file": "b.jar",
+        "type": "Mods",
+        "optional": false,
+        "disabled": false
+      },
+      {
+        "name": "c",
+        "version": "1",
+        "file": "c.jar",
+        "type": "Mods",
+        "optional": false,
+        "disabled": false
+      }
+    ],
+    "packId": 0,
+    "externalPackId": 0,
+    "hash": ""
+  }
+}

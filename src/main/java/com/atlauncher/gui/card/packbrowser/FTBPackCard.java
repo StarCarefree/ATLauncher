@@ -35,6 +35,11 @@ import javax.swing.border.TitledBorder;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.text.html.HTMLDocument;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import com.atlauncher.gui.md3.container.MD3Badge;
+
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
@@ -53,15 +58,12 @@ import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.utils.Markdown;
 import com.atlauncher.utils.OS;
 
-public class FTBPackCard extends JPanel implements RelocalizationListener {
+public class FTBPackCard extends MD3PackCard implements RelocalizationListener {
     private final JButton installButton = new JButton(GetText.tr("Install"));
     private final JButton websiteButton = new JButton(GetText.tr("Website"));
 
     public FTBPackCard(final FTBPackManifest pack) {
         super();
-        setLayout(new BorderLayout());
-        setBorder(BorderFactory.createTitledBorder(null, pack.name, TitledBorder.LEADING, TitledBorder.DEFAULT_POSITION,
-                App.THEME.getBoldFont().deriveFont(15f)));
 
         RelocalizationManager.addListener(this);
 
@@ -75,19 +77,6 @@ public class FTBPackCard extends JPanel implements RelocalizationListener {
             }
         }
 
-        JSplitPane splitter = new JSplitPane();
-
-        BackgroundImageLabel imageLabel = new BackgroundImageLabel(imageUrl, 150, 150);
-        imageLabel.setPreferredSize(new Dimension(300, 150));
-        imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        splitter.setLeftComponent(imageLabel);
-
-        JPanel actionsPanel = new JPanel(new BorderLayout());
-        splitter.setRightComponent(actionsPanel);
-        splitter.setEnabled(false);
-
-        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
-        buttonsPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
 
         installButton.addActionListener(e -> {
             if (AccountManager.getSelectedAccount() == null) {
@@ -104,37 +93,15 @@ public class FTBPackCard extends JPanel implements RelocalizationListener {
                 instanceInstallerDialog.setVisible(true);
             }
         });
-        buttonsPanel.add(installButton);
 
         websiteButton.addActionListener(e -> OS.openWebBrowser(pack.getWebsiteUrl()));
-        buttonsPanel.add(websiteButton);
 
         // The Feed The Beast website only displays modpacks with the 'FTB'
         // tag present, so we should hide the button for packs without the tag.
         websiteButton.setVisible(pack.hasTag("FTB"));
 
-        JEditorPane descArea = new JEditorPane("text/html",
-                String.format("<html>%s</html>", Markdown.render(pack.description)));
-
-        Font font = App.THEME.getNormalFont();
-        String bodyRule = "p { font-family: " + font.getFamily() + "; " +
-                "font-size: " + font.getSize() + "pt; }";
-        ((HTMLDocument) descArea.getDocument()).getStyleSheet().addRule(bodyRule);
-        descArea.setEditable(false);
-        descArea.setFocusable(false);
-        descArea.setHighlighter(null);
-        descArea.addHyperlinkListener(e -> {
-            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                OS.openWebBrowser(e.getURL());
-            }
-        });
-
-        actionsPanel.add(new JScrollPane(descArea, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER), BorderLayout.CENTER);
-        actionsPanel.add(buttonsPanel, BorderLayout.SOUTH);
-        actionsPanel.setPreferredSize(new Dimension(0, 155));
-
-        add(splitter, BorderLayout.CENTER);
+        build(pack.name, coverFromUrl(imageUrl), pack.description, new ArrayList<>(), installButton,
+                websiteButton);
     }
 
     @Override
