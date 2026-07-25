@@ -130,8 +130,27 @@ public final class MD3Paint {
      * {@link MD3Elevation#surfaceRole(int)}.
      */
     public static void shadow(Graphics2D g, Shape shape, int level) {
-        int blur = UIScale.scale(MD3Elevation.shadowBlur(level));
-        float alpha = MD3Elevation.shadowAlpha(level);
+        shadow(g, shape, (float) level);
+    }
+
+    /**
+     * The same shadow at a height between two levels, for a component on its way up or down.
+     *
+     * <p>
+     * A whole number reproduces {@link #shadow(Graphics2D, Shape, int)} exactly - the interpolation
+     * has nothing to do at zero - so a component that never animates its height is unaffected by
+     * going through here.
+     */
+    public static void shadow(Graphics2D g, Shape shape, float level) {
+        int lower = (int) Math.floor(level);
+        float between = level - lower;
+
+        int blur = UIScale.scale(Math.round(MD3Animated.lerp(MD3Elevation.shadowBlur(lower),
+                MD3Elevation.shadowBlur(lower + 1), between)));
+        float alpha = MD3Animated.lerp(MD3Elevation.shadowAlpha(lower), MD3Elevation.shadowAlpha(lower + 1),
+                between);
+        int offsetY = Math.round(MD3Animated.lerp(MD3Elevation.shadowOffsetY(lower),
+                MD3Elevation.shadowOffsetY(lower + 1), between));
 
         if (blur <= 0 || alpha <= 0f) {
             return;
@@ -141,7 +160,7 @@ public final class MD3Paint {
 
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.translate(0, UIScale.scale(MD3Elevation.shadowOffsetY(level)));
+        g2.translate(0, UIScale.scale(offsetY));
         g2.setColor(shadow);
 
         for (int i = blur; i >= 1; i--) {

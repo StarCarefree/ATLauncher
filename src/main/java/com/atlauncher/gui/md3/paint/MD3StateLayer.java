@@ -32,7 +32,6 @@ import javax.swing.JComponent;
 
 import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.themes.md3.token.MD3State;
-import com.formdev.flatlaf.util.Animator;
 
 /**
  * Tracks a component's interaction state and fades its state layer between the levels Material 3
@@ -49,6 +48,13 @@ import com.formdev.flatlaf.util.Animator;
  * an expanding clipped circle means repainting the whole component every frame for the duration of
  * a click - a real cost on a view showing a hundred cards, for an effect the platform's users do
  * not expect anyway.
+ *
+ * <p>
+ * Besides the layer's own opacity it publishes {@link #hoverProgress()} and {@link #pressProgress()},
+ * the same two states as smoothed numbers rather than as booleans. A component that expresses hover
+ * or press as something other than a tint - a card lifting, a button rounding its corners in - reads
+ * those instead of installing a second set of listeners that would have to agree with these about
+ * what counts as pressed.
  */
 public final class MD3StateLayer {
     private final JComponent component;
@@ -63,13 +69,16 @@ public final class MD3StateLayer {
     private boolean focused;
     private boolean selected;
 
-    private float alpha;
-    private float from;
-    private float to;
-    private Animator animator;
+    private final MD3Animated overlay;
+    private final MD3Animated hoverProgress;
+    private final MD3Animated pressProgress;
 
     private MD3StateLayer(JComponent component) {
         this.component = component;
+
+        overlay = new MD3Animated(component, 0f, MD3Motion.STATE_LAYER, MD3Motion.STANDARD);
+        hoverProgress = new MD3Animated(component, 0f, MD3Motion.ELEVATION, MD3Motion.STANDARD);
+        pressProgress = new MD3Animated(component, 0f, MD3Motion.SHAPE_MORPH, MD3Motion.STANDARD_ACCELERATE);
     }
 
     /**
@@ -148,10 +157,9 @@ public final class MD3StateLayer {
      * discarded card does not keep its model alive.
      */
     public void uninstall() {
-        if (animator != null) {
-            animator.stop();
-            animator = null;
-        }
+        overlay.stop();
+        hoverProgress.stop();
+        pressProgress.stop();
 
         if (mouseListener != null) {
             component.removeMouseListener(mouseListener);
@@ -237,44 +245,31 @@ public final class MD3StateLayer {
      * @return the current opacity, mid-fade if an animation is running
      */
     public float alpha() {
-        return component.isEnabled() ? alpha : 0f;
+        return component.isEnabled() ? overlay.value() : 0f;
     }
 
-    private float targetAlpha() {
-        if (!component.isEnabled()) {
-            return 0f;
-        }
+    /**
+     * @return how far into being hovered the component is, 0 to 1 - for anything that expresses
+     *         hover as more than a tint, such as a card lifting toward the pointer
+     */
+    public float hoverProgress() {
+        return component.isEnabled() ? hoverProgress.value() : 0f;
+    }
 
-        return MD3State.opacityFor(hovered, focused, pressed, false);
+    /**
+     * @return how far into being pressed the component is, 0 to 1 - for a control that changes shape
+     *         under the finger
+     */
+    public float pressProgress() {
+        return component.isEnabled() ? pressProgress.value() : 0f;
     }
 
     private void retarget() {
-        float target = targetAlpha();
+        boolean enabled = component.isEnabled();
 
-        if (Math.abs(target - to) < 0.001f && animator != null && animator.isRunning()) {
-            return;
-        }
-
-        if (animator != null) {
-            animator.stop();
-        }
-
-        if (!Animator.useAnimation() || MD3Motion.isReduced()) {
-            alpha = target;
-            to = target;
-            component.repaint();
-
-            return;
-        }
-
-        from = alpha;
-        to = target;
-
-        animator = MD3Motion.animator(MD3Motion.STATE_LAYER, MD3Motion.STANDARD, fraction -> {
-            alpha = from + (to - from) * fraction;
-            component.repaint();
-        });
-        animator.start();
+        overlay.setTarget(enabled ? MD3State.opacityFor(hovered, focused, pressed, false) : 0f);
+        hoverProgress.setTarget(enabled && hovered ? 1f : 0f);
+        pressProgress.setTarget(enabled && pressed ? 1f : 0f);
     }
 
     /**

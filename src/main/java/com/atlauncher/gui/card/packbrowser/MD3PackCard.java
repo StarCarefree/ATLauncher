@@ -99,6 +99,8 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
     protected MD3PackCard() {
         super(Variant.FILLED, new BorderLayout());
 
+        setHoverElevation(true);
+
         // the cover runs to the card's edges, so padding belongs to the body
         setBorder(null);
     }

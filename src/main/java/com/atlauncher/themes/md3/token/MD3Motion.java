@@ -55,6 +55,26 @@ public final class MD3Motion {
         }
     };
 
+    /**
+     * Settles a little past its target and comes back - the spring Material 3 Expressive uses for
+     * something arriving where the user asked it to go.
+     *
+     * <p>
+     * A cubic bezier cannot overshoot the way a spring does, so this is the "back out" curve instead,
+     * softened to about four percent. Enough that a navigation indicator reads as having travelled
+     * and stopped rather than having been redrawn; not so much that it looks loose. Only for movement
+     * - an overshooting <em>colour</em> or opacity clips at the end of its range and simply stalls.
+     */
+    public static final Animator.Interpolator EMPHASIZED_OVERSHOOT = new Animator.Interpolator() {
+        @Override
+        public float interpolate(float fraction) {
+            float tension = 1.02f;
+            float past = fraction - 1f;
+
+            return 1f + (tension + 1f) * past * past * past + tension * past * past;
+        }
+    };
+
     public static final int SHORT1 = 50;
     public static final int SHORT2 = 100;
     public static final int SHORT3 = 150;
@@ -76,6 +96,15 @@ public final class MD3Motion {
     public static final int CONTAINER_ENTER = MEDIUM1;
     /** Dialogs and menus closing - exits are faster than entrances. */
     public static final int CONTAINER_EXIT = SHORT4;
+    /**
+     * A control changing shape under the pointer. The shortest token there is: a press has to look
+     * like the button reacting to the finger, and anything slower reads as lag.
+     */
+    public static final int SHAPE_MORPH = SHORT1;
+    /** A component lifting toward the pointer, or settling back. */
+    public static final int ELEVATION = SHORT4;
+    /** One whole page replacing another. */
+    public static final int PAGE_TRANSITION = MEDIUM2;
 
     private MD3Motion() {
     }

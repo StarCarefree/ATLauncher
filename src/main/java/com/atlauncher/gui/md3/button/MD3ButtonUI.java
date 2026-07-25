@@ -28,6 +28,7 @@ import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.awt.geom.RoundRectangle2D;
 
 import javax.swing.AbstractButton;
 import javax.swing.Icon;
@@ -38,6 +39,7 @@ import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicButtonUI;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -59,6 +61,11 @@ import com.formdev.flatlaf.util.UIScale;
  * Elevated buttons carry no drop shadow. Swing clips a component's painting to its own bounds, so a
  * shadow would be sliced off at the edge it is supposed to fall past; and Material 3 expresses
  * height through surface colour first anyway, which works here and costs nothing.
+ *
+ * <p>
+ * Pressing a button rounds its corners in and lets them back out - Material 3's shape morph, and the
+ * one piece of press feedback that survives having no ripple. It is the shape that moves rather than
+ * the size, so nothing around the button shifts and the whole thing costs one interpolated number.
  */
 public class MD3ButtonUI extends BasicButtonUI {
     /** Icons sit at 18dp inside a button, smaller than the 24dp standalone size. */
@@ -111,8 +118,40 @@ public class MD3ButtonUI extends BasicButtonUI {
         return MD3Shape.BUTTON;
     }
 
+    /**
+     * The corner the button reaches at the bottom of a press. A stadium squaring off a little is the
+     * whole gesture; going further makes a 40dp control look like it changed into a different one.
+     */
+    protected int pressedRadius() {
+        return MD3Shape.MEDIUM;
+    }
+
     protected int minimumHeight() {
         return MD3Spacing.BUTTON_HEIGHT;
+    }
+
+    /**
+     * @return how far into a press the button is, 0 to 1
+     */
+    protected float pressProgress() {
+        return stateLayer == null ? 0f : stateLayer.pressProgress();
+    }
+
+    /**
+     * The button's outline at the corner it has reached, which is somewhere between its resting
+     * shape and {@link #pressedRadius()} while a press is going in or coming back out.
+     *
+     * @param inset how far inside its own bounds to draw, for the focus ring that would otherwise be
+     *              clipped in half
+     */
+    protected Shape shapeOf(JComponent c, float inset) {
+        float width = c.getWidth() - inset * 2f;
+        float height = c.getHeight() - inset * 2f;
+
+        float radius = MD3Animated.lerp(MD3Shape.resolve(shapeRadius(), width, height),
+                MD3Shape.resolve(pressedRadius(), width, height), pressProgress());
+
+        return new RoundRectangle2D.Float(inset, inset, width, height, radius * 2f, radius * 2f);
     }
 
     static MD3Button.Variant variantOf(Component c) {
@@ -190,7 +229,7 @@ public class MD3ButtonUI extends BasicButtonUI {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
-            Shape shape = MD3Paint.shapeOf(c, shapeRadius());
+            Shape shape = shapeOf(c, 0f);
 
             MD3Paint.fill(g2, shape, containerColor(b));
             MD3Paint.outline(g2, shape, outlineColor(b), 1f);
@@ -218,7 +257,7 @@ public class MD3ButtonUI extends BasicButtonUI {
 
         g.setColor(MD3Color.get(MD3Color.SECONDARY));
         g.setStroke(new BasicStroke(width));
-        g.draw(MD3Paint.shapeOf(c, shapeRadius(), width / 2f));
+        g.draw(shapeOf(c, width / 2f));
     }
 
     @Override

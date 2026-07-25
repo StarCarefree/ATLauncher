@@ -128,6 +128,8 @@ public class ServerCard extends MD3Card implements RelocalizationListener, CardG
     public ServerCard(Server server) {
         super(Variant.FILLED, new BorderLayout());
 
+        setHoverElevation(true);
+
         this.server = server;
         this.image = new ImagePanel(() -> server.getImage().getImage());
 

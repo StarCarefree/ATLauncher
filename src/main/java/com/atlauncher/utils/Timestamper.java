@@ -25,8 +25,22 @@ import com.atlauncher.App;
 public final class Timestamper {
     private static final SimpleDateFormat format = new SimpleDateFormat(App.settings.dateFormat + " HH:mm:ss a");
 
+    /**
+     * Time only, for the console.
+     *
+     * <p>
+     * Every line there is from the session you are looking at, so a date on each of them repeats what
+     * the window already is a few hundred times, in the widest column on the line. The log
+     * <em>file</em> keeps the full stamp - that one does get read later, and out of context.
+     */
+    private static final SimpleDateFormat timeOnly = new SimpleDateFormat("HH:mm:ss");
+
     public static String now() {
         return format.format(new Date());
+    }
+
+    public static String time() {
+        return timeOnly.format(new Date());
     }
 
     public static String was(Date date) {

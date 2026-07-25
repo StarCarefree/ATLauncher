@@ -204,6 +204,8 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
     public InstanceCard(Instance instance, boolean hasUpdate, String instanceTitleFormat) {
         super(Variant.FILLED, new BorderLayout());
 
+        setHoverElevation(true);
+
         this.instance = instance;
         this.image = new ImagePanel(() -> instance.getImage().getImage());
         this.hasUpdate = hasUpdate;

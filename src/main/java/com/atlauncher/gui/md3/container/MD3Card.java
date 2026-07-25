@@ -37,6 +37,7 @@ import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 
+import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -62,14 +63,27 @@ import com.formdev.flatlaf.util.UIScale;
  * A card that represents a single thing the user can act on - an instance, a modpack - should be
  * {@link #setClickable(boolean) clickable}, which gives it a state layer, a hand cursor, and
  * keyboard activation. A card that merely groups controls should not be.
+ *
+ * <p>
+ * A card that stands for one thing but is <em>acted on through its own buttons</em> - which is every
+ * card in the launcher's grids - is not clickable but should still
+ * {@link #setHoverElevation(boolean) lift under the pointer}, so a grid of them answers the mouse
+ * instead of sitting there.
  */
 public class MD3Card extends JPanel {
     public enum Variant {
         ELEVATED, FILLED, OUTLINED
     }
 
+    /** How far the accent ring comes up under the pointer. */
+    private static final float HOVER_RING_ALPHA = 0.45f;
+
+    /** How much the container darkens under the pointer, where no state layer is doing it already. */
+    private static final float HOVER_TONE_ALPHA = 0.05f;
+
     private Variant variant;
     private boolean clickable;
+    private boolean hoverElevation;
     private MD3StateLayer stateLayer;
     private final List<ActionListener> actionListeners = new ArrayList<>();
 
@@ -118,7 +132,7 @@ public class MD3Card extends JPanel {
         if (clickable) {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             setFocusable(true);
-            stateLayer = MD3StateLayer.install(this);
+            installStateLayer();
 
             addMouseListener(new MouseAdapter() {
                 @Override
@@ -144,13 +158,53 @@ public class MD3Card extends JPanel {
             setCursor(Cursor.getDefaultCursor());
             setFocusable(false);
 
-            if (stateLayer != null) {
-                stateLayer.uninstall();
-                stateLayer = null;
-            }
+            releaseStateLayer();
         }
 
         repaint();
+    }
+
+    public boolean hasHoverElevation() {
+        return hoverElevation;
+    }
+
+    /**
+     * Makes the card answer the pointer: it warms a shade and takes an accent ring while the pointer
+     * is over it, both fading in and out rather than switching.
+     *
+     * <p>
+     * Distinct from {@link #setClickable(boolean)} on purpose. A card in one of the launcher's grids
+     * stands for one instance or one pack, but you act on it through the buttons it carries, not by
+     * clicking the card - so it should look reachable without claiming to be a control, which is what
+     * a state layer and a hand cursor would say.
+     */
+    public void setHoverElevation(boolean hoverElevation) {
+        if (this.hoverElevation == hoverElevation) {
+            return;
+        }
+
+        this.hoverElevation = hoverElevation;
+
+        if (hoverElevation) {
+            installStateLayer();
+        } else {
+            releaseStateLayer();
+        }
+
+        repaint();
+    }
+
+    private void installStateLayer() {
+        if (stateLayer == null) {
+            stateLayer = MD3StateLayer.install(this);
+        }
+    }
+
+    private void releaseStateLayer() {
+        if (stateLayer != null && !clickable && !hoverElevation) {
+            stateLayer.uninstall();
+            stateLayer = null;
+        }
     }
 
     public void addActionListener(ActionListener listener) {
@@ -170,29 +224,59 @@ public class MD3Card extends JPanel {
     }
 
     /**
-     * @return the elevation level, one higher while a clickable card is hovered so it lifts toward
-     *         the pointer
+     * @return how far into being hovered the card is, 0 to 1, or 0 for a card that does not answer
+     *         the pointer at all
+     */
+    protected float lift() {
+        return stateLayer == null ? 0f : stateLayer.hoverProgress();
+    }
+
+    /**
+     * @return the level the card rests at, before anything the pointer does to it
      */
     protected int elevation() {
-        int base = getVariant() == Variant.ELEVATED ? MD3Elevation.LEVEL1 : MD3Elevation.LEVEL0;
-
-        if (clickable && stateLayer != null && stateLayer.isHovered()) {
-            return base + 1;
-        }
-
-        return base;
+        return getVariant() == Variant.ELEVATED ? MD3Elevation.LEVEL1 : MD3Elevation.LEVEL0;
     }
 
     protected Color containerColor() {
+        float lift = lift();
+
         switch (getVariant()) {
             case ELEVATED:
-                return MD3Elevation.surface(elevation() + 1);
+                // height on a Material surface is carried by tone, so lifting is a step up the ramp
+                return MD3Animated.lerp(MD3Elevation.surface(elevation() + 1),
+                        MD3Elevation.surface(elevation() + 2), lift);
             case OUTLINED:
-                return MD3Color.surface();
+                return MD3Animated.lerp(MD3Color.surface(), MD3Color.surfaceContainerLow(), lift);
             case FILLED:
             default:
-                return MD3Color.surfaceContainerHighest();
+                // the filled card already sits at the top of the ramp, so it warms instead
+                return MD3Color.blend(MD3Color.surfaceContainerHighest(), MD3Color.onSurface(),
+                        HOVER_TONE_ALPHA * toneLift());
         }
+    }
+
+    /**
+     * A clickable card lifts through its state layer, which is already the whole card's worth of
+     * tint; adding the container's own would count hover twice and land it somewhere no token
+     * describes.
+     */
+    private float toneLift() {
+        return clickable ? 0f : lift();
+    }
+
+    /**
+     * The ring that comes up under the pointer. An outlined card already has a line to raise toward
+     * the accent; the others grow one out of nothing.
+     */
+    private Color outlineColor() {
+        float lift = lift();
+
+        if (getVariant() == Variant.OUTLINED) {
+            return MD3Animated.lerp(MD3Color.outlineVariant(), MD3Color.primary(), lift);
+        }
+
+        return lift <= 0f ? null : MD3Color.get(MD3Color.PRIMARY, HOVER_RING_ALPHA * lift);
     }
 
     @Override
@@ -203,12 +287,9 @@ public class MD3Card extends JPanel {
             Shape shape = MD3Paint.shapeOf(this, MD3Shape.CARD);
 
             MD3Paint.fill(g2, shape, containerColor());
+            MD3Paint.outline(g2, shape, outlineColor(), 1f);
 
-            if (getVariant() == Variant.OUTLINED) {
-                MD3Paint.outline(g2, shape, MD3Color.outlineVariant(), 1f);
-            }
-
-            if (stateLayer != null) {
+            if (clickable && stateLayer != null) {
                 stateLayer.paint(g2, shape, MD3Color.onSurface());
             }
 

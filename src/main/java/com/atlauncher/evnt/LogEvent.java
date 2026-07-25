@@ -25,7 +25,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.atlauncher.App;
 import com.atlauncher.FileSystem;
-import com.atlauncher.gui.components.Console;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.utils.Timestamper;
 
@@ -58,9 +57,9 @@ public final class LogEvent {
 
     public void post(Logger logger) {
         if ((this.meta & CONSOLE) == CONSOLE) {
-            Console c = App.console.console;
-            c.setColor(this.type.color()).setBold(true).write("[" + Timestamper.now() + "] ");
-            c.setColor(UIManager.getColor("EditorPane.foreground")).setBold(false).write(this.body);
+            // the console keeps the level rather than being handed pre-coloured text, because that
+            // is what lets it filter by one
+            App.console.console.append(this.type, Timestamper.time(), this.body);
         }
 
         if ((this.meta & LOG4J) == LOG4J) {

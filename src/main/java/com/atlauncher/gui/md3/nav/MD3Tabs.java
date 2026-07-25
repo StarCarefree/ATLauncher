@@ -339,7 +339,10 @@ public class MD3Tabs extends JPanel {
 
         indicatorFrom = new Rectangle(indicator);
 
-        indicatorAnimator = MD3Motion.animator(MD3Motion.CONTAINER_ENTER, MD3Motion.EMPHASIZED, new Animator.TimingTarget() {
+        // the same curve and length the rail's pill travels on, so the two navigations in the window
+        // move alike rather than each having its own idea of how far away a tab is
+        indicatorAnimator = MD3Motion.animator(MD3Motion.NAVIGATION, MD3Motion.EMPHASIZED_OVERSHOOT,
+                new Animator.TimingTarget() {
             @Override
             public void timingEvent(float fraction) {
                 indicator = new Rectangle(

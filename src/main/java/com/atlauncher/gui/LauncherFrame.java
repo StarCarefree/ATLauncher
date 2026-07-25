@@ -18,7 +18,6 @@
 package com.atlauncher.gui;
 
 import java.awt.BorderLayout;
-import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.SystemTray;
@@ -48,6 +47,7 @@ import com.atlauncher.gui.md3.button.MD3Fab;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.nav.MD3NavigationRail;
+import com.atlauncher.gui.md3.nav.MD3PageHost;
 import com.atlauncher.gui.tabs.AboutTab;
 import com.atlauncher.gui.tabs.CreatePackTab;
 import com.atlauncher.gui.tabs.InstancesTab;
@@ -63,7 +63,6 @@ import com.atlauncher.managers.LogManager;
 import com.atlauncher.managers.PackManager;
 import com.atlauncher.managers.PerformanceManager;
 import com.atlauncher.network.Analytics;
-import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.utils.Utils;
 
 import com.formdev.flatlaf.util.UIScale;
@@ -104,8 +103,7 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
 
     private final MD3NavigationRail rail = new MD3NavigationRail();
     private final LauncherAppBar appBar = new LauncherAppBar();
-    private final CardLayout cards = new CardLayout();
-    private final JPanel content = new JPanel(cards);
+    private final MD3PageHost content = new MD3PageHost();
 
     private int selectedDestination = -1;
     /** Stops the rail's own change event from re-entering the navigation it just caused. */
@@ -255,11 +253,8 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
 
     private void buildNavigation() {
         for (Map.Entry<Integer, Tab> entry : tabs.entrySet()) {
-            content.add((JPanel) entry.getValue(), String.valueOf(entry.getKey()));
+            content.addPage((JPanel) entry.getValue(), String.valueOf(entry.getKey()));
         }
-
-        content.setOpaque(true);
-        content.setBackground(MD3Color.surface());
 
         MD3Fab create = new MD3Fab(MD3Icons.ADD, tabs.get(UIConstants.LAUNCHER_CREATE_PACK_TAB).getTitle());
         create.setName("createPackAction");
@@ -323,7 +318,7 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
         navigating = true;
 
         try {
-            cards.show(content, String.valueOf(destination));
+            content.showPage(String.valueOf(destination));
             // create-pack is reached from the header, so it has no rail position to light up
             rail.setSelectedIndex(railOrder.indexOf(destination));
             appBar.setTitle(tab.getTitle());

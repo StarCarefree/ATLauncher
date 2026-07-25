@@ -40,9 +40,11 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
@@ -64,19 +66,41 @@ import com.formdev.flatlaf.util.UIScale;
  * <p>
  * Arrow keys move between destinations, and the rail is a single tab stop, so keyboard users step
  * past the navigation in one press rather than nine.
+ *
+ * <p>
+ * There is one indicator pill and the rail owns it, rather than a pill per destination that switches
+ * on and off. It travels to the destination you picked, which is the only thing on screen that says
+ * the window moved rather than redrew - and because the destinations are transparent, a pill painted
+ * by the rail lands underneath their glyphs on the way past.
  */
 public class MD3NavigationRail extends JPanel {
+    private static final int INDICATOR_WIDTH = 56;
+    private static final int ITEM_HEIGHT = 56;
+
     private final List<Destination> destinations = new ArrayList<>();
     private final List<ChangeListener> changeListeners = new ArrayList<>();
     private final JPanel items = new JPanel();
 
+    /** How far along the pill is between the destination it left and the one it is heading to. */
+    private final MD3Animated slide = new MD3Animated(this, 1f, MD3Motion.NAVIGATION,
+            MD3Motion.EMPHASIZED_OVERSHOOT);
+
+    /** Whether there is a pill at all - there is not, on a destination the rail does not list. */
+    private final MD3Animated presence = new MD3Animated(this, 0f, MD3Motion.SHORT4, MD3Motion.STANDARD);
+
     private JComponent header;
     private int selectedIndex = -1;
+    /** Where the pill was before the current journey, in rail coordinates. */
+    private float slideFrom = Float.NaN;
+    /** The last destination the pill actually rested on, so it can fade out where it stopped. */
+    private int restingIndex = -1;
 
     public MD3NavigationRail() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setOpaque(true);
-        setBackground(MD3Color.surface());
+        // a shade off the content it sits beside; the rail and the page are both surface in the
+        // spec, which leaves the launcher's primary navigation with no edge at all
+        setBackground(MD3Color.surfaceContainer());
         setBorder(MD3Spacing.border(MD3Spacing.S, 0));
         setFocusable(true);
 
@@ -191,13 +215,82 @@ public class MD3NavigationRail extends JPanel {
             return;
         }
 
+        int previous = selectedIndex;
         selectedIndex = index;
 
+        travel(previous, index);
+
         for (Destination destination : destinations) {
-            destination.repaint();
+            destination.onSelectionChanged();
         }
 
+        repaint();
         fireStateChanged();
+    }
+
+    /**
+     * Starts the pill on its way. It slides when it has somewhere to slide from and somewhere to
+     * slide to; a first selection, or one that arrives while nothing was selected, simply appears
+     * where it belongs and fades up.
+     */
+    private void travel(int from, int to) {
+        presence.setTarget(to < 0 ? 0f : 1f);
+
+        if (to < 0) {
+            return;
+        }
+
+        slideFrom = indicatorY(restingIndex);
+        restingIndex = to;
+
+        if (Float.isNaN(slideFrom) || from < 0) {
+            slide.set(1f);
+
+            return;
+        }
+
+        slide.set(0f);
+        slide.setTarget(1f);
+    }
+
+    /**
+     * @return where a destination's pill sits in the rail's own coordinates, or NaN for one that has
+     *         no pill or has not been laid out yet
+     */
+    private float indicatorY(int index) {
+        if (index < 0 || index >= destinations.size()) {
+            return Float.NaN;
+        }
+
+        return items.getY() + destinations.get(index).getY() + UIScale.scale(MD3Spacing.S);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        float alpha = presence.value();
+        float target = indicatorY(restingIndex);
+
+        if (alpha <= 0f || Float.isNaN(target)) {
+            return;
+        }
+
+        // read from the live layout rather than from a remembered rectangle, so a resize mid-slide
+        // lands the pill where the destination actually ended up
+        float y = Float.isNaN(slideFrom) ? target : MD3Animated.lerp(slideFrom, target, slide.value());
+
+        int width = UIScale.scale(INDICATOR_WIDTH);
+        int height = UIScale.scale(MD3Spacing.NAV_ITEM_INDICATOR_HEIGHT);
+
+        Graphics2D g2 = MD3Paint.setup(g);
+
+        try {
+            MD3Paint.fill(g2, MD3Shape.rounded((getWidth() - width) / 2f, y, width, height,
+                    MD3Shape.NAV_INDICATOR), MD3Color.get(MD3Color.SECONDARY_CONTAINER, alpha));
+        } finally {
+            g2.dispose();
+        }
     }
 
     public void addChangeListener(ChangeListener listener) {
@@ -237,12 +330,11 @@ public class MD3NavigationRail extends JPanel {
      * One destination: a pill indicator, a glyph, and a label beneath it.
      */
     private final class Destination extends JPanel {
-        private static final int INDICATOR_WIDTH = 56;
-        private static final int ITEM_HEIGHT = 56;
-
         private final MD3Icon.Painter painter;
         private final int index;
         private final MD3StateLayer stateLayer;
+        /** How far into being the active destination this one is, so its glyph crossfades. */
+        private final MD3Animated activeness;
 
         private String label;
 
@@ -250,6 +342,7 @@ public class MD3NavigationRail extends JPanel {
             this.painter = painter;
             this.label = label;
             this.index = index;
+            this.activeness = new MD3Animated(this, 0f, MD3Motion.NAVIGATION, MD3Motion.STANDARD);
 
             setOpaque(false);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -282,6 +375,12 @@ public class MD3NavigationRail extends JPanel {
             return index == selectedIndex;
         }
 
+        void onSelectionChanged() {
+            activeness.setTarget(isActive() ? 1f : 0f);
+
+            repaint();
+        }
+
         @Override
         public Dimension getPreferredSize() {
             FontMetrics metrics = getFontMetrics(getFont());
@@ -305,7 +404,7 @@ public class MD3NavigationRail extends JPanel {
             Graphics2D g2 = MD3Paint.setup(g);
 
             try {
-                boolean active = isActive();
+                float active = activeness.value();
 
                 int indicatorWidth = UIScale.scale(INDICATOR_WIDTH);
                 int indicatorHeight = UIScale.scale(MD3Spacing.NAV_ITEM_INDICATOR_HEIGHT);
@@ -315,30 +414,31 @@ public class MD3NavigationRail extends JPanel {
                 Shape indicator = MD3Shape.rounded(indicatorX, indicatorY, indicatorWidth, indicatorHeight,
                         MD3Shape.NAV_INDICATOR);
 
-                if (active) {
-                    MD3Paint.fill(g2, indicator, MD3Color.secondaryContainer());
-                }
+                // the pill itself belongs to the rail, which paints it underneath all of this so it
+                // can travel between destinations rather than switching on and off
+
+                Color content = contentColor(active);
 
                 // the state layer follows the indicator's pill, not the whole item, so hovering an
                 // inactive destination previews exactly the shape selecting it would produce
-                stateLayer.paint(g2, indicator, contentColor(active));
+                stateLayer.paint(g2, indicator, content);
 
                 int iconSize = UIScale.scale(MD3Spacing.ICON_SIZE_LARGE);
-                MD3Icon.of(painter, MD3Spacing.ICON_SIZE_LARGE).withColor(contentColor(active)).paintIcon(this, g2,
+                MD3Icon.of(painter, MD3Spacing.ICON_SIZE_LARGE).withColor(content).paintIcon(this, g2,
                         (getWidth() - iconSize) / 2, indicatorY + (indicatorHeight - iconSize) / 2);
 
                 FontMetrics metrics = getFontMetrics(getFont());
                 int textWidth = metrics.stringWidth(label);
 
                 g2.setFont(getFont());
-                g2.setColor(active ? MD3Color.onSurface() : MD3Color.onSurfaceVariant());
+                g2.setColor(MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.onSurface(), active));
                 g2.drawString(label, (getWidth() - textWidth) / 2,
                         indicatorY + indicatorHeight + UIScale.scale(MD3Spacing.XS) + metrics.getAscent());
 
                 // the rail is one tab stop and the arrow keys move the selection within it, so the
                 // ring goes on the destination that is selected - the same thing MD3Tabs does.
                 // Without it, tabbing into the launcher's primary navigation showed nothing at all
-                if (MD3NavigationRail.this.isFocusOwner() && active) {
+                if (MD3NavigationRail.this.isFocusOwner() && isActive()) {
                     MD3Paint.focusRing(g2, indicatorX, indicatorY, indicatorWidth, indicatorHeight,
                             MD3Shape.NAV_INDICATOR);
                 }
@@ -347,8 +447,8 @@ public class MD3NavigationRail extends JPanel {
             }
         }
 
-        private Color contentColor(boolean active) {
-            return active ? MD3Color.onSecondaryContainer() : MD3Color.onSurfaceVariant();
+        private Color contentColor(float active) {
+            return MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.onSecondaryContainer(), active);
         }
     }
 

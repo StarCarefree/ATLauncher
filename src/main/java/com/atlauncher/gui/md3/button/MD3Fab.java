@@ -22,10 +22,12 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Shape;
+import java.awt.geom.RoundRectangle2D;
 
 import javax.swing.JButton;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -91,12 +93,33 @@ public class MD3Fab extends JButton {
         return UIScale.scale(MD3Elevation.shadowBlur(HOVERED));
     }
 
-    private int elevation() {
+    /**
+     * @return the height it has reached, between {@link #RESTING} and {@link #HOVERED} - a press
+     *         puts it back down, so pushing the button looks like pushing it rather than like the
+     *         pointer having left
+     */
+    private float elevation() {
         if (!isEnabled()) {
             return MD3Elevation.LEVEL0;
         }
 
-        return stateLayer.isHovered() ? HOVERED : RESTING;
+        float lift = Math.max(0f, stateLayer.hoverProgress() - stateLayer.pressProgress());
+
+        return MD3Animated.lerp(RESTING, HOVERED, lift);
+    }
+
+    /**
+     * The corner it has reached. A FAB is the one control in the launcher that rounds <em>out</em>
+     * under the finger rather than in: it is already a squircle, and Material 3 morphs it the rest of
+     * the way to a circle.
+     */
+    private Shape shapeOf(float inset) {
+        float size = getWidth() - inset * 2f;
+        float radius = MD3Animated.lerp(MD3Shape.resolve(MD3Shape.FAB, size, size),
+                MD3Shape.resolve(MD3Shape.FULL, size, size), stateLayer.pressProgress());
+
+        return new RoundRectangle2D.Float(inset, inset, size, getHeight() - inset * 2f, radius * 2f,
+                radius * 2f);
     }
 
     private Color containerColor() {
@@ -121,7 +144,7 @@ public class MD3Fab extends JButton {
 
         try {
             float inset = shadowRoom();
-            Shape shape = MD3Paint.shapeOf(this, MD3Shape.FAB, inset);
+            Shape shape = shapeOf(inset);
             Color content = contentColor();
 
             MD3Paint.shadow(g2, shape, elevation());

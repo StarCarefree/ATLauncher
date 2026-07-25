@@ -81,6 +81,7 @@ public final class AccountCard extends MD3Card implements CardGridLayout.WidthAw
     public AccountCard(MicrosoftAccount account, Runnable onAction, Actions actions) {
         super(Variant.FILLED, new BorderLayout());
 
+        setHoverElevation(true);
         setBorder(null);
         setName("accountCard." + account.minecraftUsername);
 

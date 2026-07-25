@@ -25,12 +25,16 @@ import java.awt.Insets;
 import javax.swing.AbstractButton;
 import javax.swing.JComponent;
 import javax.swing.border.AbstractBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.plaf.ComponentUI;
 
 import com.atlauncher.gui.md3.button.MD3ButtonUI;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3State;
@@ -43,10 +47,19 @@ import com.formdev.flatlaf.util.UIScale;
  * <p>
  * A chip is a button with different metrics and a selected state, so the button painting is reused
  * and only the colours, shape and padding are re-answered.
+ *
+ * <p>
+ * Selecting one fades its container up and its outline away rather than swapping both at once. A row
+ * of filter chips is usually exclusive, so two of them change at the same moment, and switching them
+ * instantly makes the row read as having been rebuilt rather than as one choice having moved.
  */
 public class MD3ChipUI extends MD3ButtonUI {
     /** The chevron on a menu chip, and the room the border keeps clear for it. */
     private static final int TRAILING_ICON_SIZE = 18;
+
+    /** How far into being selected the chip is, so the container can fade in behind the label. */
+    private MD3Animated selection;
+    private ChangeListener selectionListener;
 
     public static ComponentUI createUI(JComponent c) {
         return new MD3ChipUI();
@@ -60,7 +73,34 @@ public class MD3ChipUI extends MD3ButtonUI {
     public void installUI(JComponent c) {
         super.installUI(c);
 
-        installBorder((AbstractButton) c);
+        final AbstractButton b = (AbstractButton) c;
+
+        installBorder(b);
+
+        selection = new MD3Animated(c, isSelected(b) ? 1f : 0f, MD3Motion.SHORT4, MD3Motion.STANDARD);
+        selectionListener = new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                selection.setTarget(isSelected(b) ? 1f : 0f);
+            }
+        };
+
+        b.getModel().addChangeListener(selectionListener);
+    }
+
+    @Override
+    public void uninstallUI(JComponent c) {
+        if (selectionListener != null) {
+            ((AbstractButton) c).getModel().removeChangeListener(selectionListener);
+            selectionListener = null;
+        }
+
+        if (selection != null) {
+            selection.stop();
+            selection = null;
+        }
+
+        super.uninstallUI(c);
     }
 
     @Override
@@ -71,6 +111,14 @@ public class MD3ChipUI extends MD3ButtonUI {
     @Override
     protected int shapeRadius() {
         return MD3Shape.CHIP;
+    }
+
+    /**
+     * A chip is already only 8dp round, so it squares off almost completely under the finger.
+     */
+    @Override
+    protected int pressedRadius() {
+        return MD3Shape.EXTRA_SMALL;
     }
 
     @Override
@@ -106,13 +154,28 @@ public class MD3ChipUI extends MD3ButtonUI {
                 c.getWidth() - UIScale.scale(MD3Spacing.M) - size, (c.getHeight() - size) / 2);
     }
 
+    /**
+     * @return how far into being selected the chip is, falling back to the model for a chip whose UI
+     *         is being asked to paint before it was installed
+     */
+    private float selected(AbstractButton b) {
+        return selection != null ? selection.value() : (isSelected(b) ? 1f : 0f);
+    }
+
     @Override
     protected Color containerColor(AbstractButton b) {
-        if (!b.isEnabled()) {
-            return isSelected(b) ? MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface()) : null;
+        float selected = selected(b);
+
+        if (selected <= 0f) {
+            return null;
         }
 
-        return isSelected(b) ? MD3Color.secondaryContainer() : null;
+        Color container = b.isEnabled() ? MD3Color.secondaryContainer()
+                : MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
+
+        // there is nothing behind an unselected chip but the page, so the container arrives by
+        // becoming opaque rather than by being blended against something
+        return MD3Color.withAlpha(container, selected);
     }
 
     @Override
@@ -121,22 +184,25 @@ public class MD3ChipUI extends MD3ButtonUI {
             return MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface());
         }
 
-        return isSelected(b) ? MD3Color.onSecondaryContainer() : MD3Color.onSurfaceVariant();
+        return MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.onSecondaryContainer(), selected(b));
     }
 
     @Override
     protected Color outlineColor(AbstractButton b) {
         // a selected chip is identified by its fill, and keeping the outline as well would make it
-        // read as two nested shapes
-        if (isSelected(b)) {
+        // read as two nested shapes - so the line leaves as the fill arrives
+        float remaining = 1f - selected(b);
+
+        if (remaining <= 0f) {
             return null;
         }
 
         if (!b.isEnabled()) {
-            return MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
+            return MD3Color.withAlpha(MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface()),
+                    remaining);
         }
 
-        return b.isFocusOwner() ? MD3Color.primary() : MD3Color.outline();
+        return MD3Color.withAlpha(b.isFocusOwner() ? MD3Color.primary() : MD3Color.outline(), remaining);
     }
 
     private static class ChipBorder extends AbstractBorder {

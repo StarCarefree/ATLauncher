@@ -76,6 +76,8 @@ public abstract class AbstractToolPanel extends MD3Card implements CardGridLayou
     protected AbstractToolPanel(String title, String descriptionText) {
         super(Variant.FILLED, new BorderLayout());
 
+        setHoverElevation(true);
+
         this.descriptionText = descriptionText;
 
         setBorder(MD3Spacing.border(MD3Spacing.L, MD3Spacing.L, MD3Spacing.M, MD3Spacing.L));

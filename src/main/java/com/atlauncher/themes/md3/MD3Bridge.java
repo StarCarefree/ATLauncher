@@ -224,7 +224,6 @@ public final class MD3Bridge {
 
         defaults.put("Separator.foreground", outlineVariant);
         defaults.put("Separator.background", surface);
-        defaults.put("BottomBar.dividerColor", outlineVariant);
 
         defaults.put("Component.borderColor", outline);
         defaults.put("Component.disabledBorderColor", MD3State.disabledContainer(outline, surface));

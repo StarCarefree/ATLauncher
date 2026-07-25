@@ -48,13 +48,16 @@ import javax.swing.SwingConstants;
 
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Elevation;
+import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3State;
 import com.atlauncher.themes.md3.token.MD3Type;
+import com.formdev.flatlaf.util.Animator;
 import com.formdev.flatlaf.util.UIScale;
 
 /**
@@ -153,9 +156,67 @@ public class MD3Dialog extends JDialog {
      */
     public int showAndWait() {
         showScrim();
+        fadeIn();
         setVisible(true);
 
         return result;
+    }
+
+    /**
+     * Brings the window up from nothing rather than having it be there.
+     *
+     * <p>
+     * Started before {@link #setVisible(boolean)}, which blocks - a modal dialog runs its own event
+     * pump, and the timer driving this is dispatched through it like any other event, so the frames
+     * arrive while the call above is still waiting for an answer.
+     *
+     * <p>
+     * Every step is guarded. Window opacity is the one piece of Material motion here that the
+     * platform can refuse outright, and a dialog that will not fade has to still be a dialog.
+     */
+    private void fadeIn() {
+        if (!Animator.useAnimation() || MD3Motion.isReduced() || !supportsWindowFade()) {
+            return;
+        }
+
+        try {
+            setOpacity(0f);
+        } catch (Exception e) {
+            return;
+        }
+
+        MD3Motion.animator(MD3Motion.CONTAINER_ENTER, MD3Motion.EMPHASIZED_DECELERATE,
+                new Animator.TimingTarget() {
+                    @Override
+                    public void timingEvent(float fraction) {
+                        setWindowOpacity(fraction);
+                    }
+
+                    @Override
+                    public void end() {
+                        setWindowOpacity(1f);
+                    }
+                }).start();
+    }
+
+    private void setWindowOpacity(float opacity) {
+        try {
+            if (isDisplayable()) {
+                setOpacity(Math.max(0f, Math.min(1f, opacity)));
+            }
+        } catch (Exception ignored) {
+            // the platform changed its mind about translucency mid-fade; nothing to do but leave the
+            // dialog at whatever opacity it last accepted, which is a visible dialog either way
+        }
+    }
+
+    private static boolean supportsWindowFade() {
+        try {
+            return GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice()
+                    .isWindowTranslucencySupported(GraphicsDevice.WindowTranslucency.TRANSLUCENT);
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     /**
@@ -206,25 +267,43 @@ public class MD3Dialog extends JDialog {
         JRootPane root = ((RootPaneContainer) owner).getRootPane();
         JLayeredPane layered = root.getLayeredPane();
 
-        scrim = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-
-                try {
-                    g2.setColor(MD3Color.get(MD3Color.SCRIM, MD3State.SCRIM));
-                    g2.fillRect(0, 0, getWidth(), getHeight());
-                } finally {
-                    g2.dispose();
-                }
-            }
-        };
-
-        scrim.setOpaque(false);
+        scrim = new Scrim();
         scrim.setBounds(0, 0, layered.getWidth(), layered.getHeight());
 
         layered.add(scrim, JLayeredPane.MODAL_LAYER);
         layered.repaint();
+
+        // added first, so it is on screen and its animation has somewhere to paint
+        ((Scrim) scrim).dimIn();
+    }
+
+    /**
+     * The dim over the window behind the dialog. It arrives rather than switching on, so the window
+     * looks like it went behind something instead of having been repainted darker.
+     */
+    private static final class Scrim extends JPanel {
+        private final MD3Animated dim = new MD3Animated(this, 0f, MD3Motion.CONTAINER_ENTER,
+                MD3Motion.EMPHASIZED_DECELERATE);
+
+        Scrim() {
+            setOpaque(false);
+        }
+
+        void dimIn() {
+            dim.setTarget(1f);
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+
+            try {
+                g2.setColor(MD3Color.get(MD3Color.SCRIM, MD3State.SCRIM * dim.value()));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            } finally {
+                g2.dispose();
+            }
+        }
     }
 
     private void removeScrim() {

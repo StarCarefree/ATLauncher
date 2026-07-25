@@ -36,9 +36,10 @@ import com.atlauncher.utils.OS;
  * The launcher's outbound links, in one place.
  *
  * <p>
- * These used to live only on {@link BottomBar}, which meant the main window had to carry a bar
- * across its whole width to show six icons. Now the bar keeps its copy for the console window, and
- * the About tab - where someone actually goes looking for them - builds its own.
+ * These used to live only on the bottom bar, which meant both the main window and the console had to
+ * carry a fifty pixel strip across their whole width to show six icons - and the console, which is
+ * where you go when something has gone wrong, spent half of that strip on links to Facebook. Both
+ * bars are gone; the About tab, where someone actually goes looking for these, builds its own row.
  */
 public final class SocialLinks {
     /** Minutes after a crash during which the Discord button offers the modpack's own server. */
