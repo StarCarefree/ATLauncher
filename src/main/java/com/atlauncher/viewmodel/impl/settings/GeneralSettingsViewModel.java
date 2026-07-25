@@ -126,7 +126,7 @@ public class GeneralSettingsViewModel implements SettingsListener {
      */
     public String[] getLanguages() {
         return Language.locales.stream().filter(l -> l.equals(Locale.ENGLISH) || Language.languages.containsValue(l))
-                .map(Locale::getDisplayName).toArray(String[]::new);
+                .map(Language::displayName).toArray(String[]::new);
     }
 
     /**

@@ -64,7 +64,9 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
             if (itemEvent.getStateChange() == ItemEvent.SELECTED)
                 viewModel.setSelectedLanguage((String) itemEvent.getItem());
         });
-        addDisposable(viewModel.getSelectedLanguage().subscribe(language::setSelectedItem));
+        // an index, as every other combo on this page takes - setSelectedItem was being handed one
+        // and looking for an entry equal to a number, so the picker sat on whatever was first
+        addDisposable(viewModel.getSelectedLanguage().subscribe(language::setSelectedIndex));
 
         JButton translateButton = new JButton(GetText.tr("Help Translate"));
         translateButton.addActionListener(e -> OS.openWebBrowser(Constants.CROWDIN_URL));

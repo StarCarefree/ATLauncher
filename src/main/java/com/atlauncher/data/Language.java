@@ -19,6 +19,7 @@ package com.atlauncher.data;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -37,7 +38,25 @@ public class Language {
     public final static Map<String, Locale> languages = new LinkedHashMap<>();
     public final static List<Locale> localesWithoutFont = new ArrayList<>();
     public final static List<Locale> localesWithoutTabFont = new ArrayList<>();
-    public static String selected = Locale.ENGLISH.getDisplayName();
+
+    /**
+     * Names Java does not have a good one for. Java calls these 中文 (中国) and 中文 (台灣), naming
+     * them for a country, when what tells them apart and what a reader looks for is the script.
+     */
+    private final static Map<Locale, String> displayNames = new HashMap<>();
+
+    // filled here rather than in the block below, which runs after the field that reads it
+    static {
+        displayNames.put(new Locale("zh", "CN"), "简体中文");
+        displayNames.put(new Locale("zh", "TW"), "繁體中文");
+    }
+
+    /**
+     * The language in use, by the name {@link #displayName} gives it. Starts as English because
+     * that is what the launcher reads as before any translation has been loaded - not because
+     * English is the default, which is {@link Settings#language}'s to say.
+     */
+    public static String selected = displayName(Locale.ENGLISH);
     public static Locale selectedLocale = Locale.ENGLISH;
 
     // add in the languages we have support for
@@ -88,17 +107,62 @@ public class Language {
         localesWithoutTabFont.add(new Locale("ko", "KR"));
     }
 
+    /**
+     * What a language is called, in that language.
+     *
+     * <p>
+     * Not {@link Locale#getDisplayName()}, which names a language in whichever locale the JVM
+     * happens to be running in - so the picker read "英语" on one machine and "English" on another,
+     * and since {@link Settings#language} stores this string, a settings file stopped matching the
+     * moment the operating system's language changed, dropping the launcher back to English with
+     * nothing said. A language named in its own language is the same string everywhere, and is also
+     * what a reader scanning the list is looking for.
+     */
+    public static String displayName(Locale locale) {
+        String own = displayNames.get(locale);
+
+        return own != null ? own : locale.getDisplayName(locale);
+    }
+
+    /**
+     * The name a stored setting refers to, in today's terms.
+     *
+     * <p>
+     * Settings written before languages were named in their own language hold whatever
+     * {@link Locale#getDisplayName()} produced on that machine, so the names are matched that way
+     * too and handed back under the current name. Only the JVM's own locale is tried, which is the
+     * one that wrote the file on every upgrade that is not also a change of operating system
+     * language - that case was already broken and is what naming them this way puts a stop to.
+     */
+    public static String migrateName(String language) {
+        if (language == null || isLanguageByName(language) || displayName(Locale.ENGLISH).equals(language)) {
+            return language;
+        }
+
+        for (Locale locale : locales) {
+            if (locale.getDisplayName().equals(language)) {
+                LogManager.info("Language " + language + " is now known as " + displayName(locale));
+
+                return displayName(locale);
+            }
+        }
+
+        return language;
+    }
+
     public static void init() throws IOException {
         for (Locale locale : locales) {
             if (Utils.getResourceInputStream(
                     "/assets/lang/" + locale.getLanguage() + "-" + locale.getCountry() + ".po") != null) {
-                languages.put(locale.getDisplayName(), locale);
-                LogManager.debug("Loaded language " + locale.getDisplayName() + " with key of " + locale);
+                languages.put(displayName(locale), locale);
+                LogManager.debug("Loaded language " + displayName(locale) + " with key of " + locale);
             }
         }
     }
 
     public static void setLanguage(String language) {
+        language = migrateName(language);
+
         if (selected.equals(language)) {
             return;
         }
@@ -110,9 +174,9 @@ public class Language {
             locale = languages.get(language);
             selected = language;
         } else {
-            LogManager.info("Unknown language " + language + ". Defaulting to " + Locale.ENGLISH.getDisplayName());
+            LogManager.info("Unknown language " + language + ". Defaulting to " + displayName(Locale.ENGLISH));
             locale = Locale.ENGLISH;
-            selected = Locale.ENGLISH.getDisplayName();
+            selected = displayName(Locale.ENGLISH);
         }
 
         if (!locale.equals(Locale.ENGLISH)) {
@@ -123,7 +187,7 @@ public class Language {
             } catch (IOException e) {
                 LogManager.logStackTrace("Failed loading language po file for " + language, e);
                 locale = Locale.ENGLISH;
-                selected = Locale.ENGLISH.getDisplayName();
+                selected = displayName(Locale.ENGLISH);
             }
         }
 

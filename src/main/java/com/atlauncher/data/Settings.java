@@ -68,7 +68,8 @@ public class Settings {
     public Point launcherPosition = null;
 
     // General
-    public String language = "English";
+    // the name Language.displayName gives it, which is the language's own name for itself
+    public String language = "简体中文";
     public String theme = Constants.DEFAULT_THEME_CLASS;
     public String dateFormat = Constants.DATE_FORMATS[0];
     public String instanceTitleFormat = Constants.INSTANCE_TITLE_FORMATS[0];

@@ -311,6 +311,9 @@ public class App {
 
         try {
             Language.init();
+            // languages used to be stored under the name the JVM's own locale gave them; put an
+            // older settings file onto today's names before anything reads or rewrites it
+            settings.language = Language.migrateName(settings.language);
             Language.setLanguage(settings.language);
         } catch (IOException e1) {
             LogManager.logStackTrace("Error loading language", e1);

@@ -507,3 +507,492 @@ msgstr "正在更新皮肤，请稍候！"
 
 msgid "Successfully updated skins."
 msgstr "已更新皮肤。"
+
+#. Batch 2 - settings pages
+msgid "The name of the instance"
+msgstr "实例的名称"
+
+msgid "Enable commands"
+msgstr "启用命令"
+
+msgid "This allows you to turn launch/exit commands on or off."
+msgstr "开启或关闭启动/退出命令。"
+
+msgid "Pre-launch command"
+msgstr "启动前命令"
+
+msgid "This command will be run before the instance launches. The game will not run until the command has finished."
+msgstr "该命令会在实例启动前执行。命令执行完毕前游戏不会启动。"
+
+msgid "Post-exit command"
+msgstr "退出后命令"
+
+msgid "This command will be run after the instance exits. It will run even if the instance is killed or if it crashes and exits."
+msgstr "该命令会在实例退出后执行。即使实例被强制结束或崩溃退出，它也会执行。"
+
+msgid "Wrapper command"
+msgstr "包装命令"
+
+msgid "Wrapper command allow launcher using an extra wrapper program (like 'prime-run' on Linux)\nUse %command% to substitute launch command\n%\"command\"% to substitute launch as a whole string (like 'bash -c' on Linux)"
+msgstr "包装命令允许启动器借助一个额外的包装程序来启动游戏（例如 Linux 上的 'prime-run'）\n用 %command% 代表启动命令\n用 %\"command\"% 把整条启动命令作为一个字符串代入（例如 Linux 上的 'bash -c'）"
+
+msgid "Commands will be run in the directory of the instance that is launched/exited."
+msgstr "命令会在被启动/退出的实例所在目录中执行。"
+
+msgid "The following variables are available for each command"
+msgstr "每条命令都可以使用以下变量"
+
+msgid "The name of the instance's root directory"
+msgstr "实例根目录的名称"
+
+msgid "The absolute path to the instance directory"
+msgstr "实例目录的绝对路径"
+
+msgid "Alias for"
+msgstr "等价于"
+
+msgid "The absolute path to the java executable used for launch"
+msgstr "启动所用 java 可执行文件的绝对路径"
+
+msgid "The JVM parameters used for launch"
+msgstr "启动所用的 JVM 参数"
+
+msgid "Variables"
+msgstr "变量"
+
+msgid "Memory"
+msgstr "内存"
+
+msgid "Maximum Memory/Ram"
+msgstr "最大内存"
+
+msgid "The maximum amount of memory/ram to allocate when starting Minecraft."
+msgstr "启动 Minecraft 时分配的最大内存量。"
+
+msgid "Setting PermGen size above {0}MB is not recommended and can cause issues. Are you sure you want to do this?"
+msgstr "不建议将 PermGen 大小设为超过 {0}MB，这可能引发问题。确定要这样做吗？"
+
+msgid "PermGen Size"
+msgstr "PermGen 大小"
+
+msgid "The PermGen Size for java to use when launching Minecraft in MB."
+msgstr "启动 Minecraft 时 java 使用的 PermGen 大小，单位为 MB。"
+
+msgid "Java"
+msgstr "Java"
+
+msgid "Java Path"
+msgstr "Java 路径"
+
+msgid "Detected Java Installs"
+msgstr "检测到的 Java 安装"
+
+msgid "Select Java Path To Autofill"
+msgstr "选择 Java 路径以自动填充"
+
+msgid "Java Parameters"
+msgstr "Java 参数"
+
+msgid "Extra Java command line paramaters can be added here."
+msgstr "可以在此添加额外的 Java 命令行参数。"
+
+msgid "Unchecking this is not recommended and may cause Minecraft to no longer run. Are you sure you want to do this?"
+msgstr "不建议取消勾选，这可能导致 Minecraft 无法运行。确定要这样做吗？"
+
+msgid "Use Java Provided By Minecraft"
+msgstr "使用 Minecraft 提供的 Java"
+
+msgid "This allows you to enable/disable using the version of Java provided by the version of Minecraft you're running. It's highly recommended to not disable this, unless you know what you're doing."
+msgstr "启用或关闭「使用所运行的 Minecraft 版本自带的 Java」。除非你清楚自己在做什么，否则强烈建议不要关闭。"
+
+msgid "Advanced"
+msgstr "高级"
+
+msgid "Disable Legacy Launching"
+msgstr "禁用旧版启动方式"
+
+msgid "This allows you to disable legacy launching for Minecraft < 1.6. It's highly recommended to not disable this, unless you're having issues launching older Minecraft versions."
+msgstr "禁用 Minecraft < 1.6 的旧版启动方式。除非你在启动旧版本 Minecraft 时遇到问题，否则强烈建议不要禁用。"
+
+msgid "Use System GLFW"
+msgstr "使用系统 GLFW"
+
+msgid "Use the systems install for GLFW native library."
+msgstr "使用系统安装的 GLFW 本地库。"
+
+msgid "Use System OpenAL"
+msgstr "使用系统 OpenAL"
+
+msgid "Use the systems install for OpenAL native library."
+msgstr "使用系统安装的 OpenAL 本地库。"
+
+msgid "The Java Path you set is incorrect.<br/><br/>Please verify it points to the folder where the bin folder is and try again."
+msgstr "你设置的 Java 路径不正确。<br/><br/>请确认它指向包含 bin 文件夹的那一层目录后重试。"
+
+msgid "The entered Java Parameters were incorrect.<br/><br/>Please remove any references to Xmx or XX:PermSize."
+msgstr "输入的 Java 参数不正确。<br/><br/>请移除其中所有与 Xmx 或 XX:PermSize 相关的内容。"
+
+msgid "Language"
+msgstr "语言"
+
+msgid "Enable Anonymous Analytics"
+msgstr "启用匿名统计"
+
+msgid "The Launcher sends back anonymous analytics to our own servers in a non identifying way in order to track what people do and don't use in the launcher. This helps determine what new features we implement in the future. All analytics are anonymous and contain no user/instance information in it at all. If you don't want to send anonymous analytics, you can disable this option."
+msgstr "启动器会以不记录身份的方式向我们自己的服务器回传匿名统计数据，用于了解用户在使用和不使用启动器的哪些功能。这有助于决定今后开发哪些新功能。所有统计数据均为匿名，完全不包含任何用户或实例信息。如果你不希望发送匿名统计数据，可以关闭此选项。"
+
+msgid "Backup saves, configs and options only"
+msgstr "仅备份存档、配置和选项"
+
+msgid "Backup saves, mods, configs and options only"
+msgstr "仅备份存档、模组、配置和选项"
+
+msgid "Backup everything in the instance folder"
+msgstr "备份实例文件夹中的全部内容"
+
+msgid "Backup Mode"
+msgstr "备份模式"
+
+msgid "When backing up an instance, what should get backed up? Mainly used for when doing automated backups."
+msgstr "备份实例时应备份哪些内容？主要用于自动备份。"
+
+msgid "Backups Folder"
+msgstr "备份文件夹"
+
+msgid "This setting allows you to change the Backups folder that the launcher uses to store instance backups. By default this is the backups folder where the launcher is installed."
+msgstr "更改启动器存放实例备份所用的备份文件夹。默认为启动器安装目录下的 backups 文件夹。"
+
+msgid "Enable Automatic Backup After Launch"
+msgstr "启动后自动备份"
+
+msgid "If a backup should run after launching an instance."
+msgstr "是否在启动实例后执行一次备份。"
+
+msgid "The Backups Path you set is incorrect.<br/><br/>Please verify it points to a folder and try again."
+msgstr "你设置的备份路径不正确。<br/><br/>请确认它指向一个文件夹后重试。"
+
+msgid "Downloads folder path change pending"
+msgstr "下载文件夹路径待生效"
+
+msgid "Checking downloads folder path"
+msgstr "正在检查下载文件夹路径"
+
+msgid "Value"
+msgstr "值"
+
+msgid "Environment Variable Name"
+msgstr "环境变量名"
+
+msgid "Environment Variable Name:"
+msgstr "环境变量名："
+
+msgid "Environment Variable Value"
+msgstr "环境变量值"
+
+msgid "Environment Variable Value:"
+msgstr "环境变量值："
+
+msgid "Duplicate Variable"
+msgstr "变量重复"
+
+msgid "A variable with this name already exists. You can edit the existing value by double clicking the value."
+msgstr "同名变量已存在。双击其值即可修改已有的值。"
+
+msgid "These are passed to every Minecraft instance the launcher starts. Double-click a name or value below to edit it."
+msgstr "这些变量会传递给启动器启动的每一个 Minecraft 实例。双击下方的名称或值即可编辑。"
+
+msgid "Clear all environment variables?"
+msgstr "清空所有环境变量？"
+
+msgid "Confirm"
+msgstr "确认"
+
+msgid "Appearance"
+msgstr "外观"
+
+msgid "Help Translate"
+msgstr "帮助翻译"
+
+msgid "This specifies the language used by the Launcher."
+msgstr "指定启动器使用的语言。"
+
+msgid "Theme"
+msgstr "主题"
+
+msgid "This sets the theme that the launcher will use."
+msgstr "设置启动器使用的主题。"
+
+msgid "Date Format"
+msgstr "日期格式"
+
+msgid "This controls the format that dates are displayed in the launcher."
+msgstr "控制启动器中日期的显示格式。"
+
+msgid "Pack Name"
+msgstr "整合包名称"
+
+msgid "Pack Version"
+msgstr "整合包版本"
+
+msgid "Instance Title Format"
+msgstr "实例标题格式"
+
+msgid "This controls the format that instances titles are shown as."
+msgstr "控制实例标题的显示格式。"
+
+msgid "Disable Custom Fonts?"
+msgstr "禁用自定义字体？"
+
+msgid "This will disable custom fonts used by themes. If your system has issues with font display not looking right, you can disable this to switch to a default compatible font."
+msgstr "禁用主题所使用的自定义字体。如果你的系统上字体显示不正常，可以开启此项以换用默认的兼容字体。"
+
+msgid "Reduce Animations?"
+msgstr "减少动画？"
+
+msgid "This turns off the launcher's animations, so views change instantly rather than sliding or fading. Turn this on if motion makes you uncomfortable, or if the launcher feels sluggish."
+msgstr "关闭启动器的动画，界面切换将直接完成，而不再滑动或淡入淡出。如果动效让你不适，或者觉得启动器发顿，可以开启此项。"
+
+#. this section is the launcher starting; the Launching section below is the game starting.
+#. Quotation marks are left out on purpose - the parser rejects a comment containing one.
+msgid "Startup"
+msgstr "启动时"
+
+msgid "Default Tab"
+msgstr "默认标签页"
+
+msgid "Which tab to have selected by default when opening the launcher."
+msgstr "打开启动器时默认选中哪个标签页。"
+
+msgid "Default Instance Sort"
+msgstr "实例默认排序"
+
+msgid "Default sorting of instances under the Instances tab."
+msgstr "实例列表的默认排序方式。"
+
+msgid "Enable Console"
+msgstr "启用控制台"
+
+msgid "If you want the console to be visible when opening the Launcher."
+msgstr "打开启动器时是否显示控制台。"
+
+msgid "Enable Tray Menu"
+msgstr "启用托盘菜单"
+
+msgid "The Tray Menu is a little icon that shows in your system taskbar which allows you to perform different functions to do various things with the launcher such as hiding or showing the console, killing Minecraft or closing ATLauncher."
+msgstr "托盘菜单是显示在系统任务栏中的小图标，通过它可以对启动器执行各种操作，例如隐藏或显示控制台、强制结束 Minecraft、关闭 ATLauncher 等。"
+
+msgid "Remember Window Size & Positions?"
+msgstr "记住窗口大小和位置？"
+
+msgid "This will remember the windows positions and size so they keep the same size and position when you restart the launcher."
+msgstr "记住各窗口的位置和大小，重启启动器后保持不变。"
+
+msgid "Launching"
+msgstr "启动游戏"
+
+msgid "Keep Launcher Open"
+msgstr "保持启动器开启"
+
+msgid "This determines if ATLauncher should stay open or exit after Minecraft has exited"
+msgstr "决定 Minecraft 退出后 ATLauncher 是继续开着还是一并退出"
+
+msgid "This will enable Feral Gamemode for packs launched."
+msgstr "为启动的整合包启用 Feral Gamemode。"
+
+msgid "This will enable Feral Gamemode for packs launched (disabled because gamemoderun not found in PATH, please install Feral Gamemode or add it to your PATH)."
+msgstr "为启动的整合包启用 Feral Gamemode（当前不可用，因为 PATH 中找不到 gamemoderun，请安装 Feral Gamemode 或将其加入 PATH）。"
+
+msgid "Enable Feral Gamemode"
+msgstr "启用 Feral Gamemode"
+
+msgid "Enable ARM Support?"
+msgstr "启用 ARM 支持？"
+
+msgid "Support for ARM devices is still experimental. If you experience issues on an ARM based device, please turn this off."
+msgstr "对 ARM 设备的支持仍处于实验阶段。如果你在 ARM 设备上遇到问题，请关闭此项。"
+
+msgid "Files"
+msgstr "文件"
+
+msgid "Downloads Folder"
+msgstr "下载文件夹"
+
+msgid "This setting allows you to change the Downloads folder that the launcher looks in when downloading browser mods."
+msgstr "更改启动器在通过浏览器下载模组时查找的下载文件夹。"
+
+msgid "Use Native File Picker?"
+msgstr "使用系统文件选择器？"
+
+msgid "This will use your operating systems native file picker when selecting files."
+msgstr "选择文件时使用操作系统自带的文件选择器。"
+
+msgid "Use Recycle Bin/Trash?"
+msgstr "使用回收站？"
+
+msgid "This will use your operating systems recycle bin/trash where possible when deleting files/instances/servers instead of just deleting them entirely, allowing you to recover files if you make a mistake or want to get them back."
+msgstr "删除文件、实例或服务器时尽量移入操作系统的回收站，而不是直接彻底删除，这样在误操作或想找回时还能恢复。"
+
+msgid "The Downloads Folder Path you set is incorrect.<br/><br/>Please verify it points to a folder and try again."
+msgstr "你设置的下载文件夹路径不正确。<br/><br/>请确认它指向一个文件夹后重试。"
+
+msgid "You're running a 32 bit Java and therefore cannot use more than 1GB of Ram. Please see http://atl.pw/32bit for help."
+msgstr "你运行的是 32 位 Java，因此最多只能使用 1GB 内存。请参阅 http://atl.pw/32bit 获取帮助。"
+
+msgid "Minecraft Window"
+msgstr "Minecraft 窗口"
+
+msgid "Window Size"
+msgstr "窗口大小"
+
+msgid "The size that the Minecraft window should open as, Width x Height, in pixels."
+msgstr "Minecraft 窗口打开时的大小，宽 x 高，单位为像素。"
+
+msgid "Start Minecraft Maximised"
+msgstr "最大化启动 Minecraft"
+
+msgid "Enabling this will start Minecraft maximised so that it takes up the full size of your screen."
+msgstr "开启后 Minecraft 将以最大化方式启动，占满整个屏幕。"
+
+msgid "This setting allows you to specify where your Java Path is. Where possible the launcher will use a version of Java provided by Minecraft to launch the instance, but in cases where one isn't available, this path will be used."
+msgstr "指定你的 Java 路径。启动器会尽量使用 Minecraft 提供的 Java 版本来启动实例，只有在没有可用版本时才会使用此路径。"
+
+msgid "Java Install Location"
+msgstr "Java 安装位置"
+
+msgid "This setting allows you to specify a common location that you install all your Java installs to. This helps find your installed Java installs easier if you install them all within 1 folder."
+msgstr "指定你集中安装所有 Java 的位置。如果它们都装在同一个文件夹里，这有助于更方便地找到已安装的 Java。"
+
+msgid "Ignore Java Checks On Launch"
+msgstr "启动时忽略 Java 检查"
+
+msgid "This enables ignoring errors when launching a pack that you don't have a compatible Java version for."
+msgstr "启动缺少兼容 Java 版本的整合包时，忽略相关错误。"
+
+msgid "The Java Install Location Path you set is incorrect.<br/><br/>Please verify it points to a folder and try again."
+msgstr "你设置的 Java 安装位置路径不正确。<br/><br/>请确认它指向一个文件夹后重试。"
+
+msgid "Java path change pending"
+msgstr "Java 路径待生效"
+
+msgid "Checking java path"
+msgstr "正在检查 java 路径"
+
+msgid "Java params change pending"
+msgstr "Java 参数待生效"
+
+msgid "Checking java params"
+msgstr "正在检查 java 参数"
+
+msgid "Java install location change pending"
+msgstr "Java 安装位置待生效"
+
+msgid "Checking java install location path"
+msgstr "正在检查 java 安装位置路径"
+
+msgid "Enable Logging"
+msgstr "启用日志上报"
+
+msgid "The Launcher sends back anonymous usage and error logs to our servers in order to make the Launcher and Packs better. If you don't want this to happen then simply disable this option."
+msgstr "启动器会向我们的服务器回传匿名的使用情况和错误日志，以便改进启动器和整合包。如果你不希望这样，关掉此选项即可。"
+
+msgid "Default Mod Platform"
+msgstr "默认模组平台"
+
+msgid "The default mod platform to use when adding mods to instances, as well as the platform to use when updating/reinstalling mods on multiple platforms."
+msgstr "向实例添加模组时默认使用的模组平台；当模组同时存在于多个平台时，更新或重装也会使用该平台。"
+
+msgid "Default Export Format"
+msgstr "默认导出格式"
+
+msgid "The default format to export instances to. Can also be changed at time of export."
+msgstr "导出实例时默认使用的格式。导出时也可以另行更改。"
+
+msgid "Only show mods for current Minecraft version"
+msgstr "仅显示当前 Minecraft 版本的模组"
+
+msgid "Show mods for the current major Minecraft version (eg: 1.16.x)"
+msgstr "显示当前 Minecraft 大版本的模组（例如 1.16.x）"
+
+msgid "Show mods for all Minecraft versions"
+msgstr "显示所有 Minecraft 版本的模组"
+
+msgid "Add Mod Restrictions"
+msgstr "添加模组的限制"
+
+msgid "What restrictions should be in place when adding mods from a mod platform."
+msgstr "从模组平台添加模组时应施加哪些限制。"
+
+msgid "Enable Added Mods By Default?"
+msgstr "新添加的模组默认启用？"
+
+msgid "When adding mods manually, should they be enabled automatically?"
+msgstr "手动添加模组时，是否自动启用它们？"
+
+msgid "Show Fabric Mods When Sinytra Installed?"
+msgstr "安装了 Sinytra 时显示 Fabric 模组？"
+
+msgid "When Sinytra Connector is installed, should Fabric mods be shown?"
+msgstr "当已安装 Sinytra Connector 时，是否显示 Fabric 模组？"
+
+msgid "Allow CurseForge Alpha/Beta Files?"
+msgstr "允许 CurseForge 的 Alpha/Beta 文件？"
+
+msgid "This will enable using Alpha/Beta files from CurseForge by default when installing modpacks as well as updating to Alpha/Beta versions from stable release versions."
+msgstr "安装整合包时默认允许使用 CurseForge 上的 Alpha/Beta 文件，并允许从稳定版更新到 Alpha/Beta 版本。"
+
+msgid "Don't Check Mods On {0}?"
+msgstr "不在 {0} 上核对模组？"
+
+msgid "When installing packs or adding mods manually to instances, we check for the file on {0} to show more information about the mod as well as make updating easier. Disabling this will mean you won't be able to update manually added mods from within the launcher."
+msgstr "在安装整合包或手动向实例添加模组时，我们会到 {0} 上核对该文件，以显示更多模组信息并让更新更方便。关闭后，你将无法在启动器内更新手动添加的模组。"
+
+msgid "Scan Mods On Launch?"
+msgstr "启动时扫描模组？"
+
+msgid "This will scan the mods in instances before launching to ensure they do not contain malware or have been modified since installing."
+msgstr "在启动前扫描实例中的模组，确认它们不含恶意软件、也未在安装后被改动。"
+
+msgid "Concurrent Connections"
+msgstr "并发连接数"
+
+msgid "This determines how many connections will be made when downloading files."
+msgstr "决定下载文件时建立多少个连接。"
+
+msgid "Connection Timeout"
+msgstr "连接超时"
+
+msgid "This determines how long connections will wait before timing out."
+msgstr "决定连接在超时前等待多久。"
+
+msgid "Modrinth Api Key"
+msgstr "Modrinth API 密钥"
+
+msgid "Api key to use when making requests to Modrinth. This is unecessary to set unless you want to access private data."
+msgstr "向 Modrinth 发起请求时使用的 API 密钥。除非你需要访问私有数据，否则无需设置。"
+
+msgid "Enable Proxy"
+msgstr "启用代理"
+
+msgid "If you use a proxy to connect to the internet you can enable it here."
+msgstr "如果你通过代理连接互联网，可以在此启用。"
+
+msgid "Proxy Host"
+msgstr "代理主机"
+
+msgid "This is the IP/hostname used to connect to the proxy."
+msgstr "连接代理所用的 IP 或主机名。"
+
+msgid "Proxy Port"
+msgstr "代理端口"
+
+msgid "This is the port used to connect to the proxy."
+msgstr "连接代理所用的端口。"
+
+msgid "Proxy Type"
+msgstr "代理类型"
+
+msgid "This is the type of connection the proxy uses. Either HTTP, SOCKS or DIRECT."
+msgstr "代理所使用的连接类型，可选 HTTP、SOCKS 或 DIRECT。"
+
+msgid "Cannot connect to proxy. Please check the settings and try again."
+msgstr "无法连接到代理。请检查设置后重试。"

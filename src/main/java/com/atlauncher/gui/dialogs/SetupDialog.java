@@ -98,7 +98,7 @@ public class SetupDialog extends JDialog implements RelocalizationListener {
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         language = new JComboBox<>(
                 Language.locales.stream().filter(l -> l.equals(Locale.ENGLISH) || Language.languages.containsValue(l))
-                        .map(Locale::getDisplayName).toArray(String[]::new));
+                        .map(Language::displayName).toArray(String[]::new));
         language.setSelectedItem(Language.selected);
         language.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
