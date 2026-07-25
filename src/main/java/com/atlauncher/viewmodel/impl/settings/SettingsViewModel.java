@@ -20,6 +20,7 @@ package com.atlauncher.viewmodel.impl.settings;
 import com.atlauncher.App;
 import com.atlauncher.evnt.manager.SettingsManager;
 import com.atlauncher.gui.tabs.SettingsTab;
+import com.atlauncher.managers.NotificationManager;
 import com.atlauncher.managers.SettingsValidityManager;
 import com.atlauncher.repository.base.IModReloadRequiredRepository;
 import com.atlauncher.repository.impl.ModReloadRequiredRepository;
@@ -39,7 +40,7 @@ public class SettingsViewModel {
     public void save() {
         App.settings.save();
         SettingsManager.post();
-        App.TOASTER.pop("Settings Saved");
+        NotificationManager.show("Settings Saved");
         if (modReloadRequiredRepository.getModReloadRequired()) {
             App.launcher.checkForExternalPackUpdates();
         }

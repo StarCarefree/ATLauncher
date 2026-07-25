@@ -85,6 +85,19 @@ public final class MD3Motion {
     }
 
     /**
+     * Turns motion off, or back on.
+     *
+     * <p>
+     * Every animation in the launcher already asked {@link #isReduced()}, but nothing outside the
+     * tests ever answered yes - the switch existed and was unreachable. Java has no portable way to
+     * read the platform's own "reduce motion" preference, so this is driven by a launcher setting
+     * instead, and applies without a restart: each animation reads the flag when it starts.
+     */
+    public static void setReduced(boolean reduced) {
+        UIManager.put(REDUCED_MOTION_KEY, reduced);
+    }
+
+    /**
      * Builds an animator wired to a curve and duration, or one that completes in a single frame if
      * motion has been reduced.
      */

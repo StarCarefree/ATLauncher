@@ -52,6 +52,8 @@ import com.atlauncher.dbus.DBusUtils;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class FileChooserDialog extends JDialog {
 
     private final JTextField textField;
@@ -103,8 +105,8 @@ public class FileChooserDialog extends JDialog {
             @Nullable String[] subOptions,
             Boolean directory) {
         super(parent, title, ModalityType.DOCUMENT_MODAL);
-        setSize(400, 175);
-        setMinimumSize(new Dimension(400, 175));
+        setSize(UIScale.scale(400), UIScale.scale(175));
+        setMinimumSize(UIScale.scale(new Dimension(400, 175)));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
         setIconImage(Utils.getImage("/assets/image/icon.png"));

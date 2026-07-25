@@ -35,6 +35,7 @@ import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.feedback.MD3CircularProgress;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.input.MD3FilterChip;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
@@ -82,9 +83,9 @@ public final class PacksNavigationPanel extends JPanel implements Relocalization
     private final Listener listener;
 
     private final MD3TextField searchField = MD3TextField.search(GetText.tr("Search"));
-    private final PacksFilterChip minecraftVersionChip;
-    private final PacksFilterChip categoryChip;
-    private final PacksFilterChip sortChip;
+    private final MD3FilterChip<String> minecraftVersionChip;
+    private final MD3FilterChip<String> categoryChip;
+    private final MD3FilterChip<String> sortChip;
     private final MD3IconButton sortOrderButton = new MD3IconButton(MD3Icons.ARROW_DOWNWARD, "");
     private final MD3Button addManuallyButton = MD3Button.outlined(GetText.tr("Add Manually"),
             MD3Icon.of(MD3Icons.ADD));
@@ -98,9 +99,9 @@ public final class PacksNavigationPanel extends JPanel implements Relocalization
         super(new BorderLayout());
 
         this.listener = listener;
-        this.minecraftVersionChip = new PacksFilterChip(GetText.tr("Minecraft"), true, listener::onFiltersChanged);
-        this.categoryChip = new PacksFilterChip(GetText.tr("Category"), true, listener::onFiltersChanged);
-        this.sortChip = new PacksFilterChip(GetText.tr("Sort"), false, listener::onSortFieldChanged);
+        this.minecraftVersionChip = new MD3FilterChip<>(GetText.tr("Minecraft"), true, listener::onFiltersChanged);
+        this.categoryChip = new MD3FilterChip<>(GetText.tr("Category"), true, listener::onFiltersChanged);
+        this.sortChip = new MD3FilterChip<>(GetText.tr("Sort"), false, listener::onSortFieldChanged);
 
         setName("packsNavigationPanel");
         setOpaque(true);

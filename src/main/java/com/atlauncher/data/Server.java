@@ -86,6 +86,7 @@ import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.managers.MinecraftManager;
+import com.atlauncher.managers.NotificationManager;
 import com.atlauncher.managers.PackManager;
 import com.atlauncher.managers.PerformanceManager;
 import com.atlauncher.network.Analytics;
@@ -99,7 +100,6 @@ import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.google.gson.JsonIOException;
 
-import io.github.asyncronous.toast.Toaster;
 
 @Json
 public class Server implements ModManagement {
@@ -342,7 +342,7 @@ public class Server implements ModManagement {
             if (!close) {
                 LogManager.info(
                     "Server has started. No further logs will be shown in this console. Please check for a separate window or tab for the server logs and provide those logs (not these ones) if asking for help.");
-                Toaster.instance().pop(GetText.tr("The server has been launched."));
+                NotificationManager.show(GetText.tr("The server has been launched."));
             } else {
                 Analytics.endSession();
                 System.exit(0);
@@ -441,10 +441,13 @@ public class Server implements ModManagement {
         progressDialog.start();
 
         if (Boolean.TRUE.equals(progressDialog.getReturnValue())) {
-            App.TOASTER.pop(GetText.tr("Backup is complete"));
+            NotificationManager.show(GetText.tr("Backup is complete"));
             LogManager.info(String.format("Backup complete and stored at %s", backupZip.toString()));
         } else {
-            App.TOASTER.popError(GetText.tr("Error making backup"));
+            // a snackbar takes itself away after four seconds, which is no way to find out that the
+            // backup you asked for did not happen
+            DialogManager.okDialog().setType(DialogManager.ERROR).setTitle(GetText.tr("Error making backup"))
+                .setContent(GetText.tr("Error making backup")).show();
         }
     }
 
@@ -780,7 +783,7 @@ public class Server implements ModManagement {
         save();
 
         // #. {0} is the name of a mod that was removed
-        App.TOASTER.pop(GetText.tr("{0} Removed", mod.name));
+        NotificationManager.show(GetText.tr("{0} Removed", mod.name));
     }
 
     @Override
@@ -993,7 +996,7 @@ public class Server implements ModManagement {
         }
 
         // #. {0} is the name of a mod that was installed
-        App.TOASTER.pop(GetText.tr("{0} Installed", mod.name));
+        NotificationManager.show(GetText.tr("{0} Installed", mod.name));
     }
 
     @Override
@@ -1100,7 +1103,7 @@ public class Server implements ModManagement {
         this.save();
 
         // #. {0} is the name of a mod that was installed
-        App.TOASTER.pop(GetText.tr("{0} Installed", project.title));
+        NotificationManager.show(GetText.tr("{0} Installed", project.title));
     }
 
     private static Type getTypeFromModrinthMod(ModrinthProject project, ModrinthVersion version, Type installType) {

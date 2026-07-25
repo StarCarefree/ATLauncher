@@ -18,24 +18,18 @@
 package com.atlauncher.gui.dialogs.instancesettings;
 
 import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.event.ItemEvent;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
+import javax.annotation.Nullable;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
@@ -43,7 +37,6 @@ import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
-import javax.swing.border.Border;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
@@ -54,19 +47,22 @@ import org.mini2Dx.gettext.GetText;
 import com.atlauncher.App;
 import com.atlauncher.Data;
 import com.atlauncher.builders.HTMLBuilder;
-import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.Instance;
 import com.atlauncher.data.minecraft.JavaRuntime;
-import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.MD3Text;
+import com.atlauncher.gui.md3.container.MD3SettingsList;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.Java;
 import com.atlauncher.utils.OS;
-import com.atlauncher.utils.Utils;
 import com.atlauncher.utils.javafinder.JavaInfo;
 import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
 
-public class JavaInstanceSettingsTab extends JPanel {
+public class JavaInstanceSettingsTab extends MD3SettingsList {
+    /** A Java path is long enough that its field gets its own line. */
+    private static final int JAVA_FIELD_WIDTH = 516;
+    private static final int JAVA_FIELD_HEIGHT = 24;
+
     private final Instance instance;
 
     private JSpinner maximumMemory;
@@ -79,14 +75,17 @@ public class JavaInstanceSettingsTab extends JPanel {
     private JComboBox<ComboItem<Boolean>> useSystemGlfw;
     private JComboBox<ComboItem<Boolean>> useSystemOpenAl;
 
+    /**
+     * The Java rows that swap over: either Minecraft provides the runtime, in which case there is
+     * nothing to set but which runtime, or it does not and the path is the instance's own.
+     */
+    private JComponent providedJavaRow;
+    private JComponent runtimeOverrideRow;
+    private JComponent javaPathRow;
+    @Nullable
+    private JComponent detectedJavasRow;
+
     private boolean permgenWarningShown = false;
-
-    final ImageIcon HELP_ICON = Utils.getIconImage(App.THEME.getIconPath("question"));
-    final ImageIcon WARNING_ICON = Utils.getIconImage(App.THEME.getIconPath("warning"));
-
-    final Border RESTART_BORDER = BorderFactory.createEmptyBorder(0, 0, 0, 5);
-
-    final GridBagConstraints gbc = new GridBagConstraints();
 
     public JavaInstanceSettingsTab(Instance instance) {
         this.instance = instance;
@@ -96,48 +95,21 @@ public class JavaInstanceSettingsTab extends JPanel {
 
     private void setupComponents() {
         int systemRam = OS.getSystemRam();
-        setLayout(new GridBagLayout());
+
+        addSection(GetText.tr("Memory"));
 
         // Maximum Memory Settings
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover maximumMemoryLabel = new JLabelWithHover(GetText.tr("Maximum Memory/Ram") + ":", HELP_ICON,
-            "<html>" + Utils.splitMultilinedString(
-                GetText.tr("The maximum amount of memory/ram to allocate when starting Minecraft."), 80,
-                "<br/>") + "</html>");
-        add(maximumMemoryLabel, gbc);
-
-        JPanel maximumMemoryPanel = new JPanel();
-        maximumMemoryPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        maximumMemoryPanel.add(maximumMemoryLabel);
-
-        add(maximumMemoryPanel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         SpinnerNumberModel maximumMemoryModel = new SpinnerNumberModel(
             getIfNotNull(this.instance.launcher.maximumMemory, App.settings.maximumMemory), null, null, 512);
         maximumMemoryModel.setMinimum(512);
         maximumMemoryModel.setMaximum((systemRam == 0 ? null : systemRam));
         maximumMemory = new JSpinner(maximumMemoryModel);
         ((JSpinner.DefaultEditor) maximumMemory.getEditor()).getTextField().setColumns(5);
-        add(maximumMemory, gbc);
+
+        addRow(GetText.tr("Maximum Memory/Ram"),
+            GetText.tr("The maximum amount of memory/ram to allocate when starting Minecraft."), maximumMemory);
 
         // Perm Gen Settings
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover permGenLabel = new JLabelWithHover(GetText.tr("PermGen Size") + ":", HELP_ICON,
-            GetText.tr("The PermGen Size for java to use when launching Minecraft in MB."));
-        add(permGenLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         SpinnerNumberModel permGenModel = new SpinnerNumberModel(
             getIfNotNull(this.instance.launcher.permGen, App.settings.metaspace), null, null, 32);
         permGenModel.setMinimum(32);
@@ -162,53 +134,26 @@ public class JavaInstanceSettingsTab extends JPanel {
                 }
             }
         });
-        add(permGen, gbc);
+
+        addRow(GetText.tr("PermGen Size"),
+            GetText.tr("The PermGen Size for java to use when launching Minecraft in MB."), permGen);
+
+        addSection(GetText.tr("Java"));
+
+        // Java Path, when Minecraft brings its own and there is nothing to set
+
+        JLabel javaPathDummy = new JLabel("Uses Java provided by Minecraft");
+        javaPathDummy.setEnabled(false);
+
+        providedJavaRow = addRow(GetText.tr("Java Path"), MD3Text.plain(GetText.tr(
+            "This version of Minecraft provides a specific version of Java to be used with it, so you cannot set a custom Java path.<br/><br/>In order to manually set a path, you must disable this option (highly not recommended).")),
+            javaPathDummy);
 
         // Java Path
+
         javaPath = new JTextField(32);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 1;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover javaMinecraftProvidedLabel = new JLabelWithHover(GetText.tr("Java Path") + ":", HELP_ICON,
-            new HTMLBuilder().center().text(GetText.tr(
-                    "This version of Minecraft provides a specific version of Java to be used with it, so you cannot set a custom Java path.<br/><br/>In order to manually set a path, you must disable this option (highly not recommended)."))
-                .build());
-        add(javaMinecraftProvidedLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final JLabel javaPathDummy = new JLabel("Uses Java provided by Minecraft");
-        javaPathDummy.setEnabled(false);
-        add(javaPathDummy, gbc);
-
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 1;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover javaPathLabel = new JLabelWithHover(GetText.tr("Java Path") + ":", HELP_ICON, "<html>" + GetText
-            .tr("This setting allows you to specify where your Java Path is.<br/><br/>This should be left as default, but if you know what you're doing, just set<br/>this to the path where the bin folder is for the version of Java you want to use.<br/><br/>If you mess up, click the Reset button to go back to the default")
-            + "</html>");
-        add(javaPathLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-
-        JPanel javaPathPanel = new JPanel();
-        javaPathPanel.setLayout(new BoxLayout(javaPathPanel, BoxLayout.Y_AXIS));
-
-        JPanel javaPathPanelTop = new JPanel();
-        javaPathPanelTop.setLayout(new BoxLayout(javaPathPanelTop, BoxLayout.X_AXIS));
-
-        JPanel javaPathPanelBottom = new JPanel();
-        javaPathPanelBottom.setLayout(new BoxLayout(javaPathPanelBottom, BoxLayout.X_AXIS));
-
         javaPath.setText(getIfNotNull(this.instance.launcher.javaPath, App.settings.javaPath));
+
         JButton javaPathResetButton = new JButton(GetText.tr("Reset"));
         javaPathResetButton.addActionListener(e -> javaPath.setText(OS.getDefaultJavaPath()));
         JButton javaBrowseButton = new JButton(GetText.tr("Browse"));
@@ -235,7 +180,7 @@ public class JavaInstanceSettingsTab extends JPanel {
         });
 
         JComboBox<ComboItem<JavaInfo>> installedJavasComboBox = new JComboBox<>();
-        installedJavasComboBox.setPreferredSize(new Dimension(516, 24));
+        installedJavasComboBox.setPreferredSize(new Dimension(JAVA_FIELD_WIDTH, JAVA_FIELD_HEIGHT));
         installedJavasComboBox.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         List<JavaInfo> installedJavas = Java.getInstalledJavas();
         int selectedIndex = 0;
@@ -261,45 +206,19 @@ public class JavaInstanceSettingsTab extends JPanel {
                 }
             });
 
-            javaPathPanelTop.add(installedJavasComboBox);
+            detectedJavasRow = addWideRow(GetText.tr("Detected Java Installs"),
+                GetText.tr("Select Java Path To Autofill"), installedJavasComboBox);
         }
 
-        javaPathPanelBottom.add(javaPath);
-        javaPathPanelBottom.add(Box.createHorizontalStrut(5));
-        javaPathPanelBottom.add(javaPathResetButton);
-        javaPathPanelBottom.add(Box.createHorizontalStrut(5));
-        javaPathPanelBottom.add(javaBrowseButton);
-
-        javaPathPanel.add(javaPathPanelTop);
-        javaPathPanel.add(Box.createVerticalStrut(5));
-        javaPathPanel.add(javaPathPanelBottom);
-
-        add(javaPathPanel, gbc);
+        javaPathRow = addWideRow(GetText.tr("Java Path"), MD3Text.plain(GetText.tr(
+            "This setting allows you to specify where your Java Path is.<br/><br/>This should be left as default, but if you know what you're doing, just set<br/>this to the path where the bin folder is for the version of Java you want to use.<br/><br/>If you mess up, click the Reset button to go back to the default")),
+            group(javaPath, javaPathResetButton, javaBrowseButton));
 
         boolean isUsingMinecraftProvidedJava = Optional.ofNullable(instance.launcher.useJavaProvidedByMinecraft)
             .orElse(App.settings.useJavaProvidedByMinecraft);
-        javaMinecraftProvidedLabel.setVisible(instance.javaVersion != null && isUsingMinecraftProvidedJava);
-        javaPathDummy.setVisible(instance.javaVersion != null && isUsingMinecraftProvidedJava);
-
-        javaPathLabel.setVisible(instance.javaVersion == null || !isUsingMinecraftProvidedJava);
-        javaPathPanel.setVisible(instance.javaVersion == null || !isUsingMinecraftProvidedJava);
 
         // Java Paramaters
 
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 1;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.FIRST_LINE_END;
-        JLabelWithHover javaParametersLabel = new JLabelWithHover(GetText.tr("Java Parameters") + ":", HELP_ICON,
-            GetText.tr("Extra Java command line paramaters can be added here."));
-        add(javaParametersLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.FIRST_LINE_START;
-        JPanel javaParametersPanel = new JPanel();
-        javaParametersPanel.setLayout(new BoxLayout(javaParametersPanel, BoxLayout.X_AXIS));
         JScrollPane javaParametersScrollPane = new JScrollPane(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
             ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         javaParametersScrollPane.setBorder(new FlatScrollPaneBorder());
@@ -323,37 +242,17 @@ public class JavaInstanceSettingsTab extends JPanel {
         javaParameters.setText(getIfNotNull(this.instance.launcher.javaArguments, App.settings.javaParameters));
         javaParameters.setLineWrap(true);
         javaParameters.setWrapStyleWord(true);
+        javaParametersScrollPane.setViewportView(javaParameters);
+
         JButton javaParametersResetButton = new JButton(GetText.tr("Reset"));
         javaParametersResetButton.addActionListener(e -> javaParameters.setText(App.settings.javaParameters));
 
-        javaParametersScrollPane.setViewportView(javaParameters);
-        javaParametersPanel.add(javaParametersScrollPane);
-        javaParametersPanel.add(Box.createHorizontalStrut(5));
-
-        Box paramsResetBox = Box.createVerticalBox();
-        paramsResetBox.add(javaParametersResetButton);
-        paramsResetBox.add(Box.createVerticalGlue());
-
-        javaParametersPanel.add(paramsResetBox);
-
-        add(javaParametersPanel, gbc);
+        addWideRow(GetText.tr("Java Parameters"),
+            GetText.tr("Extra Java command line paramaters can be added here."),
+            group(javaParametersScrollPane, javaParametersResetButton));
 
         // Runtime Override
 
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover javaRuntimeOverrideLabel = new JLabelWithHover(GetText.tr("Runtime Override") + ":",
-            HELP_ICON,
-            new HTMLBuilder().center().text(GetText.tr(
-                    "This allows you to override which runtime is used to launch this instance.<br/><br/>Runtimes are provided by Mojang and used to launch the game and generally correspond to a particular Java version.<br/><br/>Changing this is usually not required or recommended."))
-                .build());
-        add(javaRuntimeOverrideLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.FIRST_LINE_START;
         javaRuntimeOverride = new JComboBox<>();
         if (instance.javaVersion != null) {
             javaRuntimeOverride.addItem(new ComboItem<>(null, GetText.tr("Use Default (Recommended)")));
@@ -379,26 +278,13 @@ public class JavaInstanceSettingsTab extends JPanel {
         }
 
         javaRuntimeOverride.setSelectedIndex(selectedIndexRuntime);
-        javaRuntimeOverrideLabel.setVisible(isUsingMinecraftProvidedJava);
-        javaRuntimeOverride.setVisible(isUsingMinecraftProvidedJava);
 
-        add(javaRuntimeOverride, gbc);
+        runtimeOverrideRow = addRow(GetText.tr("Runtime Override"), MD3Text.plain(GetText.tr(
+            "This allows you to override which runtime is used to launch this instance.<br/><br/>Runtimes are provided by Mojang and used to launch the game and generally correspond to a particular Java version.<br/><br/>Changing this is usually not required or recommended.")),
+            javaRuntimeOverride);
 
         // Use Java Provided By Minecraft
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover useJavaProvidedByMinecraftLabel = new JLabelWithHover(
-            GetText.tr("Use Java Provided By Minecraft") + "?", HELP_ICON,
-            new HTMLBuilder().center().text(GetText.tr(
-                    "This allows you to enable/disable using the version of Java provided by the version of Minecraft you're running.<br/><br/>It's highly recommended to not disable this, unless you know what you're doing."))
-                .build());
-        add(useJavaProvidedByMinecraftLabel, gbc);
 
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.FIRST_LINE_START;
         useJavaProvidedByMinecraft = new JComboBox<>();
         useJavaProvidedByMinecraft.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         useJavaProvidedByMinecraft.addItem(new ComboItem<>(true, GetText.tr("Yes")));
@@ -425,57 +311,27 @@ public class JavaInstanceSettingsTab extends JPanel {
                         if (ret != 0) {
                             useJavaProvidedByMinecraft.setSelectedIndex(0);
                         } else {
-                            javaMinecraftProvidedLabel.setVisible(false);
-                            javaPathDummy.setVisible(false);
-                            javaRuntimeOverrideLabel.setVisible(false);
-                            javaRuntimeOverride.setVisible(false);
-
-                            javaPathLabel.setVisible(true);
-                            javaPathPanel.setVisible(true);
+                            showJavaRows(false);
                         }
                     } else if (useJavaProvidedByMinecraft.getSelectedIndex() == 1) {
-                        javaMinecraftProvidedLabel.setVisible(true);
-                        javaPathDummy.setVisible(true);
-                        javaRuntimeOverrideLabel.setVisible(true);
-                        javaRuntimeOverride.setVisible(true);
-
-                        javaPathLabel.setVisible(false);
-                        javaPathPanel.setVisible(false);
+                        showJavaRows(true);
                     } else {
-                        javaMinecraftProvidedLabel.setVisible(App.settings.useJavaProvidedByMinecraft);
-                        javaPathDummy.setVisible(App.settings.useJavaProvidedByMinecraft);
-                        javaRuntimeOverrideLabel.setVisible(App.settings.useJavaProvidedByMinecraft);
-                        javaRuntimeOverride.setVisible(App.settings.useJavaProvidedByMinecraft);
-
-                        javaPathLabel.setVisible(!App.settings.useJavaProvidedByMinecraft);
-                        javaPathPanel.setVisible(!App.settings.useJavaProvidedByMinecraft);
+                        showJavaRows(App.settings.useJavaProvidedByMinecraft);
                     }
                 });
             }
         });
 
-        useJavaProvidedByMinecraftLabel.setVisible(instance.javaVersion != null);
-        useJavaProvidedByMinecraft.setVisible(instance.javaVersion != null);
+        JComponent useJavaProvidedByMinecraftRow = addRow(GetText.tr("Use Java Provided By Minecraft"),
+            GetText.tr(
+                "This allows you to enable/disable using the version of Java provided by the version of Minecraft you're running. It's highly recommended to not disable this, unless you know what you're doing."),
+            useJavaProvidedByMinecraft);
+        useJavaProvidedByMinecraftRow.setVisible(instance.javaVersion != null);
 
-        add(useJavaProvidedByMinecraft, gbc);
+        addSection(GetText.tr("Advanced"));
 
         // Disable Legacy Launching (hidden for legacy fabric as it never uses legacy launching)
         if (instance.launcher.loaderVersion == null || !instance.launcher.loaderVersion.isLegacyFabric()) {
-            gbc.gridx = 0;
-            gbc.gridy++;
-            gbc.insets = UIConstants.LABEL_INSETS;
-            gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-            JLabelWithHover disableLegacyLaunchingLabel = new JLabelWithHover(
-                GetText.tr("Disable Legacy Launching") + "?", HELP_ICON,
-                new HTMLBuilder().center()
-                    .text(GetText.tr(
-                        "This allows you to disable legacy launching for Minecraft < 1.6.<br/><br/>It's highly recommended to not disable this, unless you're having issues launching older Minecraft versions."))
-                    .build());
-            add(disableLegacyLaunchingLabel, gbc);
-
-            gbc.gridx++;
-            gbc.insets = UIConstants.LABEL_INSETS;
-            gbc.anchor = GridBagConstraints.FIRST_LINE_START;
             disableLegacyLaunching = new JComboBox<>();
             disableLegacyLaunching.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
             disableLegacyLaunching.addItem(new ComboItem<>(true, GetText.tr("Yes")));
@@ -489,22 +345,12 @@ public class JavaInstanceSettingsTab extends JPanel {
                 disableLegacyLaunching.setSelectedIndex(2);
             }
 
-            add(disableLegacyLaunching, gbc);
+            addRow(GetText.tr("Disable Legacy Launching"), GetText.tr(
+                "This allows you to disable legacy launching for Minecraft < 1.6. It's highly recommended to not disable this, unless you're having issues launching older Minecraft versions."),
+                disableLegacyLaunching);
         }
 
         // Use System GLFW
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover useSystemGlfwLabel = new JLabelWithHover(GetText.tr("Use System GLFW") + "?", HELP_ICON,
-            new HTMLBuilder().center().text(GetText.tr("Use the systems install for GLFW native library."))
-                .build());
-        add(useSystemGlfwLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.FIRST_LINE_START;
         useSystemGlfw = new JComboBox<>();
         useSystemGlfw.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         useSystemGlfw.addItem(new ComboItem<>(true, GetText.tr("Yes")));
@@ -518,21 +364,10 @@ public class JavaInstanceSettingsTab extends JPanel {
             useSystemGlfw.setSelectedIndex(2);
         }
 
-        add(useSystemGlfw, gbc);
+        addRow(GetText.tr("Use System GLFW"), GetText.tr("Use the systems install for GLFW native library."),
+            useSystemGlfw);
 
         // Use System OpenAL
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover useSystemOpenAlLabel = new JLabelWithHover(GetText.tr("Use System OpenAL") + "?", HELP_ICON,
-            new HTMLBuilder().center().text(GetText.tr("Use the systems install for OpenAL native library."))
-                .build());
-        add(useSystemOpenAlLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.FIRST_LINE_START;
         useSystemOpenAl = new JComboBox<>();
         useSystemOpenAl.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         useSystemOpenAl.addItem(new ComboItem<>(true, GetText.tr("Yes")));
@@ -546,7 +381,36 @@ public class JavaInstanceSettingsTab extends JPanel {
             useSystemOpenAl.setSelectedIndex(2);
         }
 
-        add(useSystemOpenAl, gbc);
+        addRow(GetText.tr("Use System OpenAL"), GetText.tr("Use the systems install for OpenAL native library."),
+            useSystemOpenAl);
+
+        // an instance on a version of Minecraft that brings no Java of its own has a path to set
+        // whatever this is set to, so the swap only applies once there is a runtime to choose
+        showJavaRows(instance.javaVersion != null && isUsingMinecraftProvidedJava);
+
+        if (instance.javaVersion == null) {
+            runtimeOverrideRow.setVisible(isUsingMinecraftProvidedJava);
+        }
+    }
+
+    /**
+     * @param provided whether Minecraft's own Java is being used, which decides whether the runtime
+     *                 to use or the path to find it at is the thing to show
+     */
+    private void showJavaRows(boolean provided) {
+        providedJavaRow.setVisible(provided);
+        runtimeOverrideRow.setVisible(provided);
+
+        javaPathRow.setVisible(!provided);
+
+        if (detectedJavasRow != null) {
+            detectedJavasRow.setVisible(!provided);
+        }
+
+        // a box layout lays out what it has rather than watching for a child becoming visible -
+        // without this the list keeps the gap the hidden rows used to fill
+        revalidate();
+        repaint();
     }
 
     private Integer getIfNotNull(Integer value, Integer defaultValue) {

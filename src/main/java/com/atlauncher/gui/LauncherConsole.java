@@ -46,6 +46,8 @@ import com.atlauncher.gui.components.ConsoleBottomBar;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.utils.Utils;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class LauncherConsole extends JFrame implements RelocalizationListener {
 
     private static final long serialVersionUID = -3538990021922025818L;
@@ -62,8 +64,8 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
         setIconImage(Utils.getImage("/assets/image/icon.png"));
         setLayout(new BorderLayout());
 
-        setMinimumSize(new Dimension(400, 200));
-        setSize(new Dimension(650, 400));
+        setMinimumSize(UIScale.scale(new Dimension(400, 200)));
+        setSize(UIScale.scale(new Dimension(650, 400)));
 
         try {
             if (App.settings.rememberWindowSizePosition && App.settings.consoleSize != null

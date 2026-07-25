@@ -55,6 +55,8 @@ import com.atlauncher.utils.ImportPackUtils;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class ImportInstanceDialog extends JDialog {
 
     private final JTextField url;
@@ -64,8 +66,8 @@ public class ImportInstanceDialog extends JDialog {
 
     public ImportInstanceDialog() {
         super(App.launcher.getParent(), GetText.tr("Import Instance"), ModalityType.DOCUMENT_MODAL);
-        setSize(500, 250);
-        setMinimumSize(new Dimension(500, 250));
+        setSize(UIScale.scale(500), UIScale.scale(250));
+        setMinimumSize(UIScale.scale(new Dimension(500, 250)));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
         setIconImage(Utils.getImage("/assets/image/icon.png"));

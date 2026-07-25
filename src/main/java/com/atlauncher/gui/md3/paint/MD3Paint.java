@@ -162,15 +162,26 @@ public final class MD3Paint {
      * a separate marker rather than as a thicker border.
      */
     public static void focusRing(Graphics2D g, JComponent c, int radius) {
-        float width = UIScale.scale(3f);
-        float offset = UIScale.scale(2f);
+        focusRing(g, 0, 0, c.getWidth(), c.getHeight(), radius);
+    }
 
-        Shape ring = MD3Shape.rounded(-offset - width / 2f, -offset - width / 2f,
-                c.getWidth() + (offset + width / 2f) * 2f, c.getHeight() + (offset + width / 2f) * 2f, radius);
+    /**
+     * The same ring around part of a component, for one that draws more than one thing.
+     *
+     * <p>
+     * The navigation rail is a single tab stop whose arrow keys move between destinations, so the
+     * ring belongs on the destination's indicator rather than around the whole item - it marks what
+     * the arrow keys would move away from, not where the tab landed.
+     */
+    public static void focusRing(Graphics2D g, float x, float y, float width, float height, int radius) {
+        float stroke = UIScale.scale(3f);
+        float offset = UIScale.scale(2f) + stroke / 2f;
+
+        Shape ring = MD3Shape.rounded(x - offset, y - offset, width + offset * 2f, height + offset * 2f, radius);
 
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setColor(MD3Color.get(MD3Color.SECONDARY));
-        g2.setStroke(new BasicStroke(width));
+        g2.setStroke(new BasicStroke(stroke));
         g2.draw(ring);
         g2.dispose();
     }

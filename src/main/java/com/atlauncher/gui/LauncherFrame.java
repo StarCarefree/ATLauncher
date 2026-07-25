@@ -44,7 +44,7 @@ import com.atlauncher.evnt.manager.RelocalizationManager;
 import com.atlauncher.evnt.manager.TabChangeManager;
 import com.atlauncher.gui.components.LauncherAppBar;
 import com.atlauncher.gui.dialogs.InstanceInstallerDialog;
-import com.atlauncher.gui.md3.button.MD3IconButton;
+import com.atlauncher.gui.md3.button.MD3Fab;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.nav.MD3NavigationRail;
@@ -65,6 +65,8 @@ import com.atlauncher.managers.PerformanceManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.utils.Utils;
+
+import com.formdev.flatlaf.util.UIScale;
 
 /**
  * The launcher's main window: a navigation rail, a top app bar, and one page at a time.
@@ -121,7 +123,7 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
         setLayout(new BorderLayout());
         setIconImage(Utils.getImage("/assets/image/icon.png"));
 
-        setMinimumSize(new Dimension(1200, 700));
+        setMinimumSize(UIScale.scale(new Dimension(1200, 700)));
         setLocationRelativeTo(null);
 
         restoreWindowBounds();
@@ -259,8 +261,7 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
         content.setOpaque(true);
         content.setBackground(MD3Color.surface());
 
-        MD3IconButton create = new MD3IconButton(MD3Icon.of(MD3Icons.ADD), tabs
-                .get(UIConstants.LAUNCHER_CREATE_PACK_TAB).getTitle(), MD3IconButton.Variant.FILLED);
+        MD3Fab create = new MD3Fab(MD3Icons.ADD, tabs.get(UIConstants.LAUNCHER_CREATE_PACK_TAB).getTitle());
         create.setName("createPackAction");
         create.addActionListener(e -> navigateTo(UIConstants.LAUNCHER_CREATE_PACK_TAB));
         rail.setHeader(create);

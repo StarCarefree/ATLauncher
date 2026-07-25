@@ -68,6 +68,8 @@ import com.atlauncher.utils.MicrosoftAuthAPI;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 
+import com.formdev.flatlaf.util.UIScale;
+
 import net.freeutils.httpserver.HTTPServer;
 import net.freeutils.httpserver.HTTPServer.VirtualHost;
 
@@ -88,7 +90,7 @@ public final class LoginWithMicrosoftDialog extends JDialog {
         super(App.launcher.getParent(), GetText.tr("Login with Microsoft"), ModalityType.DOCUMENT_MODAL);
 
         this.account = account;
-        this.setMinimumSize(new Dimension(500, 500));
+        this.setMinimumSize(UIScale.scale(new Dimension(500, 500)));
         this.setResizable(false);
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
@@ -125,8 +127,8 @@ public final class LoginWithMicrosoftDialog extends JDialog {
         orLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
         JSeparator leftLine = new JSeparator();
         JSeparator rightLine = new JSeparator();
-        leftLine.setPreferredSize(new Dimension(200, 1));
-        rightLine.setPreferredSize(new Dimension(200, 1));
+        leftLine.setPreferredSize(UIScale.scale(new Dimension(200, 1)));
+        rightLine.setPreferredSize(UIScale.scale(new Dimension(200, 1)));
 
         Box leftBox = Box.createVerticalBox();
         leftBox.add(Box.createVerticalGlue());
@@ -200,8 +202,8 @@ public final class LoginWithMicrosoftDialog extends JDialog {
                     .build()), BorderLayout.SOUTH);
                 mainPanel.revalidate();
                 mainPanel.repaint();
-                setMinimumSize(new Dimension(500, 180));
-                setSize(new Dimension(500, 180));
+                setMinimumSize(UIScale.scale(new Dimension(500, 180)));
+                setSize(UIScale.scale(new Dimension(500, 180)));
                 setLocationRelativeTo(App.launcher.getParent());
                 return;
             }

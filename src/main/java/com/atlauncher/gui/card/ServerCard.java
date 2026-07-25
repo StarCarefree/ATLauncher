@@ -61,6 +61,7 @@ import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.managers.DialogManager;
+import com.atlauncher.managers.NotificationManager;
 import com.atlauncher.managers.ServerManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
@@ -349,7 +350,7 @@ public class ServerCard extends MD3Card implements RelocalizationListener, CardG
                 dialog.addThread(new Thread(() -> {
                     ServerManager.removeServer(server);
                     dialog.close();
-                    App.TOASTER.pop(GetText.tr("Deleted Server Successfully"));
+                    NotificationManager.show(GetText.tr("Deleted Server Successfully"));
                 }));
                 dialog.start();
             }

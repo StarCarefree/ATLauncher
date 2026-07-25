@@ -35,12 +35,14 @@ import org.mini2Dx.gettext.GetText;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.utils.OS;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class ModrinthExportOverridesDialog extends JDialog {
     public ModrinthExportOverridesDialog(Dialog parent, String text) {
         super(parent, GetText.tr("Overrides Included"), true);
 
         setLocationRelativeTo(parent);
-        setMinimumSize(new Dimension(500, 400));
+        setMinimumSize(UIScale.scale(new Dimension(500, 400)));
         setLayout(new BorderLayout());
 
         addWindowListener(new WindowAdapter() {

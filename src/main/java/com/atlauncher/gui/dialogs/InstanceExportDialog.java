@@ -52,11 +52,15 @@ import com.atlauncher.data.InstanceExportFormat;
 import com.atlauncher.data.MicrosoftAccount;
 import com.atlauncher.gui.components.JLabelWithHover;
 import com.atlauncher.managers.AccountManager;
+import com.atlauncher.managers.DialogManager;
+import com.atlauncher.managers.NotificationManager;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Pair;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.utils.WindowUtils;
+
+import com.formdev.flatlaf.util.UIScale;
 
 public class InstanceExportDialog extends JDialog {
     private final Instance instance;
@@ -290,7 +294,7 @@ public class InstanceExportDialog extends JDialog {
                 this.getVerticalScrollBar().setUnitIncrement(8);
             }
         };
-        overridesScrollPanel.setPreferredSize(new Dimension(350, 200));
+        overridesScrollPanel.setPreferredSize(UIScale.scale(new Dimension(350, 200)));
 
         topPanel.add(overridesScrollPanel, gbc);
 
@@ -327,14 +331,16 @@ public class InstanceExportDialog extends JDialog {
                         modrinthExportOverridesDialog.setVisible(true);
                     }
 
-                    App.TOASTER.pop(GetText.tr("Exported Instance Successfully"));
+                    NotificationManager.show(GetText.tr("Exported Instance Successfully"));
                     if (exportFormat == InstanceExportFormat.CURSEFORGE_AND_MODRINTH) {
                         OS.openFileExplorer(Paths.get(saveTo.getText()));
                     } else {
                         OS.openFileExplorer(exportResult.left(), true);
                     }
                 } else {
-                    App.TOASTER.popError(GetText.tr("Failed to export instance. Check the console for details"));
+                    DialogManager.okDialog().setType(DialogManager.ERROR).setTitle(GetText.tr("Export Failed"))
+                            .setContent(GetText.tr("Failed to export instance. Check the console for details"))
+                            .show();
                 }
                 dialog.close();
                 close();

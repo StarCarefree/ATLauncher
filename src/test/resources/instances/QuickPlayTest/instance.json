@@ -1,0 +1,69 @@
+{
+  "id": "1.21.4",
+  "type": "release",
+  "libraries": [],
+  "javaVersion": {
+    "component": "java-runtime-delta",
+    "majorVersion": 21
+  },
+  "arguments": {
+    "game": [
+      {
+        "rules": [
+          {
+            "action": "allow",
+            "features": {
+              "is_quick_play_singleplayer": true
+            }
+          }
+        ],
+        "value": [
+          "--quickPlaySingleplayer",
+          "${quickPlaySingleplayer}"
+        ]
+      },
+      {
+        "rules": [
+          {
+            "action": "allow",
+            "features": {
+              "is_quick_play_multiplayer": true
+            }
+          }
+        ],
+        "value": [
+          "--quickPlayMultiplayer",
+          "${quickPlayMultiplayer}"
+        ]
+      },
+      {
+        "rules": [
+          {
+            "action": "allow",
+            "features": {
+              "is_quick_play_realms": true
+            }
+          }
+        ],
+        "value": [
+          "--quickPlayRealms",
+          "${quickPlayRealms}"
+        ]
+      }
+    ],
+    "jvm": []
+  },
+  "launcher": {
+    "name": "Quick Play 1.21.4",
+    "pack": "Minecraft",
+    "description": "An instance on a version of Minecraft that supports Quick Play and brings its own Java.",
+    "version": "1.21.4",
+    "isPlayable": true,
+    "vanillaInstance": true,
+    "enableEditingMods": true,
+    "mods": [],
+    "packId": 0,
+    "externalPackId": 0,
+    "hash": ""
+  }
+}

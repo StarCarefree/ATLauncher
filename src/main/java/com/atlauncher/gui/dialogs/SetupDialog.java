@@ -48,6 +48,8 @@ import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class SetupDialog extends JDialog implements RelocalizationListener {
     private static final long serialVersionUID = -2931970914611329658L;
 
@@ -65,7 +67,7 @@ public class SetupDialog extends JDialog implements RelocalizationListener {
         // #. {0} is the name of the launcher (ATLauncher)
         super(null, GetText.tr("{0} Setup", Constants.LAUNCHER_NAME), ModalityType.DOCUMENT_MODAL);
         this.requestFocus();
-        this.setSize(500, 250);
+        this.setSize(UIScale.scale(500), UIScale.scale(250));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
         setIconImage(Utils.getImage("/assets/image/icon.png"));

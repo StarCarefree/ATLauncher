@@ -58,6 +58,8 @@ import com.atlauncher.network.Analytics;
 import com.atlauncher.utils.CurseForgeApi;
 import com.atlauncher.utils.OS;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class CurseForgeProjectFileSelectorDialog extends JDialog {
     private int filesLength = 0;
     private final CurseForgeProject mod;
@@ -115,8 +117,8 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
         // #. {0} is the name of the mod we're installing
         setTitle(GetText.tr("Installing {0}", mod.name));
 
-        setSize(550, 200);
-        setMinimumSize(new Dimension(550, 200));
+        setSize(UIScale.scale(550), UIScale.scale(200));
+        setMinimumSize(UIScale.scale(new Dimension(550, 200)));
         setLocationRelativeTo(App.launcher.getParent());
         setLayout(new BorderLayout());
         setResizable(true);
@@ -163,7 +165,7 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
         scrollPane = new JScrollPane(dependenciesPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setPreferredSize(new Dimension(550, 250));
+        scrollPane.setPreferredSize(UIScale.scale(new Dimension(550, 250)));
 
         middle.add(filesPanel, BorderLayout.NORTH);
         middle.add(scrollPane, BorderLayout.SOUTH);
@@ -281,7 +283,7 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
                 dependenciesPanel.setLayout(new GridLayout(dependencies.size() < 2 ? 1 : dependencies.size() / 2,
                     (dependencies.size() / 2) + 1));
 
-                setSize(550, 450);
+                setSize(UIScale.scale(550), UIScale.scale(450));
                 setLocationRelativeTo(App.launcher.getParent());
 
                 dependenciesPanel.setVisible(true);
@@ -289,10 +291,10 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
                 scrollPane.repaint();
                 scrollPane.validate();
             } else {
-                setSize(550, 200);
+                setSize(UIScale.scale(550), UIScale.scale(200));
             }
         } else {
-            setSize(550, 200);
+            setSize(UIScale.scale(550), UIScale.scale(200));
         }
     }
 

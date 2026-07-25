@@ -43,6 +43,8 @@ import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.utils.Utils;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class RenameInstanceDialog extends JDialog {
 
     private JTextField instanceName;
@@ -60,7 +62,7 @@ public class RenameInstanceDialog extends JDialog {
 
         Analytics.sendScreenView("Rename Instance Dialog");
 
-        setSize(320, 150);
+        setSize(UIScale.scale(320), UIScale.scale(150));
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout());
         setIconImage(Utils.getImage("/assets/image/icon.png"));

@@ -111,6 +111,28 @@ public final class MD3Text {
     }
 
     /**
+     * Drops the line breaks a string was written with as HTML.
+     *
+     * <p>
+     * Much of the launcher's explanatory text was written to be a tooltip and carries {@code <br/>}s
+     * for the width it was expected to be shown at. Laying that text out here means measuring it, so
+     * the markup has to go - but rewriting the string in the source would change its msgid and drop
+     * every translation of it. So the {@code GetText.tr} call keeps the string it has always had and
+     * the breaks come out on the way to the label.
+     *
+     * <p>
+     * Only {@code <br>} is handled, because that is the only tag these strings carry. Stripping tags
+     * in general would take "{@code Minecraft < 1.6}" for one.
+     */
+    public static String plain(String html) {
+        if (html == null) {
+            return null;
+        }
+
+        return html.replaceAll("(?i)<br\\s*/?>", " ").replaceAll("\\s+", " ").trim();
+    }
+
+    /**
      * Trims text until it and an ellipsis fit.
      */
     public static String truncateToWidth(FontMetrics metrics, String text, int width) {

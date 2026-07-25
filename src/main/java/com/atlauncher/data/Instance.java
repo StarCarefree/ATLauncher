@@ -149,6 +149,7 @@ import com.atlauncher.managers.LWJGLManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.managers.MinecraftManager;
 import com.atlauncher.managers.ModrinthModpackUpdateManager;
+import com.atlauncher.managers.NotificationManager;
 import com.atlauncher.managers.PackManager;
 import com.atlauncher.managers.PerformanceManager;
 import com.atlauncher.managers.TechnicModpackUpdateManager;
@@ -2291,7 +2292,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
                 ZipNameMapper.getMapperForBackupMode(backupMode));
 
             dialog.dispose();
-            App.TOASTER.pop(GetText.tr("Backup is complete"));
+            NotificationManager.show(GetText.tr("Backup is complete"));
         });
         backupThread.start();
         dialog.addWindowListener(new WindowAdapter() {
@@ -2339,7 +2340,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
             dialog.addThread(new Thread(() -> {
                 InstanceManager.cloneInstance(this, newName);
                 dialog.close();
-                App.TOASTER.pop(GetText.tr("Cloned Instance Successfully"));
+                NotificationManager.show(GetText.tr("Cloned Instance Successfully"));
             }));
             dialog.start();
         } else if (clonedName == null || clonedName.isEmpty()) {
@@ -3234,7 +3235,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
         save();
 
         // #. {0} is the name of a mod that was removed
-        App.TOASTER.pop(GetText.tr("{0} Removed", mod.name));
+        NotificationManager.show(GetText.tr("{0} Removed", mod.name));
     }
 
     @Override
@@ -3451,7 +3452,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
         }
 
         // #. {0} is the name of a mod that was installed
-        App.TOASTER.pop(GetText.tr("{0} Installed", mod.name));
+        NotificationManager.show(GetText.tr("{0} Installed", mod.name));
     }
 
     @NotNull
@@ -3581,7 +3582,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
         this.save();
 
         // #. {0} is the name of a mod that was installed
-        App.TOASTER.pop(GetText.tr("{0} Installed", mod.title));
+        NotificationManager.show(GetText.tr("{0} Installed", mod.title));
     }
 
     @NotNull

@@ -45,6 +45,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3Fab;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.gui.md3.container.MD3Divider;
@@ -471,8 +472,9 @@ public final class MD3Gallery {
         panel.setMaximumSize(new Dimension(880, 300));
 
         MD3NavigationRail rail = new MD3NavigationRail();
-        // the rail is 80dp wide, so its header has to be an icon-only target
-        rail.setHeader(new MD3IconButton(MD3Icons.ADD, "Create instance", MD3IconButton.Variant.FILLED));
+        // the rail is 80dp wide, so its header has to be an icon-only target - a FAB fits, an
+        // extended one with a label beside the icon would not
+        rail.setHeader(new MD3Fab(MD3Icons.ADD, "Create instance"));
         rail.addDestination(MD3Icons.HOME, "News");
         rail.addDestination(MD3Icons.SEARCH, "Discover");
         rail.addDestination(MD3Icons.PACKAGE, "Instances");

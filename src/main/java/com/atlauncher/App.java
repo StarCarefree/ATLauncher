@@ -82,13 +82,13 @@ import com.atlauncher.managers.ServerManager;
 import com.atlauncher.network.Download;
 import com.atlauncher.network.ErrorReporting;
 import com.atlauncher.themes.ATLauncherLaf;
+import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.utils.Java;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.formdev.flatlaf.extras.FlatInspector;
 import com.formdev.flatlaf.extras.FlatUIDefaultsInspector;
 
-import io.github.asyncronous.toast.Toaster;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import oshi.SystemInfo;
@@ -108,11 +108,6 @@ public class App {
      * The taskpool used to quickly add in tasks to do in the background.
      */
     public static final ExecutorService TASKPOOL = Executors.newFixedThreadPool(2);
-
-    /**
-     * The instance of toaster to show popups in the bottom right.
-     */
-    public static Toaster TOASTER;
 
     /**
      * The tray menu shown in the notification area or whatever it's called in non Windows OS.
@@ -864,8 +859,7 @@ public class App {
             setLAF(theme);
             modifyLAF();
 
-            // now the theme is loaded, we can intialize the toaster/tray menu
-            TOASTER = Toaster.instance();
+            // now the theme is loaded, we can intialize the tray menu
             TRAY_MENU = new TrayMenu();
         } catch (Exception ex) {
             throw new RuntimeException(ex);
@@ -954,9 +948,11 @@ public class App {
         // has to come after defaultFont is in place, since the type scale is derived from it
         THEME.installTypeScale();
         UIManager.put("Button.font", THEME.getNormalFont());
-        UIManager.put("Toaster.font", THEME.getNormalFont());
         UIManager.put("ToolTip.font", THEME.getNormalFont());
-        UIManager.put("Toaster.opacity", 0.75F);
+
+        // here rather than at startup: changing the theme resets the defaults, so the flag every
+        // animation reads has to be put back each time the look and feel is rebuilt
+        MD3Motion.setReduced(settings != null && settings.reduceAnimations);
 
         UIManager.put("FileChooser.readOnly", Boolean.TRUE);
         UIManager.put("ScrollBar.minimumThumbSize", new Dimension(50, 50));

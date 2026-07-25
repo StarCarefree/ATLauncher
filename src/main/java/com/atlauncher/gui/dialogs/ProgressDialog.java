@@ -18,35 +18,56 @@
 package com.atlauncher.gui.dialogs;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Locale;
 
 import javax.annotation.Nullable;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
+import com.atlauncher.gui.md3.feedback.MD3LinearProgress;
 import com.atlauncher.interfaces.NetworkProgressable;
 import com.atlauncher.managers.LogManager;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.Utils;
+import com.formdev.flatlaf.util.UIScale;
 
+/**
+ * What the launcher shows while it is busy.
+ *
+ * <p>
+ * A Material linear indicator carries no text inside it, so the counts that used to be painted into
+ * the bars - "3/10 Tasks Done", "4.20 MB / 9.00 MB" - are labels beneath them now. That is also why
+ * the window keeps its title bar: closing it is how a long install is cancelled, and an undecorated
+ * dialog would take that away.
+ */
 public class ProgressDialog<T> extends JDialog implements NetworkProgressable {
+    /** Wide enough for "Downloading some-very-long-mod-file.jar" without the dialog resizing. */
+    private static final int WIDTH = 420;
+
     private final String labelText; // The text to add to the JLabel
-    private final JProgressBar progressBar; // The Progress Bar
-    private final JProgressBar subProgressBar; // The Progress Bar
+    private final MD3LinearProgress progressBar; // The Progress Bar
+    private final MD3LinearProgress subProgressBar; // The Progress Bar
     private Thread thread = null; // The Thread were optionally running
     private final String closedLogMessage; // The message to log to the console when dialog closed
     private T returnValue = null; // The value returned
     public boolean wasClosed = false; // If the dialog was closed by the user
     private final JLabel label = new JLabel();
-    private int tasksToDo;
+    private final JLabel progressLabel = new JLabel();
+    private final JLabel subProgressLabel = new JLabel();
+    private final int tasksToDo;
     private int tasksDone;
     private double totalBytes = 0; // Total number of bytes to download
     private double downloadedBytes = 0; // Total number of bytes downloaded
@@ -56,31 +77,64 @@ public class ProgressDialog<T> extends JDialog implements NetworkProgressable {
         super(parent, ModalityType.DOCUMENT_MODAL);
         this.labelText = initLabelText;
         this.closedLogMessage = initClosedLogMessage;
+
+        // the count the bar is measured against. It was never stored, so every dialog counted its
+        // way up towards "N/0 Tasks Done"
+        this.tasksToDo = initMax;
+
         setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
         setIconImage(Utils.getImage("/assets/image/icon.png"));
-        setSize(300, 100);
         setTitle(title);
-        setLocationRelativeTo(parent);
-        setLayout(new BorderLayout());
         setResizable(false);
+
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setOpaque(true);
+        content.setBackground(MD3Color.surface());
+        content.setBorder(MD3Spacing.border(MD3Spacing.XL));
 
         label.setText(initLabelText);
         label.setHorizontalAlignment(SwingConstants.CENTER);
+        label.setFont(MD3Type.font(MD3Type.BODY_LARGE, initLabelText));
+        label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_LARGE);
+        label.setForeground(MD3Color.onSurface());
+        label.setAlignmentX(CENTER_ALIGNMENT);
+        content.add(label);
+        content.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.L)));
 
-        JPanel bottomPanel = new JPanel(new BorderLayout());
-        progressBar = new JProgressBar(0, initMax);
+        progressBar = new MD3LinearProgress(0, initMax);
         if (initMax <= 0) {
             progressBar.setIndeterminate(true);
         }
+        progressBar.setAlignmentX(CENTER_ALIGNMENT);
+        content.add(progressBar);
+
+        styleProgressLabel(progressLabel);
+        progressLabel.setText(" ");
+        content.add(progressLabel);
+
+        subProgressBar = new MD3LinearProgress(0, 10000);
+        subProgressBar.setAlignmentX(CENTER_ALIGNMENT);
+        content.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
+        content.add(subProgressBar);
+
+        styleProgressLabel(subProgressLabel);
+        subProgressLabel.setText(" ");
+        content.add(subProgressLabel);
+
+        setLayout(new BorderLayout());
+        add(content, BorderLayout.CENTER);
+
+        // packed while everything is still showing, so the window has room for the download bar
+        // before it appears - the dialog cannot be resized, and a box layout drops what is hidden
+        pack();
+        setSize(new Dimension(UIScale.scale(WIDTH), getHeight()));
+        setLocationRelativeTo(parent);
+
         progressBar.setVisible(showProgressBar);
-        bottomPanel.add(progressBar, BorderLayout.NORTH);
-
-        subProgressBar = new JProgressBar(0, 10000);
+        progressLabel.setVisible(false);
         subProgressBar.setVisible(false);
-        bottomPanel.add(subProgressBar, BorderLayout.SOUTH);
-
-        add(label, BorderLayout.CENTER);
-        add(bottomPanel, BorderLayout.SOUTH);
+        subProgressLabel.setVisible(false);
 
         addWindowListener(new WindowAdapter() {
             @Override
@@ -97,6 +151,18 @@ public class ProgressDialog<T> extends JDialog implements NetworkProgressable {
                 close(); // Close the dialog
             }
         });
+    }
+
+    /**
+     * The counts that used to be painted inside the bars.
+     */
+    private void styleProgressLabel(JLabel toStyle) {
+        toStyle.setFont(MD3Type.font(MD3Type.LABEL_MEDIUM));
+        toStyle.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.LABEL_MEDIUM);
+        toStyle.setForeground(MD3Color.onSurfaceVariant());
+        toStyle.setHorizontalAlignment(SwingConstants.CENTER);
+        toStyle.setAlignmentX(CENTER_ALIGNMENT);
+        toStyle.setBorder(MD3Spacing.border(MD3Spacing.XS, 0, 0, 0));
     }
 
     public ProgressDialog(String title, int initMax, String initLabelText, String initClosedLogMessage,
@@ -140,7 +206,14 @@ public class ProgressDialog<T> extends JDialog implements NetworkProgressable {
     }
 
     public void doneTask() {
-        this.progressBar.setString(++this.tasksDone + "/" + tasksToDo + " " + GetText.tr("Tasks Done"));
+        this.tasksDone++;
+
+        if (this.tasksToDo > 0) {
+            // built the way it always was, so the existing translation of "Tasks Done" still applies
+            this.progressLabel.setText(this.tasksDone + "/" + this.tasksToDo + " " + GetText.tr("Tasks Done"));
+            this.progressLabel.setVisible(this.progressBar.isVisible());
+        }
+
         this.progressBar.setValue(this.tasksDone);
         this.clearDownloadedBytes();
         this.label.setText(this.labelText);
@@ -190,30 +263,26 @@ public class ProgressDialog<T> extends JDialog implements NetworkProgressable {
         }
 
         if (percent < 0.0) {
-            if (subProgressBar.isStringPainted()) {
-                subProgressBar.setStringPainted(false);
-            }
+            subProgressLabel.setVisible(false);
             subProgressBar.setVisible(false);
         } else {
-            if (!subProgressBar.isStringPainted()) {
-                subProgressBar.setStringPainted(true);
-            }
+            subProgressLabel.setVisible(true);
+
             if (label != null) {
-                subProgressBar.setString(label);
+                subProgressLabel.setText(label);
             }
         }
 
         if (label == null && percent > 0.0) {
-            subProgressBar.setString(String.format(Locale.ENGLISH, "%.2f%%", percent));
+            subProgressLabel.setText(String.format(Locale.ENGLISH, "%.2f%%", percent));
         }
 
         subProgressBar.setValue((int) Math.round(percent * 100.0));
     }
 
     public void setIndeterminate() {
-        if (subProgressBar.isStringPainted()) {
-            subProgressBar.setStringPainted(false);
-        }
+        subProgressLabel.setVisible(false);
+
         if (!subProgressBar.isVisible()) {
             subProgressBar.setVisible(true);
         }
@@ -228,6 +297,7 @@ public class ProgressDialog<T> extends JDialog implements NetworkProgressable {
         this.totalBytes = bytes;
 
         subProgressBar.setVisible(bytes > 0L);
+        subProgressLabel.setVisible(bytes > 0L);
 
         if (bytes > 0L) {
             this.updateProgressBar();
@@ -243,6 +313,7 @@ public class ProgressDialog<T> extends JDialog implements NetworkProgressable {
     public void clearDownloadedBytes() {
         this.downloadedBytes = 0L;
         subProgressBar.setVisible(false);
+        subProgressLabel.setVisible(false);
     }
 
     @Override

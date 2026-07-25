@@ -43,6 +43,8 @@ import com.atlauncher.network.Analytics;
 import com.atlauncher.utils.MojangAPIUtils;
 import com.atlauncher.utils.Utils;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class CreateMinecraftProfileDialog extends JDialog {
     private final Pattern VALID_PROFILE_NAME = Pattern.compile("[a-zA-Z0-9_]{3,16}");
 
@@ -61,7 +63,7 @@ public class CreateMinecraftProfileDialog extends JDialog {
 
         Analytics.sendScreenView("Create Minecraft Profile Dialog");
 
-        setSize(320, 150);
+        setSize(UIScale.scale(320), UIScale.scale(150));
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout());
         setIconImage(Utils.getImage("/assets/image/icon.png"));

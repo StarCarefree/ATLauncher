@@ -73,6 +73,7 @@ import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.InstanceManager;
+import com.atlauncher.managers.NotificationManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -784,7 +785,7 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
                 dialog.addThread(new Thread(() -> {
                     InstanceManager.removeInstance(instance);
                     dialog.close();
-                    App.TOASTER.pop(GetText.tr("Deleted Instance Successfully"));
+                    NotificationManager.show(GetText.tr("Deleted Instance Successfully"));
                 }));
                 dialog.start();
             }
@@ -899,7 +900,7 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
                         if (chooser.showSaveDialog(App.launcher.getParent()) == JFileChooser.APPROVE_OPTION) {
                             Path finalPath = instance.createSupportPack(chooser.getSelectedFile().toPath());
                             if (finalPath != null) {
-                                App.TOASTER.pop(GetText.tr("Support pack created"));
+                                NotificationManager.show(GetText.tr("Support pack created"));
                                 OS.openFileExplorer(finalPath);
                             }
                         }

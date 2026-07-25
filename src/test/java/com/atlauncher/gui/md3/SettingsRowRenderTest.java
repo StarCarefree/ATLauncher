@@ -33,6 +33,7 @@ import java.io.File;
 import javax.imageio.ImageIO;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
@@ -67,12 +68,16 @@ public class SettingsRowRenderTest {
 
     /** A section built by hand, so the test does not need a view model or the network. */
     private static final class Section extends AbstractSettingsTab {
+        JComponent briefRow;
+        JComponent verboseRow;
+        JComponent unexplainedRow;
+
         @Override
         protected void onShow() {
             addSection("Appearance");
-            addRow("Theme", "This sets the theme that the launcher will use.", new JComboBox<String>());
-            addRow("Enable Tray Menu", LONG_HELP, new JCheckBox());
-            addRow("Keep Launcher Open", null, new JCheckBox());
+            briefRow = addRow("Theme", "This sets the theme that the launcher will use.", new JComboBox<String>());
+            verboseRow = addRow("Enable Tray Menu", LONG_HELP, new JCheckBox());
+            unexplainedRow = addRow("Keep Launcher Open", null, new JCheckBox());
             addWideRow("Java Parameters", "Extra Java command line paramaters can be added here.",
                     new JTextField(20));
         }
@@ -140,11 +145,6 @@ public class SettingsRowRenderTest {
         return section;
     }
 
-    /** The rows, in the order they were added. */
-    private static Container rowsOf(Section section) {
-        return (Container) section.getComponent(0);
-    }
-
     private static JLabel supportingOf(Container row) {
         JLabel found = null;
 
@@ -183,11 +183,9 @@ public class SettingsRowRenderTest {
     @Test
     public void testALongDescriptionDoesNotTakeOverTheRow() {
         Section section = buildSection();
-        Container rows = rowsOf(section);
 
-        // 0 is the section heading, so the rows follow it
-        Component brief = rows.getComponent(1);
-        Component verbose = rows.getComponent(2);
+        Component brief = section.briefRow;
+        Component verbose = section.verboseRow;
 
         assertTrue(verbose.getHeight() > 0, "the row was never laid out");
         assertTrue(verbose.getHeight() <= brief.getHeight() * 2,
@@ -198,7 +196,7 @@ public class SettingsRowRenderTest {
     @Test
     public void testTheWholeDescriptionStaysReachable() {
         Section section = buildSection();
-        JLabel supporting = supportingOf((Container) rowsOf(section).getComponent(2));
+        JLabel supporting = supportingOf(section.verboseRow);
 
         assertNotNull(supporting, "the row lost its description");
         assertTrue(supporting.getText().length() < LONG_HELP.length(),
@@ -210,7 +208,7 @@ public class SettingsRowRenderTest {
     @Test
     public void testASettingWithNothingToExplainGetsNoDescription() {
         Section section = buildSection();
-        Container row = (Container) rowsOf(section).getComponent(3);
+        Container row = section.unexplainedRow;
 
         JPanel text = null;
 

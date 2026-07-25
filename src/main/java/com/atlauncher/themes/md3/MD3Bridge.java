@@ -466,7 +466,10 @@ public final class MD3Bridge {
         defaults.put("News.headerColor", primary);
         defaults.put("News.linkColor", primary);
 
-        defaults.put("Mods.modSelectionColor", secondaryContainer);
+        // the background of the mod lists, not a selection highlight, whatever the name says - so a
+        // container tone rather than the secondary container, which as a whole panel is a wall of
+        // colour behind a list of names
+        defaults.put("Mods.modSelectionColor", scheme.get(MD3Color.SURFACE_CONTAINER_LOW));
         defaults.put("ModsJCheckBox.hoverBorderColor", primary);
         defaults.put("SMButton.hoverBorderColor", primary);
         defaults.put("HoverLineBorder.borderColor", primary);
@@ -474,9 +477,6 @@ public final class MD3Bridge {
         defaults.put("SocialIcon.backgroundColor", scheme.get(MD3Color.SURFACE_CONTAINER_HIGH));
         defaults.put("ToolPanel.borderColor", outlineVariant);
 
-        defaults.put("Toaster.bgColor", scheme.get(MD3Color.INVERSE_SURFACE));
-        defaults.put("Toaster.msgColor", scheme.get(MD3Color.INVERSE_ON_SURFACE));
-        defaults.put("Toaster.borderColor", scheme.get(MD3Color.INVERSE_SURFACE));
 
         // The base theme mapped everything onto its own nine-step ramps. Keeping the ramp anchors
         // pointed at something sensible means any straggler still reading them does not fall back

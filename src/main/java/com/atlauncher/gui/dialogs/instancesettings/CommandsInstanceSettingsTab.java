@@ -18,28 +18,24 @@
 package com.atlauncher.gui.dialogs.instancesettings;
 
 import java.awt.Dimension;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.event.ItemEvent;
 
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
 import javax.swing.JComboBox;
-import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
-import javax.swing.border.Border;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
-import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.Instance;
-import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.container.MD3SettingsList;
 import com.atlauncher.utils.ComboItem;
-import com.atlauncher.utils.Utils;
 
-public class CommandsInstanceSettingsTab extends JPanel {
+public class CommandsInstanceSettingsTab extends MD3SettingsList {
+    /** A command line is long, so its field spans the row rather than sitting beside the label. */
+    private static final int COMMAND_WIDTH = 516;
+    private static final int COMMAND_HEIGHT = 24;
+
     private final Instance instance;
 
     private final JComboBox<ComboItem<Boolean>> enableCommands;
@@ -47,32 +43,11 @@ public class CommandsInstanceSettingsTab extends JPanel {
     private final JTextField postExitCommand;
     private final JTextField wrapperCommand;
 
-    final ImageIcon HELP_ICON = Utils.getIconImage(App.THEME.getIconPath("question"));
-    final ImageIcon ERROR_ICON = Utils.getIconImage(App.THEME.getIconPath("error"));
-    final ImageIcon WARNING_ICON = Utils.getIconImage(App.THEME.getIconPath("warning"));
-
-    final Border RESTART_BORDER = BorderFactory.createEmptyBorder(0, 0, 0, 5);
-
-    final GridBagConstraints gbc = new GridBagConstraints();
-
     public CommandsInstanceSettingsTab(Instance instance) {
         this.instance = instance;
 
-        setLayout(new GridBagLayout());
-
         // Enable commands
 
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover enableCommandsLabel = new JLabelWithHover(GetText.tr("Enable commands") + "?", HELP_ICON,
-                GetText.tr("This allows you to turn launch/exit commands on or off."));
-        add(enableCommandsLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         enableCommands = new JComboBox<>();
         enableCommands.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         enableCommands.addItem(new ComboItem<>(true, GetText.tr("Yes")));
@@ -86,79 +61,49 @@ public class CommandsInstanceSettingsTab extends JPanel {
             enableCommands.setSelectedIndex(2);
         }
 
-        add(enableCommands, gbc);
+        addRow(GetText.tr("Enable commands"),
+                GetText.tr("This allows you to turn launch/exit commands on or off."), enableCommands);
 
         // Pre-launch command
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover preLaunchCommandLabel = new JLabelWithHover(GetText.tr("Pre-launch command") + ":", HELP_ICON,
-                GetText.tr(
-                        "This command will be run before the instance launches. The game will not run until the command has finished."));
-        add(preLaunchCommandLabel, gbc);
 
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         preLaunchCommand = new JTextField(App.settings.preLaunchCommand, 32);
-        preLaunchCommand.setPreferredSize(new Dimension(516, 24));
+        preLaunchCommand.setPreferredSize(new Dimension(COMMAND_WIDTH, COMMAND_HEIGHT));
 
         if (this.instance.launcher.preLaunchCommand != null) {
             preLaunchCommand.setText(this.instance.launcher.preLaunchCommand);
         }
 
-        add(preLaunchCommand, gbc);
+        addWideRow(GetText.tr("Pre-launch command"), GetText.tr(
+                "This command will be run before the instance launches. The game will not run until the command has finished."),
+                preLaunchCommand);
 
         // Post-exit command
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover postExitCommandLabel = new JLabelWithHover(GetText.tr("Post-exit command") + ":", HELP_ICON,
-                GetText.tr(
-                        "This command will be run after the instance exits. It will run even if the instance is killed or if it crashes and exits."));
-        add(postExitCommandLabel, gbc);
 
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         postExitCommand = new JTextField(App.settings.postExitCommand, 32);
-        postExitCommand.setPreferredSize(new Dimension(516, 24));
+        postExitCommand.setPreferredSize(new Dimension(COMMAND_WIDTH, COMMAND_HEIGHT));
 
         if (this.instance.launcher.postExitCommand != null) {
             postExitCommand.setText(this.instance.launcher.postExitCommand);
         }
 
-        add(postExitCommand, gbc);
+        addWideRow(GetText.tr("Post-exit command"), GetText.tr(
+                "This command will be run after the instance exits. It will run even if the instance is killed or if it crashes and exits."),
+                postExitCommand);
 
         // wrapper command
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover wrapperCommandLabel = new JLabelWithHover(GetText.tr("Wrapper command") + ":", HELP_ICON,
-                GetText.tr(
-                        "Wrapper command allow launcher using an extra wrapper program (like 'prime-run' on Linux)\nUse %command% to substitute launch command\n%\"command\"% to substitute launch as a whole string (like 'bash -c' on Linux)"));
-        add(wrapperCommandLabel, gbc);
 
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         wrapperCommand = new JTextField(App.settings.wrapperCommand, 32);
-        wrapperCommand.setPreferredSize(new Dimension(516, 24));
+        wrapperCommand.setPreferredSize(new Dimension(COMMAND_WIDTH, COMMAND_HEIGHT));
 
         if (this.instance.launcher.wrapperCommand != null) {
             wrapperCommand.setText(this.instance.launcher.wrapperCommand);
         }
 
-        add(wrapperCommand, gbc);
+        addWideRow(GetText.tr("Wrapper command"), GetText.tr(
+                "Wrapper command allow launcher using an extra wrapper program (like 'prime-run' on Linux)\nUse %command% to substitute launch command\n%\"command\"% to substitute launch as a whole string (like 'bash -c' on Linux)"),
+                wrapperCommand);
 
         // Parameter Information
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = GridBagConstraints.REMAINDER;
-        gbc.anchor = GridBagConstraints.CENTER;
 
         JTextPane parameterInformation = new JTextPane();
         parameterInformation
@@ -174,8 +119,9 @@ public class CommandsInstanceSettingsTab extends JPanel {
                         + System.lineSeparator() + "$INST_JAVA_ARGS: "
                         + GetText.tr("The JVM parameters used for launch") + System.lineSeparator());
         parameterInformation.setEditable(false);
+        parameterInformation.setOpaque(false);
 
-        add(parameterInformation, gbc);
+        addWideRow(GetText.tr("Variables"), null, parameterInformation);
 
         enableCommands.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {

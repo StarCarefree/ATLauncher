@@ -140,6 +140,18 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
                 "This will disable custom fonts used by themes. If your system has issues with font display not looking right, you can disable this to switch to a default compatible font."),
             disableCustomFonts);
 
+        // Reduce animations
+
+        JCheckBox reduceAnimations = new JCheckBox();
+        reduceAnimations.addItemListener(itemEvent -> {
+            viewModel.setReduceAnimations(itemEvent.getStateChange() == ItemEvent.SELECTED);
+        });
+        addDisposable(viewModel.getReduceAnimations().subscribe(reduceAnimations::setSelected));
+
+        addRow(GetText.tr("Reduce Animations?"), GetText.tr(
+                "This turns off the launcher's animations, so views change instantly rather than sliding or fading. Turn this on if motion makes you uncomfortable, or if the launcher feels sluggish."),
+            reduceAnimations);
+
         addSection(GetText.tr("Startup"));
 
         // Selected tab on startup

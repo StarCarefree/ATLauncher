@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package com.atlauncher.gui.tabs.packbrowser;
+package com.atlauncher.gui.md3.input;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -37,7 +37,6 @@ import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 
-import com.atlauncher.gui.md3.input.MD3Chip;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
@@ -47,20 +46,23 @@ import com.atlauncher.utils.ComboItem;
  * A filter chip backed by a list of values, showing the chosen one on its face.
  *
  * <p>
- * What the pack browser's combo boxes were. A chip says what is filtering the grid without being
- * opened - "1.21.4" rather than a box the user has to look inside - and the row of them collapses
- * three labelled controls into three tokens.
+ * What a labelled combo box was. A chip says what is filtering the grid without being opened -
+ * "1.21.4" rather than a box the user has to look inside - and a row of them collapses several
+ * labelled controls into as many tokens. The pack browser and the mod browser are both built from
+ * these.
  *
  * <p>
- * The values arrive with the platform and are replaced on every switch, so the menu is built each
- * time it opens. It is a list rather than a stack of menu items because Swing menus do not scroll,
- * and Minecraft has over eight hundred versions.
+ * The values usually arrive with the platform and are replaced on every switch, so the menu is
+ * built each time it opens. It is a list rather than a stack of menu items because Swing menus do
+ * not scroll, and Minecraft has over eight hundred versions.
+ *
+ * @param <T> what the chosen option stands for - a version string, a category id, a platform
  */
-final class PacksFilterChip {
+public final class MD3FilterChip<T> {
     private static final int VISIBLE_ROWS = 14;
 
     private final MD3Chip chip;
-    private final List<ComboItem<String>> options = new ArrayList<>();
+    private final List<ComboItem<T>> options = new ArrayList<>();
     private final Runnable onChange;
     private final boolean narrows;
 
@@ -77,7 +79,7 @@ final class PacksFilterChip {
      *                 themselves are replaced - a platform switch rebuilds all three of these and
      *                 would otherwise reload the grid once per chip
      */
-    PacksFilterChip(String name, boolean narrows, Runnable onChange) {
+    public MD3FilterChip(String name, boolean narrows, Runnable onChange) {
         this.name = name;
         this.narrows = narrows;
         this.onChange = onChange;
@@ -87,14 +89,14 @@ final class PacksFilterChip {
         refresh();
     }
 
-    MD3Chip getChip() {
+    public MD3Chip getChip() {
         return chip;
     }
 
     /**
      * Renames the facet, for when the language changes.
      */
-    void setName(String name) {
+    public void setName(String name) {
         this.name = name;
 
         refresh();
@@ -104,7 +106,7 @@ final class PacksFilterChip {
      * Replaces the values. The first becomes the selection, which for each of these is the
      * unfiltered "All Versions" or "All Categories".
      */
-    void setOptions(List<ComboItem<String>> values) {
+    public void setOptions(List<ComboItem<T>> values) {
         options.clear();
         options.addAll(values);
         selected = options.isEmpty() ? -1 : 0;
@@ -112,7 +114,7 @@ final class PacksFilterChip {
         refresh();
     }
 
-    void addOption(ComboItem<String> option) {
+    public void addOption(ComboItem<T> option) {
         options.add(option);
 
         if (selected < 0) {
@@ -122,26 +124,48 @@ final class PacksFilterChip {
         refresh();
     }
 
-    void clear() {
+    public void clear() {
         options.clear();
         selected = -1;
 
         refresh();
     }
 
-    boolean isEmpty() {
+    public boolean isEmpty() {
         return options.isEmpty();
     }
 
-    String getValue() {
+    public T getValue() {
         return selected < 0 || selected >= options.size() ? null : options.get(selected).getValue();
     }
 
-    void setVisible(boolean visible) {
+    /**
+     * Picks the option standing for {@code value}, quietly - this is for putting a selection back
+     * after the values have been rebuilt, which is not the user choosing anything.
+     *
+     * @return whether an option for it was found; false leaves the selection where it was
+     */
+    public boolean selectValue(T value) {
+        for (int i = 0; i < options.size(); i++) {
+            T candidate = options.get(i).getValue();
+
+            if (candidate == null ? value == null : candidate.equals(value)) {
+                selected = i;
+
+                refresh();
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void setVisible(boolean visible) {
         chip.setVisible(visible);
     }
 
-    void setEnabled(boolean enabled) {
+    public void setEnabled(boolean enabled) {
         chip.setEnabled(enabled);
     }
 
@@ -166,7 +190,7 @@ final class PacksFilterChip {
      * chip keeps its name in front of the value.
      */
     private void refresh() {
-        ComboItem<String> option = selected < 0 || selected >= options.size() ? null : options.get(selected);
+        ComboItem<T> option = selected < 0 || selected >= options.size() ? null : options.get(selected);
 
         if (option == null) {
             chip.setText(name);
@@ -183,14 +207,14 @@ final class PacksFilterChip {
             return null;
         }
 
-        DefaultListModel<ComboItem<String>> model = new DefaultListModel<>();
+        DefaultListModel<ComboItem<T>> model = new DefaultListModel<>();
 
-        for (ComboItem<String> option : options) {
+        for (ComboItem<T> option : options) {
             model.addElement(option);
         }
 
         final JPopupMenu menu = new JPopupMenu();
-        final JList<ComboItem<String>> list = new JList<>(model);
+        final JList<ComboItem<T>> list = new JList<>(model);
 
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         list.setSelectedIndex(Math.max(0, selected));

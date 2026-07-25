@@ -334,6 +334,14 @@ public class MD3NavigationRail extends JPanel {
                 g2.setColor(active ? MD3Color.onSurface() : MD3Color.onSurfaceVariant());
                 g2.drawString(label, (getWidth() - textWidth) / 2,
                         indicatorY + indicatorHeight + UIScale.scale(MD3Spacing.XS) + metrics.getAscent());
+
+                // the rail is one tab stop and the arrow keys move the selection within it, so the
+                // ring goes on the destination that is selected - the same thing MD3Tabs does.
+                // Without it, tabbing into the launcher's primary navigation showed nothing at all
+                if (MD3NavigationRail.this.isFocusOwner() && active) {
+                    MD3Paint.focusRing(g2, indicatorX, indicatorY, indicatorWidth, indicatorHeight,
+                            MD3Shape.NAV_INDICATOR);
+                }
             } finally {
                 g2.dispose();
             }

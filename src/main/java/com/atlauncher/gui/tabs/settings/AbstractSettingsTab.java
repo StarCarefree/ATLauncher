@@ -20,71 +20,39 @@ package com.atlauncher.gui.tabs.settings;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.FontMetrics;
 import java.awt.Rectangle;
 
 import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Scrollable;
-import javax.swing.SwingConstants;
 import javax.swing.border.Border;
 
 import com.atlauncher.App;
-import com.atlauncher.gui.md3.MD3Text;
+import com.atlauncher.gui.md3.container.MD3SettingsList;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.gui.tabs.Tab;
-import com.atlauncher.themes.md3.token.MD3Color;
-import com.atlauncher.themes.md3.token.MD3Spacing;
-import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.Utils;
-import com.formdev.flatlaf.util.UIScale;
 
 /**
  * A section of the settings, laid out as a list of rows.
  *
  * <p>
- * Every setting used to be two cells of a {@link java.awt.GridBagLayout}: a right-aligned
- * "{@code Something?}" carrying a help icon, and the control beside it. That put the labels in a
- * ragged column down the middle of the window with the explanation of each hidden in a tooltip on a
- * 16px glyph - which meant the answer to "what does this do" was only available to someone who
- * already suspected there was one.
- *
- * <p>
- * Now each setting is a full-width row: what it is called, what it does underneath, and the control
- * on the trailing edge. Subclasses call {@link #addRow} and stop dealing with constraints entirely.
+ * The rows themselves are {@link MD3SettingsList}'s, which the instance settings dialog builds from
+ * too. This adds what a section of the settings page needs on top of them: the tab lifecycle, and
+ * the scrolling behaviour of the pane each section sits in.
  */
 public abstract class AbstractSettingsTab extends HierarchyPanel implements Tab, Scrollable {
     final Border RESTART_BORDER = BorderFactory.createEmptyBorder(0, 0, 0, 5);
 
-    /**
-     * How much of a row the description may take before the rest goes to the tooltip. Some of these
-     * run to a paragraph, and a settings page where every row is four lines tall is one nobody can
-     * scan.
-     */
-    private static final int SUPPORTING_LINES = 2;
-
-    /** Room kept for the control, so a long description cannot squeeze it out. */
-    private static final int CONTROL_WIDTH = 320;
-
-    /** What a description is wrapped against before the row has been given a real width. */
-    private static final int NOMINAL_TEXT_WIDTH = 520;
-
-    private final JPanel rows = new JPanel();
+    private final MD3SettingsList settings = new MD3SettingsList();
 
     public AbstractSettingsTab() {
         setLayout(new BorderLayout());
         setOpaque(false);
 
-        rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
-        rows.setOpaque(false);
-
-        add(rows, BorderLayout.NORTH);
+        add(settings, BorderLayout.CENTER);
     }
 
     @Override
@@ -94,21 +62,17 @@ public abstract class AbstractSettingsTab extends HierarchyPanel implements Tab,
 
     @Override
     public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) {
-        return UIScale.scale(MD3Spacing.L);
+        return settings.getScrollableUnitIncrement(visible, orientation, direction);
     }
 
     @Override
     public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
-        return orientation == SwingConstants.VERTICAL ? visible.height : visible.width;
+        return settings.getScrollableBlockIncrement(visible, orientation, direction);
     }
 
     /**
-     * Takes the width of the scroll pane it is in rather than of its widest row.
-     *
-     * <p>
-     * Without this a section is as wide as the longest thing in it - a Java path field and its two
-     * buttons - and every row is laid out against that width, which puts the controls of the
-     * shorter ones past the right edge of a window that cannot scroll sideways.
+     * Takes the width of the scroll pane it is in rather than of its widest row. See
+     * {@link MD3SettingsList#getScrollableTracksViewportWidth()} for why that matters.
      */
     @Override
     public boolean getScrollableTracksViewportWidth() {
@@ -142,175 +106,35 @@ public abstract class AbstractSettingsTab extends HierarchyPanel implements Tab,
      */
     @Override
     public void removeAll() {
-        rows.removeAll();
+        settings.clear();
     }
 
     /**
      * A heading over the rows that follow, for a section with more than one idea in it.
      */
-    protected void addSection(String title) {
-        JLabel label = new JLabel(title);
-        label.setFont(MD3Type.font(MD3Type.TITLE_SMALL, title));
-        label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
-        label.setForeground(MD3Color.primary());
-        label.setAlignmentX(LEFT_ALIGNMENT);
-        label.setBorder(MD3Spacing.border(rows.getComponentCount() == 0 ? MD3Spacing.S : MD3Spacing.XL,
-                MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
-
-        rows.add(label);
+    protected JComponent addSection(String title) {
+        return settings.addSection(title);
     }
 
     /**
-     * A setting.
-     *
-     * @param label   what it is called
-     * @param help    what it does, in plain text - not the HTML the tooltips used to be built from,
-     *                since this is now laid out as text rather than handed to an HTML renderer. May
-     *                be null for a setting whose name is the whole story
-     * @param control the control, or a panel of them for a setting that takes more than one
+     * A setting. See {@link MD3SettingsList#addRow}.
      */
-    protected void addRow(String label, String help, JComponent control) {
-        rows.add(new SettingsRow(label, help, control));
+    protected MD3SettingsList.Row addRow(String label, String help, JComponent control) {
+        return settings.addRow(label, help, control);
     }
 
     /**
      * A row whose control spans the width instead of sitting on the trailing edge - a table, a text
      * area, anything that would be unusable at a control's width.
      */
-    protected void addWideRow(String label, String help, JComponent control) {
-        rows.add(new SettingsRow(label, help, control, true));
+    protected MD3SettingsList.Row addWideRow(String label, String help, JComponent control) {
+        return settings.addWideRow(label, help, control);
     }
 
     /**
      * Puts controls in a row, for the settings that take a field and a button to go with it.
      */
     protected static JPanel group(Component... components) {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(MD3Spacing.S), 0));
-        panel.setOpaque(false);
-
-        for (Component component : components) {
-            panel.add(component);
-        }
-
-        return panel;
-    }
-
-    /**
-     * One setting: its name, what it does, and the control.
-     */
-    private static final class SettingsRow extends JPanel {
-        private final JLabel supporting;
-        private final String help;
-        private final boolean wide;
-
-        /** Scaled; what the description was last wrapped against. */
-        private int supportingWidth = -1;
-
-        SettingsRow(String label, String help, JComponent control, boolean wide) {
-            super(new BorderLayout(UIScale.scale(MD3Spacing.L), 0));
-
-            this.help = help;
-            this.wide = wide;
-
-            setOpaque(false);
-            setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
-            setAlignmentX(LEFT_ALIGNMENT);
-
-            JPanel text = new JPanel();
-            text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
-            text.setOpaque(false);
-
-            JLabel headline = new JLabel(label);
-            headline.setFont(MD3Type.font(MD3Type.BODY_LARGE, label));
-            headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_LARGE);
-            headline.setForeground(MD3Color.onSurface());
-            headline.setAlignmentX(LEFT_ALIGNMENT);
-            text.add(headline);
-
-            supporting = new JLabel();
-            supporting.setFont(MD3Type.font(MD3Type.BODY_SMALL, help));
-            supporting.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
-            supporting.setForeground(MD3Color.onSurfaceVariant());
-            supporting.setAlignmentX(LEFT_ALIGNMENT);
-
-            if (help != null && !help.isEmpty()) {
-                // the whole explanation stays reachable even when it is longer than the row shows
-                supporting.setToolTipText(help);
-                headline.setToolTipText(help);
-
-                // wrapped once against a nominal width so the row has its text - and so asks for
-                // the right height - before anything has told it how wide it really is. doLayout
-                // re-wraps it to the width it actually gets
-                wrapSupporting(UIScale.scale(NOMINAL_TEXT_WIDTH));
-
-                text.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.XS)));
-                text.add(supporting);
-            }
-
-            add(text, BorderLayout.CENTER);
-
-            // settings carry a lot of translated text the theme's face may have no glyphs for -
-            // language names most of all, since those are shown in their own language
-            MD3Type.ensureCanDisplay(control);
-
-            control.setAlignmentX(LEFT_ALIGNMENT);
-
-            if (wide) {
-                text.setBorder(MD3Spacing.border(0, 0, MD3Spacing.S, 0));
-                add(control, BorderLayout.SOUTH);
-            } else {
-                add(trailing(control), BorderLayout.EAST);
-            }
-        }
-
-        SettingsRow(String label, String help, JComponent control) {
-            this(label, help, control, false);
-        }
-
-        /**
-         * Controls line up on the trailing edge, so the eye runs down one column of them rather
-         * than following each label to wherever its control happened to start.
-         */
-        private static JComponent trailing(JComponent control) {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-            panel.setOpaque(false);
-            panel.add(control);
-
-            return panel;
-        }
-
-        @Override
-        public Dimension getMaximumSize() {
-            Dimension size = getPreferredSize();
-            size.width = Integer.MAX_VALUE;
-
-            return size;
-        }
-
-        private void wrapSupporting(int width) {
-            supportingWidth = width;
-
-            FontMetrics metrics = supporting.getFontMetrics(supporting.getFont());
-            supporting.setText(MD3Text.wrapToLines(metrics, help, width, SUPPORTING_LINES));
-        }
-
-        /**
-         * The description is wrapped to whatever is left after the control has taken what it needs,
-         * so it re-flows with the window rather than staying at the width it was guessed at.
-         */
-        @Override
-        public void doLayout() {
-            if (help != null && !help.isEmpty()) {
-                int available = getWidth() - getInsets().left - getInsets().right
-                        - (wide ? 0 : UIScale.scale(CONTROL_WIDTH));
-
-                if (available > 0 && available != supportingWidth) {
-                    wrapSupporting(available);
-                    revalidate();
-                }
-            }
-
-            super.doLayout();
-        }
+        return MD3SettingsList.group(components);
     }
 }

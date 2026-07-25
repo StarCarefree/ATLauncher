@@ -82,6 +82,7 @@ public class Settings {
     public boolean enableFeralGamemode = OS.isLinux() && Utils.executableInPath("gamemoderun");
     private boolean disableAddModRestrictions = false;
     public boolean disableCustomFonts = false;
+    public boolean reduceAnimations = false;
     public boolean useNativeFilePicker = OS.isMac();
     public boolean useRecycleBin = true;
     public boolean enableArmSupport = true;

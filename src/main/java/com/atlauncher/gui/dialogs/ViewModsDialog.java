@@ -42,6 +42,8 @@ import com.atlauncher.data.json.Mod;
 import com.atlauncher.gui.card.ModCard;
 import com.atlauncher.network.Analytics;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public final class ViewModsDialog extends JDialog {
     private final JPanel contentPanel = new JPanel(new GridBagLayout());
     private final JTextField searchField = new JTextField(16);
@@ -53,8 +55,8 @@ public final class ViewModsDialog extends JDialog {
 
         Analytics.sendScreenView("View Mods Dialog");
 
-        this.setPreferredSize(new Dimension(550, 450));
-        this.setMinimumSize(new Dimension(550, 450));
+        this.setPreferredSize(UIScale.scale(new Dimension(550, 450)));
+        this.setMinimumSize(UIScale.scale(new Dimension(550, 450)));
         this.setResizable(true);
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 

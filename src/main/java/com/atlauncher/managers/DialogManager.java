@@ -22,18 +22,29 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import javax.swing.Icon;
-import javax.swing.JDialog;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
+import com.atlauncher.gui.md3.feedback.MD3Dialog;
+import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.input.MD3TextField;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Type;
 
 public final class DialogManager {
+    /** Wide enough for a pack name or a URL, which is what these ask for. */
+    private static final int INPUT_COLUMNS = 28;
+
     public static final int OPTION_TYPE = 0;
     public static final int CONFIRM_TYPE = 1;
     public static final int OK_TYPE = 1;
@@ -59,8 +70,6 @@ public final class DialogManager {
     public String title;
     public Object content;
     public List<String> options = new ArrayList<>();
-    public Icon icon = null;
-    public int lookAndFeel = DialogManager.DEFAULT_OPTION;
     public String defaultOption = null;
     public int type = DialogManager.QUESTION;
 
@@ -121,11 +130,6 @@ public final class DialogManager {
         return this;
     }
 
-    public DialogManager setLookAndFeel(int lookAndFeel) {
-        this.lookAndFeel = lookAndFeel;
-        return this;
-    }
-
     public DialogManager setTitle(String title) {
         this.title = title;
         return this;
@@ -143,11 +147,6 @@ public final class DialogManager {
 
     public DialogManager setDefaultOption(String defaultOption) {
         this.defaultOption = defaultOption;
-        return this;
-    }
-
-    public DialogManager setIcon(Icon icon) {
-        this.icon = icon;
         return this;
     }
 
@@ -185,40 +184,130 @@ public final class DialogManager {
         return JOptionPane.getRootFrame();
     }
 
+    /**
+     * The order the actions are shown in, which is not the order they were added in.
+     *
+     * <p>
+     * Material puts the action that proceeds on the trailing edge and everything that backs out to
+     * its left, whereas these are declared with the default first - {@code yesNoDialog} adds Yes
+     * then No. So the default is moved last and the rest keep their relative order, and the array
+     * maps each position back to the index the caller is expecting to be told.
+     */
+    private int[] displayOrder() {
+        int[] order = new int[this.options.size()];
+        int at = 0;
+
+        for (int i = 0; i < this.options.size(); i++) {
+            if (!this.options.get(i).equals(this.defaultOption)) {
+                order[at++] = i;
+            }
+        }
+
+        for (int i = 0; i < this.options.size(); i++) {
+            if (this.options.get(i).equals(this.defaultOption)) {
+                order[at++] = i;
+            }
+        }
+
+        return order;
+    }
+
+    /**
+     * A hero icon for the dialogs that need the weight of one. A question is routine and an
+     * announcement is not an alarm, so neither gets one.
+     */
+    private MD3Icon.Painter icon() {
+        if (this.type == ERROR) {
+            return MD3Icons.ERROR;
+        }
+
+        if (this.type == WARNING) {
+            return MD3Icons.WARNING;
+        }
+
+        return null;
+    }
+
+    /**
+     * Applies whatever the caller passed as content.
+     *
+     * <p>
+     * Most of these are strings the caller has already built into HTML, usually through
+     * {@link com.atlauncher.builders.HTMLBuilder}. Those go in as their own component rather than as
+     * supporting text, which escapes what it is given - it has no way to know whether a string is
+     * markup or a sentence that happens to contain a bracket.
+     */
+    private void applyContent(MD3Dialog.Builder builder) {
+        if (this.content == null) {
+            return;
+        }
+
+        if (this.content instanceof JComponent) {
+            builder.content((JComponent) this.content);
+
+            return;
+        }
+
+        String text = String.valueOf(this.content);
+
+        if (text.trim().toLowerCase(Locale.ENGLISH).startsWith("<html")) {
+            JLabel label = new JLabel(text);
+            label.setFont(MD3Type.font(MD3Type.BODY_MEDIUM, text));
+            label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
+            label.setForeground(MD3Color.onSurfaceVariant());
+
+            builder.content(label);
+
+            return;
+        }
+
+        builder.supportingText(text);
+    }
+
+    /**
+     * Builds the dialog, ready to be shown.
+     *
+     * <p>
+     * The title becomes the headline as well as the window title: a Material dialog is undecorated
+     * wherever the platform can round its corners, and a window title nobody can see is no title.
+     */
+    private MD3Dialog buildDialog(int[] order) {
+        MD3Dialog.Builder builder = MD3Dialog.builder(this.getParent())
+                .title(this.title == null ? "" : this.title)
+                .headline(this.title)
+                .icon(icon());
+
+        applyContent(builder);
+
+        for (int i = 0; i < order.length; i++) {
+            String option = this.options.get(order[i]);
+
+            if (i == order.length - 1) {
+                builder.confirm(option);
+            } else {
+                builder.dismiss(option);
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Translates what the dialog reported back into the index of the option the caller added.
+     */
+    private int resultOf(int chosen, int[] order) {
+        if (chosen < 0 || chosen >= order.length) {
+            return CLOSED_OPTION;
+        }
+
+        return order[chosen];
+    }
+
     public int show() {
         try {
-            Object[] options = this.getOptions();
+            int[] order = displayOrder();
 
-            JOptionPane jop = new JOptionPane(this.content, this.type, this.lookAndFeel, this.icon, options,
-                    this.defaultOption);
-
-            jop.setInitialValue(this.defaultOption);
-            jop.setComponentOrientation(this.getParent().getComponentOrientation());
-
-            JDialog dialog = jop.createDialog(this.getParent(), this.title);
-            dialog.setAlwaysOnTop(true);
-            dialog.setVisible(true);
-
-            Object selectedValue = jop.getValue();
-
-            if (selectedValue == null) {
-                return CLOSED_OPTION;
-            }
-
-            if (options == null) {
-                if (selectedValue instanceof Integer) {
-                    return ((Integer) selectedValue).intValue();
-                }
-                return CLOSED_OPTION;
-            }
-
-            for (int counter = 0, maxCounter = options.length; counter < maxCounter; counter++) {
-                if (options[counter].equals(selectedValue)) {
-                    return counter;
-                }
-            }
-
-            return CLOSED_OPTION;
+            return resultOf(buildDialog(order).showAndWait(), order);
         } catch (Exception e) {
             LogManager.logStackTrace(e, false);
         }
@@ -234,18 +323,16 @@ public final class DialogManager {
         return showWithFileMonitoring(size, returnValue, firstFile);
     }
 
+    /**
+     * Shows the dialog, and answers it on the user's behalf if the file it is waiting for turns up.
+     */
     public int showWithFileMonitoring(int size, int returnValue, File... files) {
         try {
-            Object[] options = this.getOptions();
+            int[] order = displayOrder();
+            MD3Dialog dialog = buildDialog(order);
 
-            JOptionPane jop = new JOptionPane(this.content, this.type, this.lookAndFeel, this.icon, options,
-                    this.defaultOption);
-
-            jop.setInitialValue(this.defaultOption);
-            jop.setComponentOrientation(this.getParent().getComponentOrientation());
-
-            JDialog dialog = jop.createDialog(this.getParent(), this.title);
             List<File> filesForMonitoring = Arrays.asList(files);
+            int chooses = position(order, returnValue);
 
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
@@ -253,37 +340,17 @@ public final class DialogManager {
                 public void run() {
                     if (filesForMonitoring.stream().anyMatch(f -> f.exists() && f.length() == size)) {
                         timer.cancel();
-                        jop.setValue(options[returnValue]);
-                        dialog.dispose();
+                        SwingUtilities.invokeLater(() -> dialog.choose(chooses));
                     }
                 }
             }, 1000, 1000);
 
-            dialog.setVisible(true);
-
-            Object selectedValue = jop.getValue();
+            int result = resultOf(dialog.showAndWait(), order);
 
             // make sure this timer gets killed
             timer.cancel();
 
-            if (selectedValue == null) {
-                return CLOSED_OPTION;
-            }
-
-            if (options == null) {
-                if (selectedValue instanceof Integer) {
-                    return (Integer) selectedValue;
-                }
-                return CLOSED_OPTION;
-            }
-
-            for (int counter = 0, maxCounter = options.length; counter < maxCounter; counter++) {
-                if (options[counter].equals(selectedValue)) {
-                    return counter;
-                }
-            }
-
-            return CLOSED_OPTION;
+            return result;
         } catch (Exception e) {
             LogManager.logStackTrace(e, false);
         }
@@ -291,14 +358,51 @@ public final class DialogManager {
         return -1;
     }
 
+    /**
+     * Where an option ended up once the actions were put in Material's order.
+     */
+    private static int position(int[] order, int option) {
+        for (int i = 0; i < order.length; i++) {
+            if (order[i] == option) {
+                return i;
+            }
+        }
+
+        return order.length - 1;
+    }
+
     public String showInput() {
         return showInput("");
     }
 
+    /**
+     * Asks for a line of text.
+     *
+     * @return what was typed, or null if the dialog was cancelled or dismissed - as
+     *         {@code JOptionPane} did, so callers that null-check keep working
+     */
     public String showInput(String defaultValue) {
         try {
-            return (String) JOptionPane.showInputDialog(this.getParent(), this.content, this.title, this.type,
-                    this.icon, null, defaultValue);
+            MD3TextField field = new MD3TextField(this.content == null ? null : String.valueOf(this.content));
+            field.setText(defaultValue);
+            field.setColumns(INPUT_COLUMNS);
+
+            MD3Dialog dialog = MD3Dialog.builder(this.getParent())
+                    .title(this.title == null ? "" : this.title)
+                    .headline(this.title)
+                    .content(field)
+                    .dismiss(GetText.tr("Cancel"))
+                    .confirm(GetText.tr("Ok"))
+                    .build();
+
+            // the field is what the dialog is for, so it starts focused with the default selected -
+            // typing replaces it rather than appending to it
+            SwingUtilities.invokeLater(() -> {
+                field.requestFocusInWindow();
+                field.selectAll();
+            });
+
+            return dialog.showAndWait() == 1 ? field.getText() : null;
         } catch (Exception e) {
             LogManager.logStackTrace(e, false);
         }

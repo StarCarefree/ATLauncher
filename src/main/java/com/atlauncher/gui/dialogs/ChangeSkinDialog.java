@@ -54,6 +54,8 @@ import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.MojangAPIUtils;
 import com.atlauncher.utils.Utils;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class ChangeSkinDialog extends JDialog {
     private JTextField skinPath;
     private JComboBox<ComboItem<String>> skinType;
@@ -73,7 +75,7 @@ public class ChangeSkinDialog extends JDialog {
 
         Analytics.sendScreenView("Change Skin Dialog");
 
-        setSize(445, 180);
+        setSize(UIScale.scale(445), UIScale.scale(180));
         setLocationRelativeTo(parent);
         setLayout(new BorderLayout());
         setIconImage(Utils.getImage("/assets/image/icon.png"));

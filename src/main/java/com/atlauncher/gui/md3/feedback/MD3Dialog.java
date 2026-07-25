@@ -147,6 +147,26 @@ public class MD3Dialog extends JDialog {
     }
 
     /**
+     * Shows the dialog and blocks until it is answered.
+     *
+     * @return the index of the action chosen, or {@link #DISMISSED}
+     */
+    public int showAndWait() {
+        showScrim();
+        setVisible(true);
+
+        return result;
+    }
+
+    /**
+     * Answers the dialog from outside it, for one that is waiting on something other than the user -
+     * a file appearing on disk, say. Does nothing once the dialog has already been answered.
+     */
+    public void choose(int index) {
+        finish(index);
+    }
+
+    /**
      * Whether the platform can draw a window with transparent corners. Linux without a compositor
      * cannot, and forcing it there produces a black rectangle behind every rounded edge.
      */
@@ -301,12 +321,7 @@ public class MD3Dialog extends JDialog {
          *         {@link MD3Dialog#DISMISSED}
          */
         public int show() {
-            MD3Dialog dialog = build();
-
-            dialog.showScrim();
-            dialog.setVisible(true);
-
-            return dialog.result;
+            return build().showAndWait();
         }
     }
 

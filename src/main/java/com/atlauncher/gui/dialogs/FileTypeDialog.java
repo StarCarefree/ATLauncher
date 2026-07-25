@@ -33,6 +33,8 @@ import javax.swing.JPanel;
 
 import com.atlauncher.App;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class FileTypeDialog extends JDialog {
 
     private final JComboBox<String> selector;
@@ -41,7 +43,7 @@ public class FileTypeDialog extends JDialog {
 
     public FileTypeDialog(String title, String labelName, String bottomText, String selectorText, String[] subOptions) {
         super(App.launcher.getParent(), title, ModalityType.DOCUMENT_MODAL);
-        setSize(400, 175);
+        setSize(UIScale.scale(400), UIScale.scale(175));
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);

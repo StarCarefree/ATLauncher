@@ -39,6 +39,8 @@ import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.workers.BackgroundImageWorker;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public final class ModrinthSearchHitCard extends JPanel {
     private final ModrinthSearchHit mod;
     private final ModManagement instanceOrServer;
@@ -51,7 +53,7 @@ public final class ModrinthSearchHitCard extends JPanel {
             ActionListener installAl,
             ActionListener removeAl) {
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(250, 180));
+        setPreferredSize(UIScale.scale(new Dimension(250, 180)));
 
         this.mod = mod;
         this.instanceOrServer = instanceOrServer;

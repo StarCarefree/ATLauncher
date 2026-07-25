@@ -64,6 +64,8 @@ import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.OS;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public class ModrinthVersionSelectorDialog extends JDialog {
     private int versionsLength = 0;
     private int filesLength = 0;
@@ -295,7 +297,7 @@ public class ModrinthVersionSelectorDialog extends JDialog {
                     .setLayout(new GridLayout(dependenciesNeeded.size() < 2 ? 1 : dependenciesNeeded.size() / 2,
                         (dependenciesNeeded.size() / 2) + 1));
 
-                setSize(550, 450);
+                setSize(UIScale.scale(550), UIScale.scale(450));
                 setLocationRelativeTo(App.launcher.getParent());
 
                 dependenciesPanel.setVisible(true);
@@ -303,10 +305,10 @@ public class ModrinthVersionSelectorDialog extends JDialog {
                 scrollPane.repaint();
                 scrollPane.validate();
             } else {
-                setSize(550, 200);
+                setSize(UIScale.scale(550), UIScale.scale(200));
             }
         } else {
-            setSize(550, 200);
+            setSize(UIScale.scale(550), UIScale.scale(200));
         }
     }
 
@@ -314,8 +316,8 @@ public class ModrinthVersionSelectorDialog extends JDialog {
         // #. {0} is the name of the mod we're installing
         setTitle(GetText.tr("Installing {0}", project.title));
 
-        setSize(550, 200);
-        setMinimumSize(new Dimension(550, 200));
+        setSize(UIScale.scale(550), UIScale.scale(200));
+        setMinimumSize(UIScale.scale(new Dimension(550, 200)));
         setLocationRelativeTo(App.launcher.getParent());
         setLayout(new BorderLayout());
         setResizable(true);
@@ -379,7 +381,7 @@ public class ModrinthVersionSelectorDialog extends JDialog {
         scrollPane = new JScrollPane(dependenciesPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setPreferredSize(new Dimension(550, 250));
+        scrollPane.setPreferredSize(UIScale.scale(new Dimension(550, 250)));
 
         JPanel selectorPanel = new JPanel();
         selectorPanel.setLayout(new BoxLayout(selectorPanel, BoxLayout.Y_AXIS));

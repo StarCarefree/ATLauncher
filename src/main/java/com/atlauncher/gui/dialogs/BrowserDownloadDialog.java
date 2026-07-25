@@ -57,6 +57,8 @@ import com.atlauncher.utils.Hashing;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public final class BrowserDownloadDialog extends JDialog {
     private final List<Mod> browserDownloadMods;
     public final List<Mod> modsDownloaded = new ArrayList<>();
@@ -81,8 +83,8 @@ public final class BrowserDownloadDialog extends JDialog {
         super(parent, GetText.tr("Browser Download Mods"), ModalityType.DOCUMENT_MODAL);
         this.browserDownloadMods = browserDownloadMods;
 
-        this.setPreferredSize(new Dimension(680, 600));
-        this.setMinimumSize(new Dimension(680, 600));
+        this.setPreferredSize(UIScale.scale(new Dimension(680, 600)));
+        this.setMinimumSize(UIScale.scale(new Dimension(680, 600)));
         this.setResizable(true);
         this.setLayout(new BorderLayout());
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
@@ -325,7 +327,7 @@ public final class BrowserDownloadDialog extends JDialog {
             nameTextField.setEditable(false);
             nameTextField.setBorder(null);
             nameTextField.setBackground(null);
-            nameTextField.setPreferredSize(new Dimension(200, 33));
+            nameTextField.setPreferredSize(UIScale.scale(new Dimension(200, 33)));
             this.mainPanel.add(nameTextField, gbc);
 
             gbc.gridx++;
@@ -335,7 +337,7 @@ public final class BrowserDownloadDialog extends JDialog {
             fileTextField.setEditable(false);
             fileTextField.setBorder(null);
             fileTextField.setBackground(null);
-            fileTextField.setPreferredSize(new Dimension(200, 33));
+            fileTextField.setPreferredSize(UIScale.scale(new Dimension(200, 33)));
             this.mainPanel.add(fileTextField, gbc);
 
             gbc.gridx++;

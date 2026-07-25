@@ -20,8 +20,6 @@ package com.atlauncher.gui.dialogs;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.Window;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -40,8 +38,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
@@ -55,7 +51,6 @@ import com.atlauncher.App;
 import com.atlauncher.Gsons;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.Constants;
-import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.Instance;
 import com.atlauncher.data.Pack;
 import com.atlauncher.data.PackVersion;
@@ -99,7 +94,10 @@ import com.atlauncher.data.technic.TechnicSolderModpack;
 import com.atlauncher.exceptions.InvalidMinecraftVersion;
 import com.atlauncher.exceptions.InvalidPack;
 import com.atlauncher.graphql.fragment.UnifiedModPackResultsFragment;
-import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.MD3Text;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.container.MD3SettingsList;
 import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.CurseForgeUpdateManager;
 import com.atlauncher.managers.DialogManager;
@@ -108,13 +106,15 @@ import com.atlauncher.managers.MinecraftManager;
 import com.atlauncher.managers.PackManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.NetworkClient;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.CurseForgeApi;
 import com.atlauncher.utils.FTBApi;
 import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.Pair;
 import com.atlauncher.utils.TechnicApi;
-import com.atlauncher.utils.Utils;
 import com.atlauncher.utils.WindowUtils;
 
 import okhttp3.CacheControl;
@@ -137,18 +137,24 @@ public class InstanceInstallerDialog extends JDialog {
     private TechnicModpack technicModpack = null;
     private UnifiedModPackResultsFragment unifiedModpackResult = null;
 
-    private final JPanel middle;
-    private final JButton install;
+    private final MD3SettingsList middle;
+    private final MD3Button install;
     private final JTextField nameField;
     private JComboBox<PackVersion> versionsDropDown;
-    private final JLabel loaderVersionLabel = new JLabel();
     private final JComboBox<ComboItem<LoaderVersion>> loaderVersionsDropDown = new JComboBox<>();
     private final List<LoaderVersion> loaderVersions = new ArrayList<>();
 
-    private final JLabel showAllMinecraftVersionsLabel = new JLabel(GetText.tr("Show All"));
-    private final JCheckBox showAllMinecraftVersionsCheckbox = new JCheckBox();
+    private final JCheckBox showAllMinecraftVersionsCheckbox = new JCheckBox(GetText.tr("Show All"));
 
-    private JLabel saveModsLabel;
+    /**
+     * The rows, kept because each of them is shown only when it applies: there is no version to
+     * choose when importing a MultiMC pack, no loader version unless the pack has a choosable one,
+     * and nothing to save unless the update changes the Minecraft version.
+     */
+    private MD3SettingsList.Row versionRow;
+    private MD3SettingsList.Row loaderVersionRow;
+    private MD3SettingsList.Row saveModsRow;
+
     private JCheckBox saveModsCheckbox;
     private final boolean isUpdate;
     private final PackVersion autoInstallVersion;
@@ -242,32 +248,31 @@ public class InstanceInstallerDialog extends JDialog {
         setResizable(false);
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-        install = new JButton(
+        getContentPane().setBackground(MD3Color.surface());
+
+        install = MD3Button.filled(
             ((isReinstall) ? (isUpdate ? GetText.tr("Update") : GetText.tr("Reinstall")) : GetText.tr("Install")));
 
-        // Top Panel Stuff
-        JPanel top = new JPanel();
+        // Headline
         String packName = Optional.ofNullable(pack).map(Pack::getName).orElse("Pack");
-        top.add(new JLabel(((isReinstall) ? (isUpdate ? GetText.tr("Updating") : GetText.tr("Reinstalling"))
+        String headlineText = ((isReinstall) ? (isUpdate ? GetText.tr("Updating") : GetText.tr("Reinstalling"))
             : GetText.tr("Installing")) + " " + packName
-            + (isReinstall ? GetText.tr(" (Current Version: {0})", instance.getVersionOfPack()) : "")));
+            + (isReinstall ? GetText.tr(" (Current Version: {0})", instance.getVersionOfPack()) : "");
 
-        // Middle Panel Stuff
-        middle = new JPanel();
-        middle.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        middle.setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
+        JLabel headline = new JLabel(headlineText);
+        // a pack's name is not the launcher's own text, so the theme's face may have no glyphs for it
+        headline.setFont(MD3Type.font(MD3Type.TITLE_LARGE, headlineText));
+        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
+        headline.setForeground(MD3Color.onSurface());
 
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabel instanceNameLabel = new JLabel(GetText.tr("Name") + ": ");
-        middle.add(instanceNameLabel, gbc);
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        top.setBorder(MD3Spacing.border(MD3Spacing.XL, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+        top.add(headline, BorderLayout.CENTER);
 
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
+        // The form
+        middle = new MD3SettingsList();
+
         nameField = new JTextField(17);
         nameField.setText(((isReinstall) ? instance.launcher.name : packName));
         if (isReinstall) {
@@ -289,63 +294,48 @@ public class InstanceInstallerDialog extends JDialog {
                 nameField.selectAll();
             }
         });
-        middle.add(nameField, gbc);
+        middle.addRow(GetText.tr("Name"), null, nameField);
 
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-
-        gbc = this.setupVersionsDropdown(gbc);
+        this.setupVersionsDropdown();
 
         if (isReinstall && instance.launcher.vanillaInstance) {
-            gbc.gridx++;
-            middle.add(showAllMinecraftVersionsCheckbox, gbc);
-
             showAllMinecraftVersionsCheckbox.addItemListener(e -> {
                 if (e.getStateChange() == ItemEvent.SELECTED || e.getStateChange() == ItemEvent.DESELECTED) {
                     setVanillaPackVersions(e.getStateChange() == ItemEvent.SELECTED);
                     setVersionsDropdown();
                 }
             });
-
-            gbc.gridx++;
-            middle.add(showAllMinecraftVersionsLabel, gbc);
+        } else {
+            showAllMinecraftVersionsCheckbox.setVisible(false);
         }
 
-        gbc = this.setupLoaderVersionsDropdown(gbc);
+        this.setupLoaderVersionsDropdown();
 
         if (!this.isServer && isReinstall) {
-            gbc.gridx = 0;
-            gbc.gridy++;
-            gbc.insets = UIConstants.LABEL_INSETS;
-            gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-            saveModsLabel = new JLabelWithHover(GetText.tr("Save Mods") + "? ",
-                Utils.getIconImage(App.THEME.getIconPath("question")),
-                new HTMLBuilder().center().text(GetText.tr(
-                        "Since this update changes the Minecraft version, your custom mods may no longer work.<br/><br/>Checking this box will keep your custom mods, otherwise they'll be removed."))
-                    .build());
-            middle.add(saveModsLabel, gbc);
-
-            gbc.gridx++;
-            gbc.insets = UIConstants.FIELD_INSETS;
-            gbc.anchor = GridBagConstraints.BASELINE_LEADING;
             saveModsCheckbox = new JCheckBox();
+
+            saveModsRow = middle.addRow(GetText.tr("Save Mods"), MD3Text.plain(GetText.tr(
+                "Since this update changes the Minecraft version, your custom mods may no longer work.<br/><br/>Checking this box will keep your custom mods, otherwise they'll be removed.")),
+                saveModsCheckbox);
 
             PackVersion packVersion = ((PackVersion) versionsDropDown.getSelectedItem());
             Optional<VersionManifestVersion> minecraftVersion = Optional.ofNullable(packVersion)
                 .map(pv -> pv.minecraftVersion);
 
-            saveModsLabel.setVisible(
+            saveModsRow.setVisible(
                 minecraftVersion.isPresent() && !minecraftVersion.get().id.equalsIgnoreCase(this.instance.id));
-            saveModsCheckbox.setVisible(
-                minecraftVersion.isPresent() && !minecraftVersion.get().id.equalsIgnoreCase(this.instance.id));
-
-            middle.add(saveModsCheckbox, gbc);
         }
 
-        // Bottom Panel Stuff
-        JPanel bottom = new JPanel();
-        bottom.setLayout(new FlowLayout());
+        // Actions
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        actions.setOpaque(false);
+        actions.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bottom.add(actions, BorderLayout.CENTER);
+
         install.addActionListener(e -> {
             Installable installable;
 
@@ -421,10 +411,12 @@ public class InstanceInstallerDialog extends JDialog {
                 dispose();
             }
         });
-        JButton cancel = new JButton(GetText.tr("Cancel"));
+        MD3Button cancel = MD3Button.text(GetText.tr("Cancel"));
         cancel.addActionListener(e -> dispose());
-        bottom.add(install);
-        bottom.add(cancel);
+
+        // the confirming action goes on the trailing edge
+        actions.add(cancel);
+        actions.add(install);
 
         add(top, BorderLayout.NORTH);
         add(middle, BorderLayout.CENTER);
@@ -1056,18 +1048,14 @@ public class InstanceInstallerDialog extends JDialog {
         }
     }
 
-    private GridBagConstraints setupVersionsDropdown(GridBagConstraints gbc) {
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabel versionLabel = new JLabel(GetText.tr("Version To Install") + ": ");
-        middle.add(versionLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-
+    private void setupVersionsDropdown() {
         versionsDropDown = new JComboBox<>();
         setVersionsDropdown();
-        middle.add(versionsDropDown, gbc);
+
+        // "Show All" only applies to the version beside it, so it belongs on that row rather than
+        // on one of its own
+        versionRow = middle.addRow(GetText.tr("Version To Install"), null,
+            MD3SettingsList.group(versionsDropDown, showAllMinecraftVersionsCheckbox));
 
         versionsDropDown.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
@@ -1080,9 +1068,7 @@ public class InstanceInstallerDialog extends JDialog {
                         Optional<VersionManifestVersion> minecraftVersion = Optional
                             .ofNullable(packVersion.minecraftVersion);
 
-                        saveModsLabel.setVisible(minecraftVersion.isPresent()
-                            && !minecraftVersion.get().id.equalsIgnoreCase(this.instance.id));
-                        saveModsCheckbox.setVisible(minecraftVersion.isPresent()
+                        saveModsRow.setVisible(minecraftVersion.isPresent()
                             && !minecraftVersion.get().id.equalsIgnoreCase(this.instance.id));
 
                         WindowUtils.resizeForContent(this);
@@ -1104,12 +1090,8 @@ public class InstanceInstallerDialog extends JDialog {
         }
 
         if (multiMCManifest != null) {
-            gbc.gridx--;
-            versionLabel.setVisible(false);
-            versionsDropDown.setVisible(false);
+            versionRow.setVisible(false);
         }
-
-        return gbc;
     }
 
     private void setVersionsDropdown() {
@@ -1182,8 +1164,7 @@ public class InstanceInstallerDialog extends JDialog {
 
     protected void updateLoaderVersions(@Nonnull PackVersion item) {
         if (!item.hasLoader() || !item.hasChoosableLoader()) {
-            loaderVersionLabel.setVisible(false);
-            loaderVersionsDropDown.setVisible(false);
+            loaderVersionRow.setVisible(false);
             return;
         }
 
@@ -1193,51 +1174,51 @@ public class InstanceInstallerDialog extends JDialog {
             }
 
             // #. {0} is the loader (Fabric/Forge/Quilt)
-            loaderVersionLabel.setText(GetText.tr("{0} Version", "Fabric") + ": ");
+            loaderVersionRow.setLabel(GetText.tr("{0} Version", "Fabric"));
         } else if (item.loaderType != null && item.loaderType.equalsIgnoreCase("forge")) {
             if (!ConfigManager.getConfigItem("loaders.forge.enabled", true)) {
                 return;
             }
 
             // #. {0} is the loader (Fabric/Forge/Quilt)
-            loaderVersionLabel.setText(GetText.tr("{0} Version", "Forge") + ": ");
+            loaderVersionRow.setLabel(GetText.tr("{0} Version", "Forge"));
         } else if (item.loaderType != null && item.loaderType.equalsIgnoreCase("neoforge")) {
             if (!ConfigManager.getConfigItem("loaders.neoforge.enabled", true)) {
                 return;
             }
 
             // #. {0} is the loader (Fabric/Forge/Quilt)
-            loaderVersionLabel.setText(GetText.tr("{0} Version", "NeoForge") + ": ");
+            loaderVersionRow.setLabel(GetText.tr("{0} Version", "NeoForge"));
         } else if (item.loaderType != null && item.loaderType.equalsIgnoreCase("paper")) {
             if (!ConfigManager.getConfigItem("loaders.paper.enabled", true)) {
                 return;
             }
 
             // #. {0} is the loader (Fabric/Forge/Quilt)
-            loaderVersionLabel.setText(GetText.tr("{0} Version", "Paper") + ": ");
+            loaderVersionRow.setLabel(GetText.tr("{0} Version", "Paper"));
         } else if (item.loaderType != null && item.loaderType.equalsIgnoreCase("purpur")) {
             if (!ConfigManager.getConfigItem("loaders.purpur.enabled", true)) {
                 return;
             }
 
             // #. {0} is the loader (Fabric/Forge/Quilt)
-            loaderVersionLabel.setText(GetText.tr("{0} Version", "Purpur") + ": ");
+            loaderVersionRow.setLabel(GetText.tr("{0} Version", "Purpur"));
         } else if (item.loaderType != null && item.loaderType.equalsIgnoreCase("legacyfabric")) {
             if (!ConfigManager.getConfigItem("loaders.legacyfabric.enabled", true)) {
                 return;
             }
 
             // #. {0} is the loader (Fabric/Forge/Quilt)
-            loaderVersionLabel.setText(GetText.tr("{0} Version", "Legacy Fabric") + ": ");
+            loaderVersionRow.setLabel(GetText.tr("{0} Version", "Legacy Fabric"));
         } else if (item.loaderType != null && item.loaderType.equalsIgnoreCase("quilt")) {
             if (!ConfigManager.getConfigItem("loaders.quilt.enabled", false)) {
                 return;
             }
 
             // #. {0} is the loader (Fabric/Forge/Quilt)
-            loaderVersionLabel.setText(GetText.tr("{0} Version", "Quilt") + ": ");
+            loaderVersionRow.setLabel(GetText.tr("{0} Version", "Quilt"));
         } else {
-            loaderVersionLabel.setText(GetText.tr("Loader Version") + ": ");
+            loaderVersionRow.setLabel(GetText.tr("Loader Version"));
         }
 
         loaderVersionsDropDown.setEnabled(false);
@@ -1246,8 +1227,7 @@ public class InstanceInstallerDialog extends JDialog {
         loaderVersionsDropDown.removeAllItems();
         loaderVersionsDropDown.addItem(new ComboItem<>(null, GetText.tr("Getting Loader Versions")));
 
-        loaderVersionLabel.setVisible(true);
-        loaderVersionsDropDown.setVisible(true);
+        loaderVersionRow.setVisible(true);
 
         install.setEnabled(false);
         versionsDropDown.setEnabled(false);
@@ -1286,8 +1266,7 @@ public class InstanceInstallerDialog extends JDialog {
             if (loaderVersions.isEmpty()) {
                 loaderVersionsDropDown.removeAllItems();
                 loaderVersionsDropDown.addItem(new ComboItem<>(null, GetText.tr("No Versions Found")));
-                loaderVersionLabel.setVisible(true);
-                loaderVersionsDropDown.setVisible(true);
+                loaderVersionRow.setVisible(true);
                 versionsDropDown.setEnabled(true);
                 return;
             }
@@ -1326,8 +1305,7 @@ public class InstanceInstallerDialog extends JDialog {
             loaderVersionsDropDown.setPreferredSize(new Dimension(loaderVersionLength, 23));
 
             loaderVersionsDropDown.setEnabled(true);
-            loaderVersionLabel.setVisible(true);
-            loaderVersionsDropDown.setVisible(true);
+            loaderVersionRow.setVisible(true);
             install.setEnabled(true);
             versionsDropDown.setEnabled(true);
         };
@@ -1335,22 +1313,13 @@ public class InstanceInstallerDialog extends JDialog {
         new Thread(r).start();
     }
 
-    private GridBagConstraints setupLoaderVersionsDropdown(GridBagConstraints gbc) {
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
+    private void setupLoaderVersionsDropdown() {
+        // the row exists before its name does: which loader this is - Forge's, Fabric's - is only
+        // known once a version has been picked, and updateLoaderVersions is what renames it
+        loaderVersionRow = middle.addRow("", null, loaderVersionsDropDown);
 
-        middle.add(loaderVersionLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.FIELD_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         if (this.versionsDropDown.getSelectedItem() != null) {
             this.updateLoaderVersions((PackVersion) this.versionsDropDown.getSelectedItem());
         }
-        middle.add(loaderVersionsDropDown, gbc);
-
-        return gbc;
     }
 }

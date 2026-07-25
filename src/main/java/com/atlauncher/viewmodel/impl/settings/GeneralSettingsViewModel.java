@@ -45,6 +45,7 @@ import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.SettingsValidityManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
+import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.utils.sort.InstanceSortingStrategies;
@@ -79,6 +80,7 @@ public class GeneralSettingsViewModel implements SettingsListener {
             _enableTrayMenu = BehaviorSubject.create(),
             _enableFeralGameMode = BehaviorSubject.create(),
             _disableCustomFonts = BehaviorSubject.create(),
+            _reduceAnimations = BehaviorSubject.create(),
             _rememberWindowSizePosition = BehaviorSubject.create(),
             _useNativeFilePicker = BehaviorSubject.create(),
             _useRecycleBin = BehaviorSubject.create(),
@@ -108,6 +110,7 @@ public class GeneralSettingsViewModel implements SettingsListener {
         _enableTrayMenu.onNext(App.settings.enableTrayMenu);
         _enableFeralGameMode.onNext(App.settings.enableFeralGamemode);
         _disableCustomFonts.onNext(App.settings.disableCustomFonts);
+        _reduceAnimations.onNext(App.settings.reduceAnimations);
         _rememberWindowSizePosition.onNext(App.settings.rememberWindowSizePosition);
         _useNativeFilePicker.onNext(App.settings.useNativeFilePicker);
         _useRecycleBin.onNext(App.settings.useRecycleBin);
@@ -496,6 +499,20 @@ public class GeneralSettingsViewModel implements SettingsListener {
 
     public void setDisableCustomFonts(boolean b) {
         App.settings.disableCustomFonts = b;
+        SettingsManager.post();
+    }
+
+    public Observable<Boolean> getReduceAnimations() {
+        return _reduceAnimations.observeOn(SwingSchedulers.edt());
+    }
+
+    /**
+     * Applied as it is set rather than on save: every animation reads the flag when it starts, so
+     * the effect of ticking the box is visible in the settings page itself.
+     */
+    public void setReduceAnimations(boolean b) {
+        App.settings.reduceAnimations = b;
+        MD3Motion.setReduced(b);
         SettingsManager.post();
     }
 

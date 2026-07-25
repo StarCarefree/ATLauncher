@@ -45,6 +45,8 @@ import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.workers.BackgroundImageWorker;
 
+import com.formdev.flatlaf.util.UIScale;
+
 public final class CurseForgeFileDependencyCard extends JPanel {
     private final CurseForgeProjectFileSelectorDialog parent;
     private final CurseForgeFileDependency dependency;
@@ -55,7 +57,7 @@ public final class CurseForgeFileDependencyCard extends JPanel {
         this.parent = parent;
 
         setLayout(new BorderLayout());
-        setPreferredSize(new Dimension(250, 180));
+        setPreferredSize(UIScale.scale(new Dimension(250, 180)));
 
         this.dependency = dependency;
         this.instanceOrServer = instanceOrServer;

@@ -20,6 +20,7 @@ package com.atlauncher.gui.dialogs;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.event.ItemEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -36,16 +37,13 @@ import java.util.stream.Collectors;
 
 import javax.swing.AbstractButton;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JLayer;
-import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JSplitPane;
-import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 
 import org.mini2Dx.gettext.GetText;
@@ -66,15 +64,22 @@ import com.atlauncher.gui.WheelScrollLayerUI;
 import com.atlauncher.gui.components.ModsJCheckBox;
 import com.atlauncher.gui.handlers.ModsJCheckBoxTransferHandler;
 import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Analytics;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.CurseForgeApi;
 import com.atlauncher.utils.FileUtils;
 import com.atlauncher.utils.Hashing;
 import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.Utils;
+
+import com.formdev.flatlaf.util.UIScale;
 
 public class EditModsDialog extends JDialog {
     private static final long serialVersionUID = 7004414192679481818L;
@@ -82,12 +87,12 @@ public class EditModsDialog extends JDialog {
     public final ModManagement instanceOrServer;
 
     private JPanel disabledModsPanel, enabledModsPanel;
-    private JButton checkForUpdatesButton;
-    private JButton reinstallButton;
-    private JButton enableButton;
-    private JButton disableButton;
-    private JButton removeButton;
-    private JButton refreshMetadataButton;
+    private MD3Button checkForUpdatesButton;
+    private MD3Button reinstallButton;
+    private MD3Button enableButton;
+    private MD3Button disableButton;
+    private MD3Button removeButton;
+    private MD3Button refreshMetadataButton;
     private JCheckBox selectAllEnabledModsCheckbox, selectAllDisabledModsCheckbox;
     private ArrayList<ModsJCheckBox> enabledMods, disabledMods;
 
@@ -110,8 +115,10 @@ public class EditModsDialog extends JDialog {
     }
 
     private void setup() {
-        setSize(550, 450);
-        setMinimumSize(new Dimension(550, 450));
+        // wide enough that the row of actions is one row: at the old 550 the last of them wrapped
+        // onto a line of its own
+        setSize(UIScale.scale(780), UIScale.scale(520));
+        setMinimumSize(UIScale.scale(new Dimension(550, 400)));
         setLocationRelativeTo(App.launcher.getParent());
         setLayout(new BorderLayout());
         setResizable(true);
@@ -133,90 +140,60 @@ public class EditModsDialog extends JDialog {
     private void setupComponents() {
         Analytics.sendScreenView("Edit Mods Dialog");
 
-        JSplitPane split = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        split.setDividerSize(0);
-        split.setBorder(null);
-        split.setEnabled(false);
-        add(split, BorderLayout.NORTH);
+        getContentPane().setBackground(MD3Color.surface());
 
-        JSplitPane labelsTop = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        labelsTop.setDividerSize(0);
-        labelsTop.setBorder(null);
-        labelsTop.setEnabled(false);
-        split.setLeftComponent(labelsTop);
-
-        JSplitPane labels = new JSplitPane();
-        labels.setDividerLocation(275);
-        labels.setDividerSize(0);
-        labels.setBorder(null);
-        labels.setEnabled(false);
-        split.setRightComponent(labels);
-
-        JPanel topLeftPanel = new JPanel(new FlowLayout());
-
-        JLabel topLabelLeft = new JLabel(GetText.tr("Enabled Mods"));
-        topLabelLeft.setHorizontalAlignment(SwingConstants.CENTER);
-        topLeftPanel.add(topLabelLeft);
-
-        selectAllEnabledModsCheckbox = new JCheckBox();
-        selectAllEnabledModsCheckbox.addActionListener(e -> {
-            boolean selected = selectAllEnabledModsCheckbox.isSelected();
-
-            enabledMods.forEach(em -> em.setSelected(selected));
-        });
-        topLeftPanel.add(selectAllEnabledModsCheckbox);
-
-        labels.setLeftComponent(topLeftPanel);
-
-        JPanel topRightPanel = new JPanel(new FlowLayout());
-
-        JLabel topLabelRight = new JLabel(GetText.tr("Disabled Mods"));
-        topLabelRight.setHorizontalAlignment(SwingConstants.CENTER);
-        topRightPanel.add(topLabelRight);
-
-        selectAllDisabledModsCheckbox = new JCheckBox();
-        selectAllDisabledModsCheckbox.addActionListener(e -> {
-            boolean selected = selectAllDisabledModsCheckbox.isSelected();
-
-            disabledMods.forEach(dm -> dm.setSelected(selected));
-        });
-        topRightPanel.add(selectAllDisabledModsCheckbox);
-
-        labels.setRightComponent(topRightPanel);
-
-        JSplitPane modsInPack = new JSplitPane();
-        modsInPack.setDividerLocation(275);
-        modsInPack.setDividerSize(0);
-        modsInPack.setBorder(null);
-        modsInPack.setEnabled(false);
-        add(modsInPack, BorderLayout.CENTER);
-
+        // the two lists used to be four nested JSplitPanes with their dividers disabled and sized to
+        // zero - a layout, written as something the user could have dragged. Two equal columns is
+        // what that was drawing, so that is what this is
         disabledModsPanel = new JPanel();
         disabledModsPanel.setLayout(new BoxLayout(disabledModsPanel, BoxLayout.Y_AXIS));
         disabledModsPanel.setBackground(UIManager.getColor("Mods.modSelectionColor"));
         disabledModsPanel.setTransferHandler(new ModsJCheckBoxTransferHandler(this, true));
 
-        JScrollPane scroller1 = new JScrollPane(disabledModsPanel,
-            JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroller1.getVerticalScrollBar().setUnitIncrement(16);
-        modsInPack.setRightComponent(new JLayer<>(scroller1, new WheelScrollLayerUI()));
-
         enabledModsPanel = new JPanel();
         enabledModsPanel.setLayout(new BoxLayout(enabledModsPanel, BoxLayout.Y_AXIS));
         enabledModsPanel.setBackground(UIManager.getColor("Mods.modSelectionColor"));
-        enabledModsPanel.setTransferHandler(new ModsJCheckBoxTransferHandler(this, true));;
+        enabledModsPanel.setTransferHandler(new ModsJCheckBoxTransferHandler(this, true));
 
-        JScrollPane scroller2 = new JScrollPane(enabledModsPanel,
-            JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroller2.getVerticalScrollBar().setUnitIncrement(16);
-        modsInPack.setLeftComponent(new JLayer<>(scroller2, new WheelScrollLayerUI()));
+        selectAllEnabledModsCheckbox = new JCheckBox(GetText.tr("Select All"));
+        selectAllEnabledModsCheckbox.setOpaque(false);
+        selectAllEnabledModsCheckbox.addActionListener(e -> {
+            boolean selected = selectAllEnabledModsCheckbox.isSelected();
 
-        JPanel bottomPanel = new JPanel(new WrapLayout());
-        add(bottomPanel, BorderLayout.SOUTH);
+            enabledMods.forEach(em -> em.setSelected(selected));
+        });
 
-        JButton addButton = new JButton(GetText.tr("Add Mod"));
+        selectAllDisabledModsCheckbox = new JCheckBox(GetText.tr("Select All"));
+        selectAllDisabledModsCheckbox.setOpaque(false);
+        selectAllDisabledModsCheckbox.addActionListener(e -> {
+            boolean selected = selectAllDisabledModsCheckbox.isSelected();
+
+            disabledMods.forEach(dm -> dm.setSelected(selected));
+        });
+
+        JPanel columns = new JPanel(new GridLayout(1, 2, MD3Spacing.scale(MD3Spacing.L), 0));
+        columns.setOpaque(false);
+        columns.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L, 0, MD3Spacing.L));
+        columns.add(buildColumn(GetText.tr("Enabled Mods"), selectAllEnabledModsCheckbox, enabledModsPanel));
+        columns.add(buildColumn(GetText.tr("Disabled Mods"), selectAllDisabledModsCheckbox, disabledModsPanel));
+
+        add(columns, BorderLayout.CENTER);
+
+        // left aligned, because this is a toolbar rather than an action bar - there is nothing to
+        // confirm here, the dialog is closed by its window control and every change is already made
+        JPanel bottomPanel = new JPanel(new WrapLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S),
+            MD3Spacing.scale(MD3Spacing.S)));
+        bottomPanel.setOpaque(false);
+        bottomPanel.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bottom.add(bottomPanel, BorderLayout.CENTER);
+
+        add(bottom, BorderLayout.SOUTH);
+
+        MD3Button addButton = MD3Button.filled(GetText.tr("Add Mod"));
         addButton.addActionListener(e -> {
             String[] modTypes;
 
@@ -313,7 +290,7 @@ public class EditModsDialog extends JDialog {
                 || (ConfigManager.getConfigItem("platforms.modrinth.modsEnabled", true)
                 && (instanceOrServer.getLoaderVersion() != null
                 || instanceOrServer instanceof Instance))) {
-                JButton browseMods = new JButton(GetText.tr("Browse Mods"));
+                MD3Button browseMods = MD3Button.outlined(GetText.tr("Browse Mods"));
                 browseMods.addActionListener(e -> {
                     AddModsDialog addModsDialog = new AddModsDialog(this, instanceOrServer);
                     addModsDialog.setVisible(true);
@@ -325,36 +302,67 @@ public class EditModsDialog extends JDialog {
                 bottomPanel.add(browseMods);
             }
 
-            checkForUpdatesButton = new JButton(GetText.tr("Check For Updates"));
+            checkForUpdatesButton = MD3Button.text(GetText.tr("Check For Updates"));
             checkForUpdatesButton.addActionListener(e -> checkForUpdates());
             checkForUpdatesButton.setEnabled(false);
             bottomPanel.add(checkForUpdatesButton);
 
-            reinstallButton = new JButton(GetText.tr("Reinstall"));
+            reinstallButton = MD3Button.text(GetText.tr("Reinstall"));
             reinstallButton.addActionListener(e -> reinstall());
             reinstallButton.setEnabled(false);
             bottomPanel.add(reinstallButton);
         }
 
-        enableButton = new JButton(GetText.tr("Enable Selected"));
+        enableButton = MD3Button.text(GetText.tr("Enable Selected"));
         enableButton.addActionListener(e -> enableMods());
         enableButton.setEnabled(false);
         bottomPanel.add(enableButton);
 
-        disableButton = new JButton(GetText.tr("Disable Selected"));
+        disableButton = MD3Button.text(GetText.tr("Disable Selected"));
         disableButton.addActionListener(e -> disableMods());
         disableButton.setEnabled(false);
         bottomPanel.add(disableButton);
 
-        removeButton = new JButton(GetText.tr("Remove Selected"));
+        removeButton = MD3Button.text(GetText.tr("Remove Selected"));
         removeButton.addActionListener(e -> removeMods());
         removeButton.setEnabled(false);
         bottomPanel.add(removeButton);
 
-        refreshMetadataButton = new JButton(GetText.tr("Refresh Metadata"));
+        refreshMetadataButton = MD3Button.text(GetText.tr("Refresh Metadata"));
         refreshMetadataButton.addActionListener(e -> refreshMetadata());
         refreshMetadataButton.setEnabled(false);
         bottomPanel.add(refreshMetadataButton);
+    }
+
+    /**
+     * One of the two lists: what it holds, a way to tick all of it, and the mods themselves.
+     *
+     * <p>
+     * The select-all box used to be an unlabelled tick beside the heading, which said nothing about
+     * what ticking it would do.
+     */
+    private JComponent buildColumn(String title, JCheckBox selectAll, JPanel mods) {
+        JLabel label = new JLabel(title);
+        label.setFont(MD3Type.font(MD3Type.TITLE_SMALL, title));
+        label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
+        label.setForeground(MD3Color.primary());
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setBorder(MD3Spacing.border(0, 0, MD3Spacing.S, 0));
+        header.add(label, BorderLayout.WEST);
+        header.add(selectAll, BorderLayout.EAST);
+
+        JScrollPane scroller = new JScrollPane(mods, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroller.getVerticalScrollBar().setUnitIncrement(16);
+
+        JPanel column = new JPanel(new BorderLayout());
+        column.setOpaque(false);
+        column.add(header, BorderLayout.NORTH);
+        column.add(new JLayer<>(scroller, new WheelScrollLayerUI()), BorderLayout.CENTER);
+
+        return column;
     }
 
     private void loadMods() {
@@ -363,22 +371,16 @@ public class EditModsDialog extends JDialog {
             .sorted(Comparator.comparing(m -> m.name, String.CASE_INSENSITIVE_ORDER)).collect(Collectors.toList());
         enabledMods = new ArrayList<>();
         disabledMods = new ArrayList<>();
-        int dCount = 0;
-        int eCount = 0;
 
         for (DisableableMod mod : mods) {
-            ModsJCheckBox checkBox;
-            int nameSize = getFontMetrics(App.THEME.getNormalFont()).stringWidth(mod.getName());
+            // the bounds these used to be given here were overwritten by the box layout before
+            // anything read them
+            ModsJCheckBox checkBox = new ModsJCheckBox(mod, this);
 
-            checkBox = new ModsJCheckBox(mod, this);
             if (mod.isDisabled()) {
-                checkBox.setBounds(0, (dCount * 20), Math.max(nameSize + 23, 250), 20);
                 disabledMods.add(checkBox);
-                dCount++;
             } else {
-                checkBox.setBounds(0, (eCount * 20), Math.max(nameSize + 23, 250), 20);
                 enabledMods.add(checkBox);
-                eCount++;
             }
         }
 
@@ -398,8 +400,26 @@ public class EditModsDialog extends JDialog {
             });
             disabledModsPanel.add(checkBox);
         }
-        enabledModsPanel.setPreferredSize(new Dimension(0, enabledMods.size() * 20));
-        disabledModsPanel.setPreferredSize(new Dimension(0, disabledMods.size() * 20));
+        enabledModsPanel.setPreferredSize(new Dimension(0, heightOf(enabledMods)));
+        disabledModsPanel.setPreferredSize(new Dimension(0, heightOf(disabledMods)));
+    }
+
+    /**
+     * How tall a list of mods is, which is what the scroll pane needs to know.
+     *
+     * <p>
+     * Was the number of them times a hardcoded 20 - the height of a check box at 100% and at no
+     * other scale or font size, so the last few mods fell off the bottom of a list that would not
+     * scroll far enough to reach them. Asking the rows how tall they are is right at any scale.
+     */
+    private static int heightOf(List<ModsJCheckBox> mods) {
+        int height = 0;
+
+        for (ModsJCheckBox mod : mods) {
+            height += mod.getPreferredSize().height;
+        }
+
+        return height;
     }
 
     private void checkBoxesChanged() {

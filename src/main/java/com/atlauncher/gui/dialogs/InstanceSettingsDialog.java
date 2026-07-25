@@ -18,15 +18,15 @@
 package com.atlauncher.gui.dialogs;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
-import javax.swing.JTabbedPane;
+import javax.swing.JScrollPane;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -35,12 +35,22 @@ import com.atlauncher.data.Instance;
 import com.atlauncher.gui.dialogs.instancesettings.CommandsInstanceSettingsTab;
 import com.atlauncher.gui.dialogs.instancesettings.GeneralInstanceSettingsTab;
 import com.atlauncher.gui.dialogs.instancesettings.JavaInstanceSettingsTab;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.nav.MD3Tabs;
+import com.atlauncher.managers.NotificationManager;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 
 public class InstanceSettingsDialog extends JDialog {
+    private static final int WIDTH = 800;
+    private static final int HEIGHT = 600;
+
     private final Instance instance;
 
-    private final JTabbedPane tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-    private final JPanel bottomPanel = new JPanel();
+    private final MD3Tabs tabs = new MD3Tabs();
+    private final CardLayout sectionLayout = new CardLayout();
+    private final JPanel sections = new JPanel(sectionLayout);
 
     private final GeneralInstanceSettingsTab generalInstanceSettingsTab;
     private final JavaInstanceSettingsTab javaInstanceSettingsTab;
@@ -66,43 +76,76 @@ public class InstanceSettingsDialog extends JDialog {
     }
 
     private void setupComponents() {
-        setSize(800, 450);
-        setMinimumSize(new Dimension(800, 600));
+        setSize(WIDTH, HEIGHT);
+        setMinimumSize(new Dimension(WIDTH / 2, HEIGHT / 2));
         setLocationRelativeTo(App.launcher.getParent());
         setLayout(new BorderLayout());
-        setResizable(false);
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-        // Tabbed Pane
+        getContentPane().setBackground(MD3Color.surface());
+        sections.setOpaque(false);
 
-        tabbedPane.setFont(App.THEME.getNormalFont().deriveFont(17.0F));
-        tabbedPane.addTab(GetText.tr("General"), generalInstanceSettingsTab);
-        tabbedPane.addTab(GetText.tr("Java/Minecraft"), javaInstanceSettingsTab);
-        tabbedPane.addTab(GetText.tr("Commands"), commandsInstanceSettingsTab);
-        tabbedPane.setOpaque(true);
+        addSection(GetText.tr("General"), generalInstanceSettingsTab);
+        addSection(GetText.tr("Java/Minecraft"), javaInstanceSettingsTab);
+        addSection(GetText.tr("Commands"), commandsInstanceSettingsTab);
 
-        add(tabbedPane, BorderLayout.CENTER);
+        tabs.setSelectedIndex(0);
+        sectionLayout.show(sections, "0");
+        tabs.addChangeListener(e -> sectionLayout.show(sections, String.valueOf(tabs.getSelectedIndex())));
 
-        // Bottom Panel
+        add(tabs, BorderLayout.NORTH);
+        add(sections, BorderLayout.CENTER);
+        add(buildActionBar(), BorderLayout.SOUTH);
+    }
 
-        bottomPanel.setLayout(new FlowLayout());
+    /**
+     * Each section scrolls on its own: they are a list of full-width rows rather than a grid sized
+     * to whatever fitted, and the Java one does not fit a dialog.
+     */
+    private void addSection(String title, JPanel section) {
+        JScrollPane scrollPane = new JScrollPane(section, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-        JButton saveButton = new JButton(GetText.tr("Save"));
+        sections.add(scrollPane, String.valueOf(tabs.getTabCount()));
+        tabs.addTab(title);
+    }
+
+    /**
+     * Settings apply on save rather than as they are changed, so the buttons that do it stay visible
+     * whichever section is open and wherever it has been scrolled to.
+     */
+    private JPanel buildActionBar() {
+        MD3Button saveButton = MD3Button.filled(GetText.tr("Save"));
         saveButton.addActionListener(arg0 -> {
             if (javaInstanceSettingsTab.isValidJavaPath() && javaInstanceSettingsTab.isValidJavaParamaters()
                     && generalInstanceSettingsTab.isValidQuickPlayOptionValue()) {
                 saveSettings();
-                App.TOASTER.pop("Instance Settings Saved");
+                NotificationManager.show("Instance Settings Saved");
                 close();
             }
         });
-        bottomPanel.add(saveButton);
 
-        JButton cancelButton = new JButton(GetText.tr("Cancel"));
+        MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
         cancelButton.addActionListener(arg0 -> close());
-        bottomPanel.add(cancelButton);
 
-        add(bottomPanel, BorderLayout.SOUTH);
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        actions.setOpaque(false);
+        actions.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
+
+        // the confirming action goes on the trailing edge
+        actions.add(cancelButton);
+        actions.add(saveButton);
+
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        bar.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bar.add(actions, BorderLayout.CENTER);
+
+        return bar;
     }
 
     private void close() {
