@@ -30,6 +30,7 @@ import javax.swing.JComponent;
 import javax.swing.JMenu;
 import javax.swing.JPopupMenu;
 import javax.swing.UIDefaults;
+import javax.swing.UIManager;
 
 import com.atlauncher.App;
 import com.atlauncher.data.Language;
@@ -288,8 +289,14 @@ public class ATLauncherLaf extends FlatLaf {
     }
 
     public void updateUIFonts() {
-        // the base fonts may have changed with the language, so the whole type scale has to be
-        // rebuilt before anything reads a role off it
+        // The base fonts may have changed with the language, so the defaults have to be put back
+        // before the type scale is rebuilt from them. The tree walk below repairs the windows that
+        // are already open; these are what everything opened afterwards is built from, and without
+        // them the next dialog comes up in the outgoing language's face.
+        UIManager.put("defaultFont", getNormalFont());
+        UIManager.put("Button.font", getNormalFont());
+        UIManager.put("ToolTip.font", getNormalFont());
+
         installTypeScale();
 
         EventQueue.invokeLater(() -> {

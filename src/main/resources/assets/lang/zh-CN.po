@@ -1,0 +1,509 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ATLauncher\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#. Glossary, kept consistent across the file:
+#.   Instance 实例 / Pack, Modpack 整合包 / Mod 模组 / Server 服务器
+#.   Loader 加载器 / Account 账户 / Vanilla 原版
+#. A space separates Chinese from Latin text and numbers, including around {0}.
+#. Every comment has to sit directly on top of an entry - the parser rejects a comment block
+#. with a blank line after it, and rejects the whole file with it.
+#.
+#. Main navigation
+msgid "News"
+msgstr "新闻"
+
+#. the tab is named for packs but what it builds is an instance, so it is named for that
+msgid "Create Pack"
+msgstr "创建实例"
+
+msgid "Packs"
+msgstr "整合包"
+
+msgid "Instances"
+msgstr "实例"
+
+msgid "Servers"
+msgstr "服务器"
+
+msgid "Accounts"
+msgstr "账户"
+
+msgid "Tools"
+msgstr "工具"
+
+msgid "Settings"
+msgstr "设置"
+
+msgid "About"
+msgstr "关于"
+
+#. Settings sections
+msgid "General"
+msgstr "常规"
+
+msgid "Java/Minecraft"
+msgstr "Java/Minecraft"
+
+msgid "Mods"
+msgstr "模组"
+
+msgid "Network"
+msgstr "网络"
+
+msgid "Logging"
+msgstr "日志"
+
+msgid "Backups"
+msgstr "备份"
+
+msgid "Commands"
+msgstr "命令"
+
+msgid "Environment Variables"
+msgstr "环境变量"
+
+#. Buttons and labels shared across the whole launcher
+msgid "Error"
+msgstr "错误"
+
+msgid "Warning"
+msgstr "警告"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Yes"
+msgstr "是"
+
+msgid "No"
+msgstr "否"
+
+msgid "Ok"
+msgstr "确定"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Add"
+msgstr "添加"
+
+msgid "Remove"
+msgstr "移除"
+
+msgid "Install"
+msgstr "安装"
+
+msgid "Reinstall"
+msgstr "重新安装"
+
+msgid "Search"
+msgstr "搜索"
+
+msgid "Help"
+msgstr "帮助"
+
+msgid "Browse"
+msgstr "浏览"
+
+msgid "Select"
+msgstr "选择"
+
+msgid "Reset"
+msgstr "重置"
+
+msgid "Copy"
+msgstr "复制"
+
+msgid "Launch"
+msgstr "启动"
+
+msgid "Backup"
+msgstr "备份"
+
+msgid "Name"
+msgstr "名称"
+
+msgid "Description"
+msgstr "描述"
+
+msgid "Website"
+msgstr "网站"
+
+msgid "Support"
+msgstr "支持"
+
+msgid "Downloading"
+msgstr "正在下载"
+
+msgid "Loading..."
+msgstr "正在加载…"
+
+msgid "Invalid!"
+msgstr "无效！"
+
+msgid "Clear"
+msgstr "清空"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "Disable"
+msgstr "禁用"
+
+msgid "Open Folder"
+msgstr "打开文件夹"
+
+msgid "Show In File Explorer"
+msgstr "在文件管理器中显示"
+
+msgid "License"
+msgstr "许可协议"
+
+msgid "Contributors"
+msgstr "贡献者"
+
+msgid "Third Party Libraries"
+msgstr "第三方库"
+
+#. Title bar and bottom bar
+msgid "Account"
+msgstr "账户"
+
+msgid "No Account Selected"
+msgstr "未选择账户"
+
+msgid "Show Console"
+msgstr "显示控制台"
+
+msgid "Hide Console"
+msgstr "隐藏控制台"
+
+msgid "Kill Minecraft"
+msgstr "强制结束 Minecraft"
+
+msgid "Copy Log"
+msgstr "复制日志"
+
+msgid "Upload Log"
+msgstr "上传日志"
+
+msgid "Uploading Logs"
+msgstr "正在上传日志"
+
+msgid "Failed to upload log"
+msgstr "日志上传失败"
+
+msgid "Check For Updates"
+msgstr "检查更新"
+
+msgid "Checking For Updates"
+msgstr "正在检查更新"
+
+msgid "No Updates Found"
+msgstr "未发现更新"
+
+msgid "No updates were found."
+msgstr "未发现可用更新。"
+
+#. Create Pack tab
+msgid "Create Instance"
+msgstr "创建实例"
+
+msgid "Create Server"
+msgstr "创建服务器"
+
+msgid "New Instance"
+msgstr "新建实例"
+
+msgid "Instance Name"
+msgstr "实例名称"
+
+msgid "Minecraft Version"
+msgstr "Minecraft 版本"
+
+msgid "Loader"
+msgstr "加载器"
+
+msgid "Loader Version"
+msgstr "加载器版本"
+
+msgid "Releases"
+msgstr "正式版"
+
+msgid "Snapshots"
+msgstr "快照版"
+
+msgid "Experiments"
+msgstr "实验性版本"
+
+msgid "Betas"
+msgstr "Beta 版"
+
+msgid "Alphas"
+msgstr "Alpha 版"
+
+msgid "None"
+msgstr "无"
+
+msgid "Use Launcher Default"
+msgstr "使用启动器默认设置"
+
+#. Strings taking a name, a version or a platform in {0}
+msgid "Installing {0}"
+msgstr "正在安装 {0}"
+
+msgid "Getting {0} Information"
+msgstr "正在获取 {0} 信息"
+
+msgid "{0} Version"
+msgstr "{0} 版本"
+
+msgid "{0} Installed"
+msgstr "{0} 已安装"
+
+msgid "Add {0}"
+msgstr "添加 {0}"
+
+msgid "Remove {0}"
+msgstr "移除 {0}"
+
+#. Batch 1 - launcher frame, tab chrome, tools
+msgid "Open Website"
+msgstr "打开网站"
+
+msgid "Are you sure you want to create a server?"
+msgstr "确定要创建服务器吗？"
+
+msgid "Creating a server won't allow you play Minecraft, it's for letting others play together.<br/><br/>If you just want to play Minecraft, you don't want to create a server, and instead will want to create an instance.<br/><br/>Are you sure you want to create a server?"
+msgstr "创建服务器并不能让你自己游玩 Minecraft，它的用途是让别人一起联机。<br/><br/>如果你只是想玩 Minecraft，那么你要的不是服务器，而是创建一个实例。<br/><br/>确定要创建服务器吗？"
+
+msgid "Are you sure you want to kill the Minecraft process?<br/><br/>Doing so can cause corruption of your saves."
+msgstr "确定要强制结束 Minecraft 进程吗？<br/><br/>这样做可能会损坏你的存档。"
+
+msgid "Open On {0}"
+msgstr "在 {0} 上打开"
+
+msgid "Open GitHub"
+msgstr "打开 GitHub"
+
+msgid "Open Discord"
+msgstr "打开 Discord"
+
+msgid "Open Mastodon"
+msgstr "打开 Mastodon"
+
+msgid "Open Facebook"
+msgstr "打开 Facebook"
+
+msgid "Open Twitter"
+msgstr "打开 Twitter"
+
+msgid "Open Instagram"
+msgstr "打开 Instagram"
+
+msgid "Open Patreon"
+msgstr "打开 Patreon"
+
+msgid "Open Twitch"
+msgstr "打开 Twitch"
+
+msgid "Open Reddit"
+msgstr "打开 Reddit"
+
+msgid "Open YouTube"
+msgstr "打开 YouTube"
+
+msgid "Open TikTok"
+msgstr "打开 TikTok"
+
+msgid "Open Pinterest"
+msgstr "打开 Pinterest"
+
+msgid "Open BlueSky"
+msgstr "打开 BlueSky"
+
+msgid "Open Issues"
+msgstr "打开问题反馈"
+
+msgid "Open Source Url"
+msgstr "打开源码地址"
+
+msgid "Open Wiki"
+msgstr "打开 Wiki"
+
+msgid "Donate ({0})"
+msgstr "捐助（{0}）"
+
+msgid "Reinstall From {0}"
+msgstr "从 {0} 重新安装"
+
+msgid "Check For Updates On {0}"
+msgstr "在 {0} 上检查更新"
+
+msgid "Visit Modpack Discord?"
+msgstr "访问整合包 Discord？"
+
+msgid "Would you like to open the Discord server for the last instance that crashed?"
+msgstr "是否打开上次崩溃的实例所属的 Discord 服务器？"
+
+msgid "Sort"
+msgstr "排序"
+
+msgid "Category"
+msgstr "分类"
+
+msgid "All Categories"
+msgstr "全部分类"
+
+msgid "Import"
+msgstr "导入"
+
+msgid "Version"
+msgstr "版本"
+
+msgid "Getting Loader Versions"
+msgstr "正在获取加载器版本"
+
+msgid "Type"
+msgstr "类型"
+
+msgid "{0} Console"
+msgstr "{0} 控制台"
+
+msgid "Sign In with Microsoft"
+msgstr "使用 Microsoft 账户登录"
+
+msgid "No accounts yet"
+msgstr "还没有账户"
+
+msgid "In order to login and use ATLauncher modpacks, you must authenticate with your existing Minecraft/Mojang account. You must own and have paid for the Minecraft Java edition (not the Windows 10 edition) and use the same login here.<br><br>If you don't have an existing account, you can get one <a href=\"https://atl.pw/create-account\">by buying Minecraft here</a>. ATLauncher doesn't work with cracked accounts."
+msgstr "要登录并使用 ATLauncher 的整合包，你需要用已有的 Minecraft/Mojang 账户进行验证。你必须拥有并已购买 Minecraft Java 版（不是 Windows 10 版），并在此使用同一个账户登录。<br><br>如果你还没有账户，可以<a href=\"https://atl.pw/create-account\">在此购买 Minecraft</a> 获取一个。ATLauncher 不支持盗版账户。"
+
+msgid "Are you sure you want to delete this account?"
+msgstr "确定要删除这个账户吗？"
+
+msgid "Refreshing Access Token For {0}"
+msgstr "正在刷新 {0} 的访问令牌"
+
+msgid "Access Token Refreshed"
+msgstr "访问令牌已刷新"
+
+msgid "Access token refreshed successfully"
+msgstr "访问令牌刷新成功"
+
+msgid "Failed To Refresh Access Token"
+msgstr "刷新访问令牌失败"
+
+msgid "Failed to refresh accessToken. Please login again."
+msgstr "刷新访问令牌失败，请重新登录。"
+
+msgid "Select Loader First"
+msgstr "请先选择加载器"
+
+msgid "{0} is a loader for servers that allow you to install and run plugins.<br/>You can't run mods with the {0} loader and can only be used on servers."
+msgstr "{0} 是一种服务器加载器，可以安装并运行插件。<br/>{0} 加载器不能运行模组，且只能用于服务器。"
+
+msgid "Released"
+msgstr "发布时间"
+
+msgid "There are no instances to display.<br/><br/>Install one from the Packs tab."
+msgstr "没有可显示的实例。<br/><br/>请到「整合包」标签页安装一个。"
+
+msgid "Loading news..."
+msgstr "正在加载新闻…"
+
+msgid "Add Manually"
+msgstr "手动添加"
+
+msgid "Minecraft"
+msgstr "Minecraft"
+
+msgid "Sort ascending"
+msgstr "升序排列"
+
+msgid "Sort descending"
+msgstr "降序排列"
+
+msgid "All Versions"
+msgstr "全部版本"
+
+msgid "Add Pack By ID/Slug/URL"
+msgstr "通过 ID/Slug/URL 添加整合包"
+
+msgid "Enter an ID/slug/url for a pack to add manually:"
+msgstr "输入要手动添加的整合包 ID/slug/url："
+
+msgid "There are no servers to display.<br/><br/>Install one from the Packs tab."
+msgstr "没有可显示的服务器。<br/><br/>请到「整合包」标签页安装一个。"
+
+msgid "Debug Mode"
+msgstr "调试模式"
+
+msgid "Use this to relaunch ATLauncher in debug mode. This can be used to get more debug logs in order to help diagnose issues with ATLauncher."
+msgstr "以调试模式重新启动 ATLauncher。这会输出更详细的调试日志，便于排查 ATLauncher 的问题。"
+
+msgid "Download Clearer"
+msgstr "下载缓存清理"
+
+msgid "This tool clears out all the downloads done by the launcher. This will not affect any instances, but means new pack installs may take longer as it needs to redownload mods."
+msgstr "清除启动器下载过的所有文件。这不会影响任何已有实例，但之后安装整合包时需要重新下载模组，会慢一些。"
+
+msgid "Success"
+msgstr "成功"
+
+msgid "Successfully cleared the downloads."
+msgstr "已清除下载的文件。"
+
+msgid "Libraries Deleter"
+msgstr "依赖库清理"
+
+msgid "This tool clears out all the libraries used by Minecraft. Instances may need to be reinstalled if launching them once doesn't download all libraries."
+msgstr "清除 Minecraft 使用的所有依赖库。如果启动一次仍未下载齐所有依赖库，实例可能需要重新安装。"
+
+msgid "Successfully deleted libraries."
+msgstr "已删除依赖库。"
+
+msgid "Log Clearer"
+msgstr "日志清理"
+
+msgid "This tool clears out all logs created by the launcher (not included those made by instances) to free up space and old junk."
+msgstr "清除启动器产生的所有日志（不含实例自身产生的日志），以释放空间、清理旧文件。"
+
+msgid "Successfully cleared the logs."
+msgstr "已清除日志。"
+
+msgid "Network Checker"
+msgstr "网络检测"
+
+msgid "This tool does various tests on your network and determines any issues that may pop up with connecting to our file servers and to other servers."
+msgstr "对你的网络进行多项测试，判断连接我们的文件服务器以及其他服务器时可能出现的问题。"
+
+msgid "Please note that the data from this tool is sent to ATLauncher so we can diagnose possible issues in your setup. This test may take up to 10 minutes or longer to complete and you will be unable to do anything while it's running. Please also keep in mind that this test will use some of your bandwidth, it will use approximately 100MB.<br/><br/>Do you wish to continue?"
+msgstr "请注意，本工具收集的数据会发送给 ATLauncher，以便我们诊断你的环境中可能存在的问题。测试最长可能需要 10 分钟甚至更久，运行期间你无法进行其他操作。另外请注意，测试会占用一部分带宽，约 100MB。<br/><br/>是否继续？"
+
+msgid "Network Checker Running. Please Wait!"
+msgstr "网络检测运行中，请稍候！"
+
+msgid "The network checker tool has completed and the data sent off to ATLauncher.<br/><br/>Thanks for your input to help understand and fix network related issues."
+msgstr "网络检测已完成，数据已发送给 ATLauncher。<br/><br/>感谢你的反馈，这有助于我们了解并修复网络相关的问题。"
+
+msgid "Skin Updater"
+msgstr "皮肤更新"
+
+msgid "This tool will update all your accounts skins on the launcher."
+msgstr "更新启动器中所有账户的皮肤。"
+
+msgid "Updating Skins. Please Wait!"
+msgstr "正在更新皮肤，请稍候！"
+
+msgid "Successfully updated skins."
+msgstr "已更新皮肤。"

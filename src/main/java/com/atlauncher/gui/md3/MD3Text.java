@@ -18,6 +18,7 @@
 package com.atlauncher.gui.md3;
 
 import java.awt.FontMetrics;
+import java.text.BreakIterator;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,41 +59,44 @@ public final class MD3Text {
             return "<html>" + escapeHtml(flat) + "</html>";
         }
 
+        // Splitting on spaces would take a Chinese sentence - which has none - for one long word,
+        // put the whole of it on the first line and truncate the rest away. BreakIterator gives the
+        // break opportunities the script actually has: between words in English, between characters
+        // in Chinese, and never before a mark like "。" that may not open a line.
+        BreakIterator breaks = BreakIterator.getLineInstance();
+        breaks.setText(flat);
+
         List<String> lines = new ArrayList<>();
-        StringBuilder line = new StringBuilder();
+        int lineStart = 0;
+        int lineEnd = 0;
+        int consumed = 0;
 
-        for (String word : flat.split(" ")) {
-            String candidate = line.length() == 0 ? word : line + " " + word;
-
-            // a word wider than the box still goes on its own line; it is truncated below rather
-            // than left to push the layout out
-            if (metrics.stringWidth(candidate) <= width || line.length() == 0) {
-                line.setLength(0);
-                line.append(candidate);
+        for (int end = breaks.following(0); end != BreakIterator.DONE; end = breaks.following(end)) {
+            // a run with no break opportunity inside it is wider than the box on its own; it still
+            // gets a line to itself and is truncated below rather than left to push the layout out
+            if (lineEnd == lineStart || metrics.stringWidth(flat.substring(lineStart, end).trim()) <= width) {
+                lineEnd = end;
 
                 continue;
             }
 
-            lines.add(line.toString());
-            line.setLength(0);
-            line.append(word);
+            lines.add(flat.substring(lineStart, lineEnd).trim());
+            consumed = lineEnd;
 
             if (lines.size() == maxLines) {
                 break;
             }
+
+            lineStart = lineEnd;
+            lineEnd = end;
         }
 
-        if (lines.size() < maxLines && line.length() > 0) {
-            lines.add(line.toString());
+        if (lines.size() < maxLines && lineEnd > lineStart) {
+            lines.add(flat.substring(lineStart, lineEnd).trim());
+            consumed = lineEnd;
         }
 
-        int used = 0;
-
-        for (String rendered : lines) {
-            used += rendered.length() + 1;
-        }
-
-        if (used < flat.length() && !lines.isEmpty()) {
+        if (consumed < flat.length() && !lines.isEmpty()) {
             int last = lines.size() - 1;
             lines.set(last, truncateToWidth(metrics, lines.get(last), width));
         }

@@ -145,6 +145,13 @@ public class GeneralSettingsViewModel implements SettingsListener {
         Language.setLanguage(language);
         App.settings.language = language;
         SettingsManager.post();
+
+        // Which face the launcher draws in is chosen for the language: a theme's own covers Latin
+        // and little else, so a language it cannot draw switches the UI to the platform's. That
+        // choice is made when fonts are installed, so changing the language has to ask for it
+        // again - otherwise the strings turn Chinese, the face stays Latin, and every character
+        // outside an HTML label comes out as an empty box. The setup dialog does the same.
+        App.THEME.updateUIFonts();
     }
 
     private void pushSelectedLanguage() {

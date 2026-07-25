@@ -218,6 +218,87 @@ gettext {
     }
 }
 
+/**
+ * Folds the extracted template down to one entry per string.
+ *
+ * The extractor emits an entry per call site, so "Cancel" lands in the template eleven times and
+ * "Error" twenty-one. Repeated msgids are not legal in a PO file - msgfmt rejects the file outright
+ * - and a translator handed one would be asked for the same string over and over. Duplicates are
+ * merged here, keeping every source reference so the entry still says where it is used.
+ *
+ * It also writes the header the extractor leaves out. Without a Content-Type the charset of a
+ * translation is undefined, which is how a finished zh-CN.po turns into mojibake.
+ *
+ * Upstream shells out to msguniq inside a Docker container for this (scripts/deduplicateTranslations).
+ * Doing it in the build keeps the template one `./gradlew` away on a machine with neither installed.
+ */
+tasks.register('deduplicateTranslations') {
+    description = 'Merges duplicate entries in the extracted template into build/gettext/launcher.pot'
+    group = 'i18n'
+
+    dependsOn 'generatePotTranslations'
+
+    def source = layout.buildDirectory.file('gettext/translations.pot')
+    def target = layout.buildDirectory.file('gettext/launcher.pot')
+
+    inputs.file(source)
+    outputs.file(target)
+
+    doLast {
+        def entries = new LinkedHashMap<String, Map<String, Set<String>>>()
+        def comments = new LinkedHashSet<String>()
+        def references = new LinkedHashSet<String>()
+        def total = 0
+
+        source.get().asFile.eachLine('UTF-8') { line ->
+            def text = line.trim()
+
+            if (text.startsWith('#.')) {
+                comments.add(text)
+            } else if (text.startsWith('#:')) {
+                references.add(text)
+            } else if (text.startsWith('msgid ')) {
+                // the whole line is the key, so escapes inside the string never have to be decoded
+                def entry = entries.get(text)
+
+                if (entry == null) {
+                    entry = [comments: new LinkedHashSet<String>(), references: new LinkedHashSet<String>()]
+                    entries.put(text, entry)
+                }
+
+                entry.comments.addAll(comments)
+                entry.references.addAll(references)
+                comments = new LinkedHashSet<String>()
+                references = new LinkedHashSet<String>()
+                total++
+            }
+        }
+
+        def out = new StringBuilder()
+
+        out.append('msgid ""\n')
+        out.append('msgstr ""\n')
+        out.append('"Project-Id-Version: ATLauncher ').append(project.version).append('\\n"\n')
+        out.append('"MIME-Version: 1.0\\n"\n')
+        out.append('"Content-Type: text/plain; charset=UTF-8\\n"\n')
+        out.append('"Content-Transfer-Encoding: 8bit\\n"\n')
+
+        entries.each { msgid, entry ->
+            out.append('\n')
+            entry.comments.each { out.append(it).append('\n') }
+            entry.references.each { out.append(it).append('\n') }
+            out.append(msgid).append('\n')
+            out.append('msgstr ""\n')
+        }
+
+        def file = target.get().asFile
+        file.parentFile.mkdirs()
+        file.setText(out.toString(), 'UTF-8')
+
+        logger.lifecycle("Wrote ${entries.size()} unique strings to ${file} (from ${total} call sites)")
+    }
+}
+
 license {
     header = project.file('LICENSEHEADER')
     include '**/*.java'
