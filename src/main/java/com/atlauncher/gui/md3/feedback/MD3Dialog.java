@@ -334,6 +334,7 @@ public class MD3Dialog extends JDialog {
         private String headline;
         private String supportingText;
         private JComponent content;
+        private int maxWidth = MAX_WIDTH;
 
         private Builder(Window owner) {
             this.owner = owner;
@@ -371,6 +372,22 @@ public class MD3Dialog extends JDialog {
         /** Arbitrary content between the supporting text and the actions - a form, a list. */
         public Builder content(JComponent content) {
             this.content = content;
+
+            return this;
+        }
+
+        /**
+         * Widens the dialog past the {@value #MAX_WIDTH}dp a basic dialog is held to.
+         *
+         * <p>
+         * That limit is the right one for a question - a line of text the eye can take in without
+         * tracking back - and the wrong one for a document. A dialog showing something to read
+         * rather than something to answer says so with this.
+         *
+         * @param maxWidth unscaled, as the tokens are
+         */
+        public Builder maxWidth(int maxWidth) {
+            this.maxWidth = maxWidth;
 
             return this;
         }
@@ -420,11 +437,13 @@ public class MD3Dialog extends JDialog {
      */
     private static final class DialogPanel extends JPanel {
         private final boolean rounded;
+        private final int maxWidth;
 
         DialogPanel(Builder builder, MD3Dialog dialog) {
             super(new BorderLayout());
 
             this.rounded = supportsRoundedCorners();
+            this.maxWidth = builder.maxWidth;
 
             setOpaque(false);
             setBorder(MD3Spacing.border(MD3Spacing.XL));
@@ -503,7 +522,7 @@ public class MD3Dialog extends JDialog {
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
 
-            size.width = Math.max(UIScale.scale(MIN_WIDTH), Math.min(size.width, UIScale.scale(MAX_WIDTH)));
+            size.width = Math.max(UIScale.scale(MIN_WIDTH), Math.min(size.width, UIScale.scale(maxWidth)));
 
             return size;
         }

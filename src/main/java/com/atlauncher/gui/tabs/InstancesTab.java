@@ -28,6 +28,7 @@ import com.atlauncher.gui.WheelScrollLayerUI;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.gui.tabs.instances.InstancesListPanel;
 import com.atlauncher.gui.tabs.instances.InstancesNavigationPanel;
+import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.viewmodel.base.IInstancesTabViewModel;
 import com.atlauncher.viewmodel.impl.InstancesTabViewModel;
@@ -68,6 +69,10 @@ public class InstancesTab extends HierarchyPanel implements Tab {
         instancesListPanel = new InstancesListPanel(this, viewModel);
 
         scrollPane = Utils.wrapInVerticalScroller(this.instancesListPanel, 16);
+        scrollPane.setBorder(null);
+        // the grid is only as tall as its rows, so the viewport shows through below the last one -
+        // and a viewport left to itself is FlatLaf's panel grey, not the Material surface
+        scrollPane.getViewport().setBackground(MD3Color.surface());
 
         this.add(new JLayer<>(scrollPane, new WheelScrollLayerUI()), BorderLayout.CENTER);
     }

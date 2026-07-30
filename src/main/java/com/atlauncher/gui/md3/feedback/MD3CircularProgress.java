@@ -33,6 +33,12 @@ import javax.swing.plaf.ProgressBarUI;
 public class MD3CircularProgress extends JProgressBar {
     public static final String UI_CLASS_ID = "MD3CircularProgressUI";
 
+    /** Client property holding an unscaled diameter, as an {@link Integer}. */
+    public static final String DIAMETER_KEY = "md3.progress.diameter";
+
+    /** The size of a spinner meant to sit inline on a toolbar line, beside label-sized text. */
+    public static final int INLINE_DIAMETER = 18;
+
     public MD3CircularProgress() {
         super();
 
@@ -47,6 +53,27 @@ public class MD3CircularProgress extends JProgressBar {
         progress.setIndeterminate(true);
 
         return progress;
+    }
+
+    /**
+     * A spinner small enough to stand beside a line of text rather than to fill a panel - for a
+     * page that is already showing its contents and is refreshing them.
+     */
+    public static MD3CircularProgress inline() {
+        MD3CircularProgress progress = indeterminate();
+        progress.setDiameter(INLINE_DIAMETER);
+
+        return progress;
+    }
+
+    /**
+     * @param diameter unscaled, as the tokens are; the ring keeps its proportion of it
+     */
+    public void setDiameter(int diameter) {
+        putClientProperty(DIAMETER_KEY, diameter);
+
+        revalidate();
+        repaint();
     }
 
     @Override

@@ -18,7 +18,6 @@
 package com.atlauncher.gui.tabs.packbrowser;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -37,6 +36,7 @@ import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3FilterChip;
 import com.atlauncher.gui.md3.input.MD3TextField;
+import com.atlauncher.gui.md3.nav.MD3TopAppBar;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.utils.ComboItem;
@@ -108,9 +108,11 @@ public final class PacksNavigationPanel extends JPanel implements Relocalization
         setBackground(MD3Color.surface());
         setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
 
-        add(buildLeading(), BorderLayout.WEST);
-        add(buildFilters(), BorderLayout.CENTER);
-        add(buildTrailing(), BorderLayout.EAST);
+        // the search box is 40dp and the filter chips are 32dp, so without this they sit on two
+        // different centre lines - a flow layout centres within its tallest child, not its container
+        add(MD3TopAppBar.centred(buildLeading()), BorderLayout.WEST);
+        add(MD3TopAppBar.centred(buildFilters()), BorderLayout.CENTER);
+        add(MD3TopAppBar.centred(buildTrailing()), BorderLayout.EAST);
 
         RelocalizationManager.addListener(this);
     }
@@ -159,8 +161,7 @@ public final class PacksNavigationPanel extends JPanel implements Relocalization
         JPanel trailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
         trailing.setOpaque(false);
 
-        int size = UIScale.scale(MD3Spacing.ICON_SIZE_LARGE);
-        loadingIndicator.setPreferredSize(new Dimension(size, size));
+        loadingIndicator.setDiameter(MD3Spacing.ICON_SIZE_LARGE);
         loadingIndicator.setVisible(false);
         loadingIndicator.setToolTipText(GetText.tr("Loading..."));
 

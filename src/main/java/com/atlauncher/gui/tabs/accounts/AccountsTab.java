@@ -40,6 +40,7 @@ import com.atlauncher.gui.card.AccountCard;
 import com.atlauncher.gui.dialogs.LoginWithMicrosoftDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.layouts.CardGridLayout;
+import com.atlauncher.gui.md3.nav.MD3TopAppBar;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.gui.tabs.Tab;
 import com.atlauncher.managers.DialogManager;
@@ -73,6 +74,12 @@ public class AccountsTab extends HierarchyPanel implements Tab {
 
     @Override
     protected void onShow() {
+        // the grid and its scroller are both transparent, so the page's own colour is what shows
+        // behind them - and left to itself that is FlatLaf's panel grey rather than the Material
+        // surface every other page sits on
+        setOpaque(true);
+        setBackground(MD3Color.surface());
+
         accounts = new JPanel(new CardGridLayout(AccountCard.CARD_WIDTH, AccountCard.MAX_CARD_WIDTH, MD3Spacing.L));
         accounts.setOpaque(false);
         accounts.setBorder(MD3Spacing.border(MD3Spacing.L));
@@ -94,6 +101,8 @@ public class AccountsTab extends HierarchyPanel implements Tab {
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setOpaque(true);
         toolbar.setBackground(MD3Color.surface());
+        // reads as the app bar's lower half, so it raises with it once the grid scrolls underneath
+        toolbar.putClientProperty(MD3TopAppBar.COMPANION_KEY, true);
         toolbar.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
 
         JPanel trailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(MD3Spacing.S), 0));

@@ -36,6 +36,7 @@ import javax.swing.text.html.HTMLDocument;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 
 import com.atlauncher.gui.md3.container.MD3Badge;
 
@@ -44,6 +45,7 @@ import org.mini2Dx.gettext.GetText;
 import com.atlauncher.App;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.UIConstants;
+import com.atlauncher.data.modrinth.ModrinthProject;
 import com.atlauncher.evnt.listener.RelocalizationListener;
 import com.atlauncher.evnt.manager.RelocalizationManager;
 import com.atlauncher.exceptions.InvalidPack;
@@ -59,7 +61,8 @@ import com.atlauncher.managers.InstanceManager;
 import com.atlauncher.managers.PackManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
-import com.atlauncher.utils.Markdown;
+import com.atlauncher.utils.CurseForgeApi;
+import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 
@@ -145,8 +148,55 @@ public class UnifiedPackCard extends MD3PackCard implements RelocalizationListen
 
         websiteButton.addActionListener(e -> OS.openWebBrowser(result.url()));
 
-        build(result.name(), cover, result.summary(), new ArrayList<>(), installButton,
+        setDescriptionLoader(descriptionLoaderFor(result));
+
+        build(result.name(), cover, descriptionOf(result), new ArrayList<>(), installButton,
                 createServerButton, websiteButton);
+    }
+
+    /**
+     * ATLauncher's own packs are already on disk, so their whole description is available now -
+     * which lets the dialog size itself to what it has instead of leaving room for a fetch.
+     */
+    private static String descriptionOf(UnifiedModPackResultsFragment result) {
+        if (result.platform() == ModPackPlatformType.ATLAUNCHER) {
+            try {
+                return PackManager.getPackByID(Integer.parseInt(result.id())).getDescription();
+            } catch (InvalidPack | NumberFormatException e) {
+                // fall through to whatever the search gave
+            }
+        }
+
+        return result.summary();
+    }
+
+    /**
+     * The unified search returns one summary line for the platforms it queries over the network, so
+     * the full description has to be fetched from wherever it lives.
+     *
+     * @return null for the platforms with no second place to look, which leaves the dialog showing
+     *         what the search already gave
+     */
+    private static Supplier<String> descriptionLoaderFor(UnifiedModPackResultsFragment result) {
+        if (result.platform() == ModPackPlatformType.CURSEFORGE) {
+            return () -> {
+                try {
+                    return CurseForgeApi.getProjectDescription(Integer.parseInt(result.id()));
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            };
+        }
+
+        if (result.platform() == ModPackPlatformType.MODRINTH) {
+            return () -> {
+                ModrinthProject project = ModrinthApi.getProject(result.id());
+
+                return project == null ? null : project.body;
+            };
+        }
+
+        return null;
     }
 
     @Override

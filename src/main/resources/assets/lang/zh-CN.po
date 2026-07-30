@@ -78,6 +78,12 @@ msgstr "警告"
 msgid "Cancel"
 msgstr "取消"
 
+msgid "Close"
+msgstr "关闭"
+
+msgid "More options"
+msgstr "更多选项"
+
 msgid "Yes"
 msgstr "是"
 

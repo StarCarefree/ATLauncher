@@ -18,6 +18,7 @@
 package com.atlauncher.gui.card.packbrowser;
 
 import java.awt.BorderLayout;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -25,9 +26,12 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Supplier;
 
 import javax.swing.AbstractButton;
 import javax.swing.Box;
@@ -35,12 +39,15 @@ import javax.swing.BoxLayout;
 import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingConstants;
 
 import org.mini2Dx.gettext.GetText;
 
+import com.atlauncher.builders.HTMLBuilder;
+import com.atlauncher.gui.dialogs.PackDescriptionDialog;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.MD3Menus;
@@ -86,12 +93,20 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
     /** Roughly two lines at body-small in a 280dp card. */
     private static final int DESCRIPTION_LIMIT = 84;
 
+    /** About a paragraph - enough to decide from, short of being a document in a tooltip. */
+    private static final int TOOLTIP_LIMIT = 320;
+
+    /** Characters per line in the tooltip, so it cannot come out as wide as its longest sentence. */
+    private static final int TOOLTIP_WRAP = 64;
+
     /** Marks a summary that was cut short of its character limit before it was even wrapped. */
     private static final String ELLIPSIS = "\u2026";
 
     private JPanel coverWrapper;
     private JLabel summary;
+    private String title;
     private String description;
+    private Supplier<String> descriptionLoader;
 
     /** Scaled; -1 until the grid has said how wide this card is. */
     private int layoutWidth = -1;
@@ -244,7 +259,7 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
         titleLabel.setToolTipText(title);
         body.add(titleLabel);
 
-        body.add(buildSummary(description));
+        body.add(buildSummary(title, description));
 
         if (badges != null && !badges.isEmpty()) {
             JPanel row = new JPanel(new WrapLayout(FlowLayout.LEFT, UIScale.scale(MD3Spacing.XS), 0));
@@ -273,10 +288,18 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
      * The block is always added, at a fixed two-line height, even for the platforms that return no
      * summary at all: without it those cards come out shorter than their neighbours and the grid
      * loses its baseline.
+     *
+     * <p>
+     * Where there is more description than two lines, the summary opens
+     * {@link PackDescriptionDialog}. A tooltip cannot be the answer to "what is this pack" - it was
+     * the answer here, carrying the whole raw description, and for a pack whose author wrote a
+     * README that meant a plain-text tooltip laid out at the width of its longest line, covering the
+     * window until the pointer moved.
      */
-    private JComponent buildSummary(String description) {
+    private JComponent buildSummary(String title, String description) {
         Font font = MD3Type.font(MD3Type.BODY_SMALL);
 
+        this.title = title;
         this.description = description;
         this.summary = new JLabel();
 
@@ -286,13 +309,55 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
         summary.setAlignmentX(LEFT_ALIGNMENT);
         summary.setVerticalAlignment(SwingConstants.TOP);
 
-        if (description != null && !description.trim().isEmpty()) {
-            summary.setToolTipText(description);
+        if (PackDescriptionDialog.hasSomethingToShow(description)) {
+            // a hint, at a width that reads - not the document, which has somewhere of its own now
+            summary.setToolTipText(previewOf(description));
+            summary.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            summary.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    if (e.getButton() == MouseEvent.BUTTON1) {
+                        showDescription();
+                    }
+                }
+            });
         }
 
         refreshSummary();
 
         return summary;
+    }
+
+    /**
+     * Points the description dialog at the whole description, for the platforms whose search results
+     * only carry a summary.
+     *
+     * <p>
+     * Call it before {@link #build}. Not a {@code build} parameter because four of the six platforms
+     * have nothing to fetch - they hand over everything they have in the search response - and the
+     * signature is long enough.
+     *
+     * @param loader called off the event thread, once, when the dialog is opened
+     */
+    protected void setDescriptionLoader(Supplier<String> loader) {
+        this.descriptionLoader = loader;
+    }
+
+    private void showDescription() {
+        PackDescriptionDialog.show(title, description, descriptionLoader);
+    }
+
+    /**
+     * The first couple of sentences, flattened and wrapped, for the tooltip.
+     *
+     * <p>
+     * Bounded on both axes on purpose: Swing lays a tooltip out at whatever size its content asks
+     * for and will happily make one larger than the screen.
+     */
+    private static String previewOf(String description) {
+        String flat = shorten(description, TOOLTIP_LIMIT);
+
+        return new HTMLBuilder().text(MD3Text.escapeHtml(flat)).split(TOOLTIP_WRAP).build();
     }
 
     /**
@@ -349,10 +414,24 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
             }
         }
 
-        if (!rest.isEmpty()) {
+        boolean describable = PackDescriptionDialog.hasSomethingToShow(description) || descriptionLoader != null;
+
+        if (!rest.isEmpty() || describable) {
             MD3IconButton more = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"));
             more.addActionListener(e -> {
                 JPopupMenu menu = new JPopupMenu();
+
+                // first, and separated from the actions: reading about a pack is what you do before
+                // deciding to do any of them, and it is the only one that changes nothing
+                if (describable) {
+                    JMenuItem describe = new JMenuItem(GetText.tr("Description"));
+                    describe.addActionListener(chosen -> showDescription());
+                    menu.add(describe);
+
+                    if (!rest.isEmpty()) {
+                        menu.addSeparator();
+                    }
+                }
 
                 for (AbstractButton button : rest) {
                     MD3Menus.addAction(menu, button);

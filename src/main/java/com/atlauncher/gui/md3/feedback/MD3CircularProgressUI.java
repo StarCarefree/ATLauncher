@@ -65,9 +65,31 @@ public class MD3CircularProgressUI extends BasicProgressBarUI {
         progressBar.setBorder(null);
     }
 
+    /**
+     * The unscaled diameter this spinner was asked for, or the default when it was not asked for
+     * anything.
+     */
+    private static int diameterOf(JComponent c) {
+        Object requested = c.getClientProperty(MD3CircularProgress.DIAMETER_KEY);
+
+        if (requested instanceof Integer && (Integer) requested > 0) {
+            return (Integer) requested;
+        }
+
+        return SIZE;
+    }
+
+    /**
+     * The stroke keeps its proportion of the diameter, so a spinner sized to sit on a toolbar line
+     * is a thinner ring rather than a small disc with a hole in it.
+     */
+    private static float strokeOf(JComponent c) {
+        return Math.max(UIScale.scale(1.5f), UIScale.scale(STROKE * diameterOf(c) / (float) SIZE));
+    }
+
     @Override
     public Dimension getPreferredSize(JComponent c) {
-        int size = UIScale.scale(SIZE);
+        int size = UIScale.scale(diameterOf(c));
 
         return new Dimension(size, size);
     }
@@ -83,7 +105,7 @@ public class MD3CircularProgressUI extends BasicProgressBarUI {
     }
 
     private Arc2D.Float arcOf(JComponent c, float start, float extent) {
-        float stroke = UIScale.scale((float) STROKE);
+        float stroke = strokeOf(c);
         float size = Math.min(c.getWidth(), c.getHeight()) - stroke;
         float x = (c.getWidth() - size) / 2f;
         float y = (c.getHeight() - size) / 2f;
@@ -96,8 +118,7 @@ public class MD3CircularProgressUI extends BasicProgressBarUI {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
-            float stroke = UIScale.scale((float) STROKE);
-            g2.setStroke(new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.setStroke(new BasicStroke(strokeOf(c), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
             int span = progressBar.getMaximum() - progressBar.getMinimum();
             float fraction = span <= 0 ? 0f
@@ -121,8 +142,7 @@ public class MD3CircularProgressUI extends BasicProgressBarUI {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
-            float stroke = UIScale.scale((float) STROKE);
-            g2.setStroke(new BasicStroke(stroke, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.setStroke(new BasicStroke(strokeOf(c), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
             int frameCount = Math.max(1, getFrameCount());
             float cycle = (getAnimationIndex() % frameCount) / (float) frameCount;

@@ -51,6 +51,7 @@ import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.InstanceManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
+import com.atlauncher.utils.CurseForgeApi;
 import com.atlauncher.utils.OS;
 
 public class CurseForgePackCard extends MD3PackCard implements RelocalizationListener {
@@ -120,6 +121,10 @@ public class CurseForgePackCard extends MD3PackCard implements RelocalizationLis
 
         List<MD3Badge> badges = new ArrayList<>();
         addDownloads(badges, project.downloadCount);
+
+        // a search result carries a one-line summary; the description itself is a separate request,
+        // so it is fetched only if the description is actually asked for
+        setDescriptionLoader(() -> CurseForgeApi.getProjectDescription(project.id));
 
         build(project.name, coverFromUrl(imageUrl), project.summary, badges, installButton, createServerButton,
                 websiteButton);

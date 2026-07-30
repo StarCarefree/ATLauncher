@@ -32,6 +32,7 @@ import java.util.Map;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 
 import com.atlauncher.App;
@@ -144,6 +145,10 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
         if (show) {
             LogManager.info("Showing Launcher");
             setVisible(true);
+
+            // the first navigation happens before the window is on screen, which is before any page
+            // has been asked to build itself - so there was nothing to follow at the time
+            trackPageScroll();
 
             addWindowListener(new WindowAdapter() {
                 @Override
@@ -328,10 +333,37 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
 
         Analytics.sendScreenView(tab.getAnalyticsScreenViewName());
         TabChangeManager.post(destination);
+
+        // after the post, not before: the pack browser attaches its scroller when it is told the
+        // launcher has arrived on its tab, so surveying the page any earlier finds nothing
+        trackPageScroll();
     }
 
     public int getSelectedDestination() {
         return selectedDestination;
+    }
+
+    /**
+     * Points the app bar at whatever the current page scrolls, so it raises itself once content has
+     * passed underneath it.
+     *
+     * <p>
+     * Has to be re-done rather than wired once: a page is a {@link com.atlauncher.gui.panels
+     * .HierarchyPanel}, which builds its contents when it is shown and discards them when it is
+     * not, so the scroll pane it had last time it was on screen is not the one it has now.
+     */
+    private void trackPageScroll() {
+        surveyPage();
+
+        // and again once this event has been dispatched, for the pages that finish assembling
+        // themselves on the event queue rather than in the call that showed them
+        SwingUtilities.invokeLater(this::surveyPage);
+    }
+
+    private void surveyPage() {
+        Tab tab = tabs.get(selectedDestination);
+
+        appBar.trackScroll(tab instanceof Component ? (Component) tab : null);
     }
 
     @Override
@@ -345,5 +377,8 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
         if (selected != null) {
             appBar.setTitle(selected.getTitle());
         }
+
+        // a re-localised page is torn down and rebuilt, taking its scroll pane with it
+        trackPageScroll();
     }
 }

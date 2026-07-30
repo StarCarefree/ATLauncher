@@ -177,6 +177,17 @@ public final class DialogManager {
             return this.parent;
         }
 
+        return parentWindow();
+    }
+
+    /**
+     * The window a dialog should belong to when the caller has not said.
+     *
+     * <p>
+     * Static because most callers are not building a {@link DialogManager} - anything showing its
+     * own dialog needs the same answer, and there should be one place that knows it.
+     */
+    public static Window parentWindow() {
         if (App.settings != null && App.launcher != null && App.launcher.getParent() != null) {
             return App.launcher.getParent();
         }

@@ -31,14 +31,15 @@ import com.atlauncher.evnt.listener.RelocalizationListener;
 import com.atlauncher.evnt.manager.RelocalizationManager;
 import com.atlauncher.gui.dialogs.ImportInstanceDialog;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.feedback.MD3CircularProgress;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3Chip;
+import com.atlauncher.gui.md3.nav.MD3TopAppBar;
 import com.atlauncher.gui.tabs.InstancesTab;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
-import com.atlauncher.utils.Utils;
 import com.atlauncher.utils.sort.InstanceSortingStrategies;
 import com.atlauncher.viewmodel.base.IInstancesTabViewModel;
 import com.formdev.flatlaf.util.UIScale;
@@ -58,7 +59,8 @@ public final class InstancesNavigationPanel extends JPanel implements Relocaliza
             MD3Icon.of(MD3Icons.DOWNLOAD));
     private final InstancesSearchField searchField;
     private final List<MD3Chip> sortChips = new ArrayList<>();
-    private final JLabel loadingLabel = new JLabel(Utils.getIconImage("/assets/image/loading-bars-small.gif"));
+    private final JLabel loadingLabel = new JLabel();
+    private final JPanel loadingIndicator = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(MD3Spacing.S), 0));
 
     /** Stops a chip's own deselection from cascading while the row is being re-synchronised. */
     private boolean syncingChips;
@@ -72,10 +74,15 @@ public final class InstancesNavigationPanel extends JPanel implements Relocaliza
         setOpaque(true);
         setBackground(MD3Color.surface());
         setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+        // this sits between the app bar and the content, so it is the app bar's lower half as far
+        // as the user is concerned and raises with it once the grid scrolls underneath
+        putClientProperty(MD3TopAppBar.COMPANION_KEY, true);
 
-        add(buildLeading(), BorderLayout.WEST);
-        add(buildSortChips(), BorderLayout.CENTER);
-        add(buildTrailing(tab), BorderLayout.EAST);
+        // the search box is 40dp and the sort chips are 32dp, so without this they sit on two
+        // different centre lines - a flow layout centres within its tallest child, not its container
+        add(MD3TopAppBar.centred(buildLeading()), BorderLayout.WEST);
+        add(MD3TopAppBar.centred(buildSortChips()), BorderLayout.CENTER);
+        add(MD3TopAppBar.centred(buildTrailing(tab)), BorderLayout.EAST);
 
         this.importButton.addActionListener(e -> new ImportInstanceDialog());
 
@@ -134,12 +141,19 @@ public final class InstancesNavigationPanel extends JPanel implements Relocaliza
         trailing.setOpaque(false);
 
         loadingLabel.setText(GetText.tr("Loading..."));
-        loadingLabel.setFont(MD3Type.font(MD3Type.LABEL_MEDIUM));
+        loadingLabel.setFont(MD3Type.font(MD3Type.LABEL_MEDIUM, loadingLabel.getText()));
         loadingLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.LABEL_MEDIUM);
         loadingLabel.setForeground(MD3Color.onSurfaceVariant());
-        tab.addDisposable(viewModel.getIsLoading().subscribe(loadingLabel::setVisible));
 
-        trailing.add(loadingLabel);
+        // the GIF this replaces was a fixed set of pixels in one colour, so it stayed that colour
+        // under all eighteen themes and the same physical size at every display scale
+        loadingIndicator.setOpaque(false);
+        loadingIndicator.add(MD3CircularProgress.inline());
+        loadingIndicator.add(loadingLabel);
+
+        tab.addDisposable(viewModel.getIsLoading().subscribe(loadingIndicator::setVisible));
+
+        trailing.add(loadingIndicator);
         trailing.add(importButton);
 
         return trailing;
@@ -149,7 +163,7 @@ public final class InstancesNavigationPanel extends JPanel implements Relocaliza
     public void onRelocalization() {
         importButton.setText(GetText.tr("Import"));
         loadingLabel.setText(GetText.tr("Loading..."));
-        searchField.putClientProperty("JTextField.placeholderText", GetText.tr("Search"));
+        searchField.setLabel(GetText.tr("Search"));
 
         InstanceSortingStrategies[] strategies = InstanceSortingStrategies.values();
 

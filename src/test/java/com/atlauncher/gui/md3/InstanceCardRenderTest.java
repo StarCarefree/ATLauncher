@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -48,9 +47,10 @@ import org.junit.jupiter.api.Test;
 import com.atlauncher.Gsons;
 import com.atlauncher.data.Instance;
 import com.atlauncher.gui.card.InstanceCard;
-import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.md3.container.MD3Badge;
 import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 
 /**
  * Builds real instance cards from real instance files and paints them.
@@ -117,7 +117,10 @@ public class InstanceCardRenderTest {
     }
 
     private JPanel buildGrid() throws Exception {
-        JPanel grid = new JPanel(new WrapLayout(FlowLayout.LEFT, 16, 16));
+        // the same layout the page uses - a flow layout places cards at their preferred width and
+        // leaves the remainder as a gutter down the trailing edge, which is what this replaced
+        JPanel grid = new JPanel(
+                new CardGridLayout(InstanceCard.CARD_WIDTH, InstanceCard.MAX_CARD_WIDTH, MD3Spacing.L));
         grid.setOpaque(true);
         grid.setBackground(MD3Color.surface());
         grid.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
@@ -167,6 +170,27 @@ public class InstanceCardRenderTest {
             assertEquals(width, card.getWidth(), "a card broke the grid's rhythm");
             assertTrue(card.getHeight() > 0, "a card has no height");
         }
+    }
+
+    /**
+     * The reason the page left {@code WrapLayout}: a flow layout places each card at its preferred
+     * width and leaves whatever does not divide evenly as a gutter down the right, which on a
+     * maximised window came to most of a card's width and read as a column having failed to load.
+     */
+    @Test
+    public void testTheGridReachesBothEdges() throws Exception {
+        JPanel grid = buildGrid();
+
+        int rightmost = 0;
+
+        for (Component card : grid.getComponents()) {
+            rightmost = Math.max(rightmost, card.getX() + card.getWidth());
+        }
+
+        int content = GRID_WIDTH - grid.getInsets().right;
+
+        assertTrue(content - rightmost <= grid.getComponentCount(),
+                "the grid left a " + (content - rightmost) + "px gutter down its trailing edge");
     }
 
     @Test

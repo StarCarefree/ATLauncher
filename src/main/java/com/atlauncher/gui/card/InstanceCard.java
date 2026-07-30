@@ -61,6 +61,7 @@ import com.atlauncher.gui.dialogs.EditModsDialog;
 import com.atlauncher.gui.dialogs.InstanceExportDialog;
 import com.atlauncher.gui.dialogs.InstanceSettingsDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
+import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.button.MD3IconButton;
@@ -99,8 +100,10 @@ import com.formdev.flatlaf.util.UIScale;
  * {@code setEditInstanceMenuItemVisbility} still decides which loader entries appear, and the menu
  * follows without knowing anything about loaders.
  */
-public class InstanceCard extends MD3Card implements RelocalizationListener {
-    private static final int CARD_WIDTH = 280;
+public class InstanceCard extends MD3Card implements RelocalizationListener, CardGridLayout.WidthAware {
+    public static final int CARD_WIDTH = 280;
+    public static final int MAX_CARD_WIDTH = 400;
+
     private static final int MAX_BADGES = 3;
     /** 16:9 against the card width. */
     private static final int COVER_HEIGHT = 158;
@@ -111,6 +114,10 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
     private JLabel subtitleLabel;
     private MD3Button playAction;
     private MD3IconButton overflowAction;
+    private JPanel coverWrapper;
+
+    /** Scaled; -1 until the grid has said how wide this card is. */
+    private int layoutWidth = -1;
 
     private final Instance instance;
     private final ImagePanel image;
@@ -275,6 +282,8 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
         cover.add(image, BorderLayout.CENTER);
         cover.setPreferredSize(new Dimension(UIScale.scale(CARD_WIDTH), UIScale.scale(COVER_HEIGHT)));
 
+        coverWrapper = cover;
+
         return cover;
     }
 
@@ -358,13 +367,31 @@ public class InstanceCard extends MD3Card implements RelocalizationListener {
     }
 
     /**
-     * Every card is the same width so the grid stays regular. Height follows the content, since a
-     * card with four badges genuinely needs a line more than one with none.
+     * The grid shares the leftover width out between the columns, so a card is told how wide it has
+     * ended up before it is asked how tall it needs to be - the cover art has a fixed aspect and its
+     * height follows from that.
+     */
+    @Override
+    public void setLayoutWidth(int width) {
+        if (width <= 0 || width == layoutWidth) {
+            return;
+        }
+
+        layoutWidth = width;
+
+        if (coverWrapper != null) {
+            coverWrapper.setPreferredSize(new Dimension(width, Math.round(width * 9f / 16f)));
+        }
+    }
+
+    /**
+     * Every card in a row is the same width so the grid stays regular. Height follows the content,
+     * since a card with four badges genuinely needs a line more than one with none.
      */
     @Override
     public Dimension getPreferredSize() {
         Dimension size = super.getPreferredSize();
-        size.width = UIScale.scale(CARD_WIDTH);
+        size.width = layoutWidth > 0 ? layoutWidth : UIScale.scale(CARD_WIDTH);
 
         return size;
     }

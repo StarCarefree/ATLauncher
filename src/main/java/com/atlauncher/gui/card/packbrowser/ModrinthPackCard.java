@@ -39,6 +39,7 @@ import org.mini2Dx.gettext.GetText;
 import com.atlauncher.App;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.UIConstants;
+import com.atlauncher.data.modrinth.ModrinthProject;
 import com.atlauncher.data.modrinth.ModrinthSearchHit;
 import com.atlauncher.evnt.listener.RelocalizationListener;
 import com.atlauncher.evnt.manager.RelocalizationManager;
@@ -49,6 +50,7 @@ import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.InstanceManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
+import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.OS;
 
 public class ModrinthPackCard extends MD3PackCard implements RelocalizationListener {
@@ -114,6 +116,14 @@ public class ModrinthPackCard extends MD3PackCard implements RelocalizationListe
 
         List<MD3Badge> badges = new ArrayList<>();
         addDownloads(badges, searchHit.downloads);
+
+        // a search hit carries a one-line description; the project's body is a separate request, so
+        // it is fetched only if the description is actually asked for
+        setDescriptionLoader(() -> {
+            ModrinthProject project = ModrinthApi.getProject(searchHit.projectId);
+
+            return project == null ? null : project.body;
+        });
 
         build(searchHit.title, coverFromUrl(imageUrl), searchHit.description, badges, installButton,
                 createServerButton, websiteButton);

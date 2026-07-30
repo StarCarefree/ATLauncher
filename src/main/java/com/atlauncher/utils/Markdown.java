@@ -46,6 +46,18 @@ public class Markdown {
     }
 
     public static String render(String text) {
+        return render(text, false);
+    }
+
+    /**
+     * @param preserveLineBreaks renders every newline as a break instead of joining the lines
+     *                           around it. Markdown treats a single newline as a space, which is
+     *                           right for a document whose paragraphs happen to be wrapped in the
+     *                           source and wrong for prose that was laid out by hand - a pack
+     *                           description that lists its links one per line comes out as one run
+     *                           of text with the addresses pushed together
+     */
+    public static String render(String text, boolean preserveLineBreaks) {
         if (text == null) {
             return "";
         }
@@ -56,6 +68,7 @@ public class Markdown {
         HtmlRenderer renderer = HtmlRenderer.builder()
                 .sanitizeUrls(true)
                 .escapeHtml(true)
+                .softbreak(preserveLineBreaks ? "<br />" : "\n")
                 .nodeRendererFactory(NoImageNodeRenderer::new)
                 .build();
 

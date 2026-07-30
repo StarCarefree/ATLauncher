@@ -52,6 +52,7 @@ import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.nav.MD3Tabs;
+import com.atlauncher.gui.md3.nav.MD3TopAppBar;
 import com.atlauncher.gui.panels.packbrowser.ATLauncherPacksPanel;
 import com.atlauncher.gui.panels.packbrowser.CurseForgePacksPanel;
 import com.atlauncher.gui.panels.packbrowser.FTBPacksPanel;
@@ -124,6 +125,12 @@ public final class PacksBrowserTab extends JPanel
                 MD3Spacing.L));
         contentPanel.setBorder(MD3Spacing.border(MD3Spacing.L));
 
+        // every other page's content sits on the Material surface; this one was left on FlatLaf's
+        // own panel colour, which is a lighter, untinted grey - so the launcher's second most used
+        // page had a slab behind its cards that matched neither its own header nor any other page
+        contentPanel.setOpaque(true);
+        contentPanel.setBackground(MD3Color.surface());
+
         // platform message panel
 
         platformMessageJPanel.setOpaque(true);
@@ -140,6 +147,10 @@ public final class PacksBrowserTab extends JPanel
         scrollPane = new JScrollPane(contentPanel, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
             JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setBorder(null);
+        // the viewport shows through wherever the grid does not reach - a short page, or the strip
+        // beside the last row - so it has to be the same surface as the grid
+        scrollPane.getViewport().setOpaque(true);
+        scrollPane.getViewport().setBackground(MD3Color.surface());
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         scrollPane.getVerticalScrollBar().addAdjustmentListener(e -> {
             PackBrowserPlatformPanel selectedPanel = getSelectedPanel();
@@ -207,6 +218,11 @@ public final class PacksBrowserTab extends JPanel
         header.setOpaque(false);
         header.add(platformTabs);
         header.add(navigationPanel);
+
+        // both bands read as the app bar's lower half, so they raise with it as the grid scrolls
+        // underneath - raising only the bar would leave the header in three tones
+        platformTabs.putClientProperty(MD3TopAppBar.COMPANION_KEY, true);
+        navigationPanel.putClientProperty(MD3TopAppBar.COMPANION_KEY, true);
 
         add(header, BorderLayout.NORTH);
         add(platformHost, BorderLayout.CENTER);
