@@ -437,6 +437,52 @@ public class ModrinthApi {
         return versions;
     }
 
+    /**
+     * The newest version of each of these files' projects that still runs here, in one request.
+     *
+     * <p>
+     * This is what makes checking a whole instance for mod updates affordable: the alternative is
+     * {@link #getVersions(String, String, LoaderVersion)} per mod, which on a large modpack is
+     * hundreds of round trips. Modrinth resolves each hash to its project and answers with the
+     * latest matching version for it, keyed by the hash that was sent.
+     *
+     * <p>
+     * Both filters are sent even when empty - the endpoint requires the fields, and an empty array
+     * is how it is told not to filter.
+     *
+     * @param hashes       sha1 of each installed file
+     * @param loaders      loader names, from {@code ModCompatibility.modrinthLoaders}
+     * @param gameVersions Minecraft versions to accept, or null for any
+     * @return the latest version per hash; never null, empty when nothing could be resolved
+     */
+    public static Map<String, ModrinthVersion> getLatestVersionsFromHashes(String[] hashes, List<String> loaders,
+        @Nullable List<String> gameVersions) {
+        if (hashes == null || hashes.length == 0) {
+            return new HashMap<>();
+        }
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("hashes", hashes);
+        body.put("algorithm", "sha1");
+        body.put("loaders", loaders == null ? new ArrayList<String>() : loaders);
+        body.put("game_versions", gameVersions == null ? new ArrayList<String>() : gameVersions);
+
+        java.lang.reflect.Type type = new TypeToken<Map<String, ModrinthVersion>>() {
+        }.getType();
+
+        Map<String, ModrinthVersion> versions = NetworkClient.post(
+            String.format("%s/version_files/update", Constants.MODRINTH_API_URL),
+            getHeaders(), RequestBody.create(Gsons.DEFAULT_SLIM.toJson(body),
+                MediaType.get("application/json; charset=utf-8")),
+            type);
+
+        if (versions == null) {
+            return new HashMap<>();
+        }
+
+        return versions;
+    }
+
     public static List<ModrinthProject> getProjects(String[] projectIds) {
         java.lang.reflect.Type type = new TypeToken<List<ModrinthProject>>() {
         }.getType();

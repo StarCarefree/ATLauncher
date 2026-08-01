@@ -1,6 +1,6 @@
 /*
  * ATLauncher - https://github.com/ATLauncher/ATLauncher
- * Copyright (C) 2013-2022 ATLauncher
+ * Copyright (C) 2013-2026 ATLauncher
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,74 +17,51 @@
  */
 package com.atlauncher.gui.card;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
-import javax.swing.border.EmptyBorder;
 
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.App;
 import com.atlauncher.data.ModManagement;
 import com.atlauncher.data.curseforge.CurseForgeAttachment;
 import com.atlauncher.data.curseforge.CurseForgeProject;
-import com.atlauncher.gui.borders.IconTitledBorder;
+import com.atlauncher.gui.card.packbrowser.MD3PackCard;
+import com.atlauncher.gui.md3.container.MD3Badge;
+import com.atlauncher.utils.CurseForgeApi;
 import com.atlauncher.utils.OS;
-import com.atlauncher.utils.Utils;
-import com.atlauncher.workers.BackgroundImageWorker;
 
-import com.formdev.flatlaf.util.UIScale;
-
-public final class CurseForgeProjectCard extends JPanel {
+/**
+ * One mod in the mod browser's grid, from CurseForge.
+ *
+ * <p>
+ * This and {@link ModrinthSearchHitCard} were the last two pre-Material cards in the launcher and
+ * were line for line the same as each other: a {@link javax.swing.JPanel} with a titled border in a
+ * hardcoded 12pt bold face, a fixed 250x180, a {@link javax.swing.JTextArea} for the summary and
+ * four plain buttons. They now share {@link MD3PackCard} with the six pack cards, which is what
+ * that class was extracted to be - a cover, a title, a summary, some badges and the actions.
+ *
+ * <p>
+ * They also threw away most of what the search response carries. The author and the download count
+ * were both fetched and then dropped on the floor; they are the card's badges now, because "who
+ * wrote this and do other people use it" is most of how a mod gets chosen.
+ */
+public final class CurseForgeProjectCard extends MD3PackCard {
     private final CurseForgeProject mod;
     private final ModManagement instanceOrServer;
 
     private final JButton addButton = new JButton(GetText.tr("Add"));
     private final JButton reinstallButton = new JButton(GetText.tr("Reinstall"));
     private final JButton removeButton = new JButton(GetText.tr("Remove"));
+    private final JButton viewButton = new JButton(GetText.tr("View"));
 
     public CurseForgeProjectCard(final CurseForgeProject mod, final ModManagement instanceOrServer,
-            ActionListener installAl,
-            ActionListener removeAl) {
-        setLayout(new BorderLayout());
-        setPreferredSize(UIScale.scale(new Dimension(250, 180)));
-
+            ActionListener installAl, ActionListener removeAl) {
         this.mod = mod;
         this.instanceOrServer = instanceOrServer;
-
-        JPanel summaryPanel = new JPanel(new BorderLayout());
-        JTextArea summary = new JTextArea();
-        summary.setText(mod.summary);
-        summary.setBorder(BorderFactory.createEmptyBorder(0, 5, 5, 5));
-        summary.setEditable(false);
-        summary.setHighlighter(null);
-        summary.setLineWrap(true);
-        summary.setWrapStyleWord(true);
-        summary.setEditable(false);
-
-        JLabel icon = new JLabel(Utils.getIconImage("/assets/image/no-icon.png"));
-        icon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
-        icon.setVisible(false);
-
-        summaryPanel.add(icon, BorderLayout.WEST);
-        summaryPanel.add(summary, BorderLayout.CENTER);
-        summaryPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
-
-        JPanel buttonsPanel = new JPanel(new FlowLayout());
-        JButton viewButton = new JButton(GetText.tr("View"));
-
-        buttonsPanel.add(addButton);
-        buttonsPanel.add(reinstallButton);
-        buttonsPanel.add(removeButton);
-        buttonsPanel.add(viewButton);
 
         addButton.addActionListener(e -> {
             installAl.actionPerformed(e);
@@ -97,26 +74,63 @@ public final class CurseForgeProjectCard extends JPanel {
         });
         viewButton.addActionListener(e -> OS.openWebBrowser(mod.getWebsiteUrl()));
 
-        add(summaryPanel, BorderLayout.CENTER);
-        add(buttonsPanel, BorderLayout.SOUTH);
+        // the search response only carries a one line summary, so the description dialog fetches
+        // the real thing when it is opened
+        setDescriptionLoader(() -> CurseForgeApi.getProjectDescription(mod.id));
 
-        Optional<CurseForgeAttachment> attachment = mod.getLogo();
-        attachment.ifPresent(
-                curseForgeAttachment -> new BackgroundImageWorker(icon, curseForgeAttachment.thumbnailUrl, 60, 60)
-                        .execute());
+        applyInstalledState();
 
-        updateInstalledStatus();
+        Optional<CurseForgeAttachment> logo = mod.getLogo();
+
+        build(mod.name, coverFromUrl(logo.isPresent() ? logo.get().thumbnailUrl : null), mod.summary, badges(),
+                primary(), overflow());
     }
 
     private void updateInstalledStatus() {
-        boolean alreadyInstalled = instanceOrServer == null ? false : instanceOrServer.getMods().stream()
+        applyInstalledState();
+
+        refreshActions(primary(), overflow());
+    }
+
+    private void applyInstalledState() {
+        boolean installed = isInstalled();
+
+        addButton.setVisible(!installed);
+        reinstallButton.setVisible(installed);
+        removeButton.setVisible(installed);
+    }
+
+    private boolean isInstalled() {
+        return instanceOrServer != null && instanceOrServer.getMods().stream()
                 .anyMatch(m -> m.isFromCurseForge() && m.curseForgeProjectId == mod.id);
+    }
 
-        addButton.setVisible(!alreadyInstalled);
-        reinstallButton.setVisible(alreadyInstalled);
-        removeButton.setVisible(alreadyInstalled);
+    /** Installed mods lead with reinstalling, since adding one twice is not a thing. */
+    private JButton primary() {
+        return isInstalled() ? reinstallButton : addButton;
+    }
 
-        setBorder(new IconTitledBorder(mod.name, App.THEME.getBoldFont().deriveFont(12f),
-                alreadyInstalled ? Utils.getIconImage(App.THEME.getResourcePath("image", "tick")) : null));
+    private JButton[] overflow() {
+        return isInstalled() ? new JButton[] { removeButton, viewButton } : new JButton[] { viewButton };
+    }
+
+    /**
+     * Two, not three: the card measures its badge row for one line, and a long author name plus a
+     * download count plus a category wraps onto a second one that is simply clipped off the bottom.
+     * Who wrote it and how many people use it are the two that decide a mod; its category is a chip
+     * in the toolbar above.
+     */
+    private List<MD3Badge> badges() {
+        List<MD3Badge> badges = new ArrayList<>();
+
+        if (mod.authors != null && !mod.authors.isEmpty() && mod.authors.get(0).name != null) {
+            badges.add(MD3Badge.neutral(mod.authors.get(0).name));
+        }
+
+        if (mod.downloadCount > 0) {
+            badges.add(MD3Badge.neutral(ModCardText.downloads(mod.downloadCount)));
+        }
+
+        return badges;
     }
 }

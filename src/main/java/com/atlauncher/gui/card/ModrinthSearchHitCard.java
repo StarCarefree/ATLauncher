@@ -1,6 +1,6 @@
 /*
  * ATLauncher - https://github.com/ATLauncher/ATLauncher
- * Copyright (C) 2013-2022 ATLauncher
+ * Copyright (C) 2013-2026 ATLauncher
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,72 +17,42 @@
  */
 package com.atlauncher.gui.card;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
 
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
-import javax.swing.border.EmptyBorder;
 
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.App;
 import com.atlauncher.data.ModManagement;
+import com.atlauncher.data.modrinth.ModrinthProject;
 import com.atlauncher.data.modrinth.ModrinthSearchHit;
-import com.atlauncher.gui.borders.IconTitledBorder;
+import com.atlauncher.gui.card.packbrowser.MD3PackCard;
+import com.atlauncher.gui.md3.container.MD3Badge;
+import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.OS;
-import com.atlauncher.utils.Utils;
-import com.atlauncher.workers.BackgroundImageWorker;
 
-import com.formdev.flatlaf.util.UIScale;
-
-public final class ModrinthSearchHitCard extends JPanel {
+/**
+ * One mod in the mod browser's grid, from Modrinth.
+ *
+ * <p>
+ * The twin of {@link CurseForgeProjectCard}; see its notes for what these two were and why they are
+ * now {@link MD3PackCard}s.
+ */
+public final class ModrinthSearchHitCard extends MD3PackCard {
     private final ModrinthSearchHit mod;
     private final ModManagement instanceOrServer;
 
     private final JButton addButton = new JButton(GetText.tr("Add"));
     private final JButton reinstallButton = new JButton(GetText.tr("Reinstall"));
     private final JButton removeButton = new JButton(GetText.tr("Remove"));
+    private final JButton viewButton = new JButton(GetText.tr("View"));
 
     public ModrinthSearchHitCard(final ModrinthSearchHit mod, final ModManagement instanceOrServer,
-            ActionListener installAl,
-            ActionListener removeAl) {
-        setLayout(new BorderLayout());
-        setPreferredSize(UIScale.scale(new Dimension(250, 180)));
-
+            ActionListener installAl, ActionListener removeAl) {
         this.mod = mod;
         this.instanceOrServer = instanceOrServer;
-
-        JPanel summaryPanel = new JPanel(new BorderLayout());
-        JTextArea summary = new JTextArea();
-        summary.setText(mod.description);
-        summary.setBorder(BorderFactory.createEmptyBorder(0, 5, 5, 5));
-        summary.setEditable(false);
-        summary.setHighlighter(null);
-        summary.setLineWrap(true);
-        summary.setWrapStyleWord(true);
-        summary.setEditable(false);
-
-        JLabel icon = new JLabel(Utils.getIconImage("/assets/image/no-icon.png"));
-        icon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
-        icon.setVisible(false);
-
-        summaryPanel.add(icon, BorderLayout.WEST);
-        summaryPanel.add(summary, BorderLayout.CENTER);
-        summaryPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
-
-        JPanel buttonsPanel = new JPanel(new FlowLayout());
-        JButton viewButton = new JButton(GetText.tr("View"));
-
-        buttonsPanel.add(addButton);
-        buttonsPanel.add(reinstallButton);
-        buttonsPanel.add(removeButton);
-        buttonsPanel.add(viewButton);
 
         addButton.addActionListener(e -> {
             installAl.actionPerformed(e);
@@ -95,26 +65,57 @@ public final class ModrinthSearchHitCard extends JPanel {
         });
         viewButton.addActionListener(e -> OS.openWebBrowser(String.format("https://modrinth.com/mod/%s", mod.slug)));
 
-        add(summaryPanel, BorderLayout.CENTER);
-        add(buttonsPanel, BorderLayout.SOUTH);
+        setDescriptionLoader(() -> {
+            ModrinthProject project = ModrinthApi.getProject(mod.projectId);
 
-        if (mod.iconUrl != null && !mod.iconUrl.isEmpty()) {
-            new BackgroundImageWorker(icon, mod.iconUrl, 60, 60).execute();
-        }
+            return project == null ? null : project.body;
+        });
 
-        updateInstalledStatus();
+        applyInstalledState();
+
+        build(mod.title, coverFromUrl(mod.iconUrl == null || mod.iconUrl.isEmpty() ? null : mod.iconUrl),
+                mod.description, badges(), primary(), overflow());
     }
 
     private void updateInstalledStatus() {
-        boolean alreadyInstalled = instanceOrServer == null ? false
-                : instanceOrServer.getMods().stream()
-                        .anyMatch(m -> m.isFromModrinth() && m.modrinthProject.id.equals(mod.projectId));
+        applyInstalledState();
 
-        addButton.setVisible(!alreadyInstalled);
-        reinstallButton.setVisible(alreadyInstalled);
-        removeButton.setVisible(alreadyInstalled);
+        refreshActions(primary(), overflow());
+    }
 
-        setBorder(new IconTitledBorder(mod.title, App.THEME.getBoldFont().deriveFont(12f),
-                alreadyInstalled ? Utils.getIconImage(App.THEME.getResourcePath("image", "tick")) : null));
+    private void applyInstalledState() {
+        boolean installed = isInstalled();
+
+        addButton.setVisible(!installed);
+        reinstallButton.setVisible(installed);
+        removeButton.setVisible(installed);
+    }
+
+    private boolean isInstalled() {
+        return instanceOrServer != null && instanceOrServer.getMods().stream()
+                .anyMatch(m -> m.isFromModrinth() && m.modrinthProject.id.equals(mod.projectId));
+    }
+
+    private JButton primary() {
+        return isInstalled() ? reinstallButton : addButton;
+    }
+
+    private JButton[] overflow() {
+        return isInstalled() ? new JButton[] { removeButton, viewButton } : new JButton[] { viewButton };
+    }
+
+    /** Two rather than three, for the reason given on {@link CurseForgeProjectCard}. */
+    private List<MD3Badge> badges() {
+        List<MD3Badge> badges = new ArrayList<>();
+
+        if (mod.author != null && !mod.author.isEmpty()) {
+            badges.add(MD3Badge.neutral(mod.author));
+        }
+
+        if (mod.downloads > 0) {
+            badges.add(MD3Badge.neutral(ModCardText.downloads(mod.downloads)));
+        }
+
+        return badges;
     }
 }

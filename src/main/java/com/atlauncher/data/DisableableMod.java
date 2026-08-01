@@ -24,11 +24,9 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.joda.time.format.ISODateTimeFormat;
@@ -42,17 +40,15 @@ import com.atlauncher.data.minecraft.MCMod;
 import com.atlauncher.data.modrinth.ModrinthDownloadMetadata;
 import com.atlauncher.data.modrinth.ModrinthProject;
 import com.atlauncher.data.modrinth.ModrinthVersion;
-import com.atlauncher.exceptions.InvalidMinecraftVersion;
 import com.atlauncher.gui.dialogs.CurseForgeProjectFileSelectorDialog;
 import com.atlauncher.gui.dialogs.ModrinthVersionSelectorDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
-import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.LogManager;
-import com.atlauncher.managers.MinecraftManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.utils.CurseForgeApi;
 import com.atlauncher.utils.FileUtils;
+import com.atlauncher.utils.ModCompatibility;
 import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.Pair;
 import com.atlauncher.utils.Utils;
@@ -239,6 +235,11 @@ public class DisableableMod implements Serializable {
         return this.file;
     }
 
+    /**
+     * @return whether the mod was moved back into place, matching {@link #disable}. It used to
+     *         return false however it went, so a caller could not tell a mod that had been enabled
+     *         from one whose file could not be moved
+     */
     public boolean enable(ModManagement instanceOrServer) {
         if (this.disabled) {
             if (!getFile(instanceOrServer).getParentFile().exists()) {
@@ -246,6 +247,8 @@ public class DisableableMod implements Serializable {
             }
             if (Utils.moveFile(getDisabledFile(instanceOrServer), getFile(instanceOrServer), true)) {
                 this.disabled = false;
+
+                return true;
             }
         }
         return false;
@@ -398,62 +401,14 @@ public class DisableableMod implements Serializable {
                     return;
                 }
 
+                List<String> versionsToMatch = ModCompatibility.minecraftVersionsToMatch(instanceOrServer);
+                boolean hasOwnLoaderFile = ModCompatibility.hasFileForOwnLoader(instanceOrServer, curseForgeFiles);
+
                 Stream<CurseForgeFile> curseForgeFilesStream = curseForgeFiles.stream()
-                        .sorted(Comparator.comparingInt((CurseForgeFile f) -> f.id).reversed());
-
-                if (App.settings.addModRestriction == AddModRestriction.STRICT) {
-                    curseForgeFilesStream = curseForgeFilesStream
-                            .filter(f -> f.gameVersions.contains(instanceOrServer.getMinecraftVersion()));
-                }
-
-                if (App.settings.addModRestriction == AddModRestriction.LAX) {
-                    try {
-                        List<String> minecraftVersionsToSearch = MinecraftManager
-                                .getMajorMinecraftVersions(instanceOrServer.getMinecraftVersion())
-                                .stream().map(mv -> mv.id).collect(Collectors.toList());
-
-                        curseForgeFilesStream = curseForgeFilesStream.filter(
-                                f -> f.gameVersions.stream()
-                                        .anyMatch(minecraftVersionsToSearch::contains));
-                    } catch (InvalidMinecraftVersion e) {
-                        LogManager.logStackTrace(e);
-                    }
-                }
-
-                List<String> neoForgeForgeCompatabilityVersions = ConfigManager
-                        .getConfigItem("loaders.neoforge.forgeCompatibleMinecraftVersions", new ArrayList<>());
-
-                // filter out files not for our loader
-                curseForgeFilesStream = curseForgeFilesStream.filter(cf -> {
-                    if (cf.gameVersions.contains("Fabric") && instanceOrServer.getLoaderVersion() != null
-                            && (instanceOrServer.getLoaderVersion().isFabric()
-                                    || instanceOrServer.getLoaderVersion().isLegacyFabric()
-                                    || instanceOrServer.getLoaderVersion().isQuilt())) {
-                        return true;
-                    }
-
-                    if (cf.gameVersions.contains("NeoForge") && instanceOrServer.getLoaderVersion() != null
-                            && instanceOrServer.getLoaderVersion().isNeoForge()) {
-                        return true;
-                    }
-
-                    if (cf.gameVersions.contains("Forge") && instanceOrServer.getLoaderVersion() != null
-                            && (instanceOrServer.getLoaderVersion().isForge()
-                                    || (instanceOrServer.getLoaderVersion().isNeoForge()
-                                            && neoForgeForgeCompatabilityVersions
-                                                    .contains(instanceOrServer.getMinecraftVersion())))) {
-                        return true;
-                    }
-
-                    if (cf.gameVersions.contains("Quilt") && instanceOrServer.getLoaderVersion() != null
-                            && instanceOrServer.getLoaderVersion().isQuilt()) {
-                        return true;
-                    }
-
-                    // if there's no loaders, assume the mod is untagged so we should show it
-                    return !cf.gameVersions.contains("Fabric") && !cf.gameVersions.contains("NeoForge")
-                            && !cf.gameVersions.contains("Forge") && !cf.gameVersions.contains("Quilt");
-                });
+                        .sorted(Comparator.comparingInt((CurseForgeFile f) -> f.id).reversed())
+                        .filter(f -> ModCompatibility.matchesMinecraftVersion(f.gameVersions, versionsToMatch))
+                        .filter(f -> ModCompatibility.matchesCurseForgeLoaderTags(f.gameVersions, instanceOrServer,
+                                hasOwnLoaderFile));
 
                 if (curseForgeFilesStream.noneMatch(f -> f.id > curseForgeFileId)) {
                     dialog.setReturnValue(false);

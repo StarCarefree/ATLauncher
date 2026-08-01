@@ -1002,3 +1002,114 @@ msgstr "代理所使用的连接类型，可选 HTTP、SOCKS 或 DIRECT。"
 
 msgid "Cannot connect to proxy. Please check the settings and try again."
 msgstr "无法连接到代理。请检查设置后重试。"
+
+#. Mod management - the mod list, its filters and the update panel
+msgid "Select All"
+msgstr "全选"
+
+msgid "Source"
+msgstr "来源"
+
+msgid "Status"
+msgstr "状态"
+
+msgid "All Types"
+msgstr "全部类型"
+
+msgid "All Sources"
+msgstr "全部来源"
+
+msgid "Added Manually"
+msgstr "手动添加"
+
+msgid "Any Status"
+msgstr "任意状态"
+
+msgid "Update Available"
+msgstr "有可用更新"
+
+msgid "Update"
+msgstr "更新"
+
+msgid "Resource Packs"
+msgstr "资源包"
+
+msgid "Shaders"
+msgstr "光影"
+
+msgid "Data Packs"
+msgstr "数据包"
+
+msgid "Plugins"
+msgstr "插件"
+
+msgid "Mod Updates"
+msgstr "模组更新"
+
+#. {0} is the number of mods that have an update available
+msgid "{0} of the mods in this instance have a newer version."
+msgstr "本实例中有 {0} 个模组存在更新版本。"
+
+msgid "Update Selected"
+msgstr "更新所选"
+
+msgid "Updating Mods"
+msgstr "正在更新模组"
+
+#. {0} is the currently installed version, {1} is the version being updated to
+msgid "{0} to {1}"
+msgstr "{0} → {1}"
+
+msgid "Every mod that can be checked is already up to date."
+msgstr "所有可检查的模组均已是最新版本。"
+
+msgid "Beta"
+msgstr "测试版"
+
+msgid "Alpha"
+msgstr "内测版"
+
+msgid "Delete Mod?"
+msgstr "删除模组？"
+
+#. {0} is the name of the mod being deleted
+msgid "This will delete {0} from the instance.<br/><br/>Are you sure you want to do this?"
+msgstr "这将从实例中删除 {0}。<br/><br/>确定要这样做吗？"
+
+#. {0} is the number of mods that were removed
+msgid "{0} Mods Removed"
+msgstr "已删除 {0} 个模组"
+
+#. Mod browser - cards, paging and dependencies
+msgid "View"
+msgstr "查看"
+
+#. {0} is a rounded number of downloads, in millions - eg 1.2M
+msgid "{0}M downloads"
+msgstr "{0} 百万次下载"
+
+#. {0} is a rounded number of downloads, in thousands - eg 345K
+msgid "{0}K downloads"
+msgstr "{0} 千次下载"
+
+#. {0} is a number of downloads
+msgid "{0} downloads"
+msgstr "{0} 次下载"
+
+#. {0} is the page number, {1} is the total number of search results
+msgid "Page {0} · {1} results"
+msgstr "第 {0} 页 · 共 {1} 个结果"
+
+#. {0} is the page number
+msgid "Page {0}"
+msgstr "第 {0} 页"
+
+msgid "Install All Required"
+msgstr "安装全部必需依赖"
+
+msgid "Installing Dependencies"
+msgstr "正在安装依赖"
+
+#. {0} is the mod being installed, {1} is which one it is, {2} is how many there are
+msgid "Installing {0} ({1} of {2})"
+msgstr "正在安装 {0}（第 {1} 个，共 {2} 个）"

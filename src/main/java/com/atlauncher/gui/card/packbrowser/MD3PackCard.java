@@ -103,6 +103,7 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
     private static final String ELLIPSIS = "\u2026";
 
     private JPanel coverWrapper;
+    private JPanel actionsHolder;
     private JLabel summary;
     private String title;
     private String description;
@@ -274,9 +275,34 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
             body.add(row);
         }
 
-        body.add(buildActions(primary, overflow));
+        actionsHolder = new JPanel(new BorderLayout());
+        actionsHolder.setOpaque(false);
+        actionsHolder.setAlignmentX(LEFT_ALIGNMENT);
+        actionsHolder.add(buildActions(primary, overflow), BorderLayout.CENTER);
+
+        body.add(actionsHolder);
 
         return body;
+    }
+
+    /**
+     * Rebuilds the action row against state that has just changed.
+     *
+     * <p>
+     * The mod browser needs this: a card offers "Add" until the mod is installed and "Remove" once
+     * it is, and the install happens in a dialog the card opened. Without it the card would go on
+     * offering to add something the user has just added, until the whole grid was reloaded - which
+     * means another search request for a change the launcher already knows about.
+     */
+    protected void refreshActions(AbstractButton primary, AbstractButton... overflow) {
+        if (actionsHolder == null) {
+            return;
+        }
+
+        actionsHolder.removeAll();
+        actionsHolder.add(buildActions(primary, overflow), BorderLayout.CENTER);
+        actionsHolder.revalidate();
+        actionsHolder.repaint();
     }
 
     /**

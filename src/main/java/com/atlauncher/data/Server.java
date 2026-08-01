@@ -95,6 +95,7 @@ import com.atlauncher.utils.ArchiveUtils;
 import com.atlauncher.utils.CurseForgeApi;
 import com.atlauncher.utils.FileUtils;
 import com.atlauncher.utils.Hashing;
+import com.atlauncher.utils.ModFingerprinter;
 import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
@@ -1180,145 +1181,8 @@ public class Server implements ModManagement {
                     })
                     .collect(Collectors.toList());
 
-                if (!App.settings.dontCheckModsOnCurseForge) {
-                    Map<Long, DisableableMod> murmurHashes = new HashMap<>();
-
-                    allMods.stream()
-                        .filter(dm -> dm.curseForgeProject == null && dm.curseForgeFile == null)
-                        .filter(dm -> dm.getFile(ROOT, version) != null).forEach(dm -> {
-                            try {
-                                long murmurHash = Hashing
-                                    .murmur(dm.disabled ? dm.getDisabledFile(this).toPath()
-                                        : dm
-                                            .getFile(ROOT, version).toPath());
-                                murmurHashes.put(murmurHash, dm);
-                            } catch (IOException e) {
-                                LogManager.logStackTrace(e);
-                            }
-                        });
-
-                    if (!murmurHashes.isEmpty()) {
-                        CurseForgeFingerprint fingerprintResponse = CurseForgeApi
-                            .checkFingerprints(murmurHashes.keySet().stream().toArray(Long[]::new));
-
-                        if (fingerprintResponse != null && fingerprintResponse.exactMatches != null) {
-                            int[] projectIdsFound = fingerprintResponse.exactMatches.stream().mapToInt(em -> em.id)
-                                .toArray();
-
-                            if (projectIdsFound.length != 0) {
-                                Map<Integer, CurseForgeProject> foundProjects = CurseForgeApi
-                                    .getProjectsAsMap(projectIdsFound);
-
-                                if (foundProjects != null) {
-                                    fingerprintResponse.exactMatches.stream()
-                                        .filter(em -> em != null && em.file != null
-                                            && murmurHashes.containsKey(em.file.packageFingerprint))
-                                        .forEach(foundMod -> {
-                                            DisableableMod dm = murmurHashes
-                                                .get(foundMod.file.packageFingerprint);
-
-                                            CurseForgeProject cfProject = foundProjects
-                                                .get(foundMod.id);
-
-                                            if (cfProject != null && cfProject.status == 4) {
-                                                dm.curseForgeProjectId = foundMod.id;
-                                                dm.curseForgeFile = foundMod.file;
-                                                dm.curseForgeFileId = foundMod.file.id;
-                                                dm.curseForgeProject = cfProject;
-                                                dm.name = cfProject.name;
-                                                dm.description = cfProject.summary;
-
-                                                LogManager.debug("Found matching mod from CurseForge called "
-                                                    + dm.curseForgeFile.displayName);
-                                            }
-
-                                            // reset if the file is not approved
-                                            if (cfProject != null && cfProject.status != 4) {
-                                                dm.curseForgeProjectId = null;
-                                                dm.curseForgeFile = null;
-                                                dm.curseForgeFileId = null;
-                                                dm.curseForgeProject = null;
-
-                                                File path = dm.getFile(this);
-                                                MCMod mcMod = Utils.getMCModForFile(path);
-                                                if (mcMod != null) {
-                                                    dm.name = Optional.ofNullable(mcMod.name)
-                                                        .orElse(path.getName());
-                                                    dm.description = mcMod.description;
-                                                } else {
-                                                    FabricMod fabricMod = Utils.getFabricModForFile(path);
-                                                    if (fabricMod != null) {
-                                                        dm.name = Optional.ofNullable(fabricMod.name)
-                                                            .orElse(path.getName());
-                                                        dm.description = fabricMod.description;
-                                                    }
-                                                }
-                                            }
-                                        });
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (!App.settings.dontCheckModsOnModrinth) {
-                    Map<String, DisableableMod> sha1Hashes = new HashMap<>();
-
-                    allMods.stream()
-                        .filter(dm -> dm.modrinthProject == null && dm.modrinthVersion == null)
-                        .filter(dm -> dm.getFile(ROOT, version) != null).forEach(dm -> {
-                            try {
-                                sha1Hashes.put(Hashing
-                                    .sha1(dm.disabled ? dm.getDisabledFile(this).toPath()
-                                        : dm
-                                            .getFile(ROOT, version).toPath())
-                                    .toString(), dm);
-                            } catch (Throwable t) {
-                                LogManager.logStackTrace(t);
-                            }
-                        });
-
-                    if (!sha1Hashes.isEmpty()) {
-                        Set<String> keys = sha1Hashes.keySet();
-                        Map<String, ModrinthVersion> modrinthVersions = ModrinthApi
-                            .getVersionsFromSha1Hashes(keys.toArray(new String[0]));
-
-                        if (modrinthVersions != null && !modrinthVersions.isEmpty()) {
-                            String[] projectIdsFound = modrinthVersions.values().stream().map(mv -> mv.projectId)
-                                .toArray(String[]::new);
-
-                            if (projectIdsFound.length != 0) {
-                                Map<String, ModrinthProject> foundProjects = ModrinthApi
-                                    .getProjectsAsMap(projectIdsFound);
-
-                                if (foundProjects != null) {
-                                    for (Map.Entry<String, ModrinthVersion> entry : modrinthVersions.entrySet()) {
-                                        ModrinthVersion mrVersion = entry.getValue();
-                                        ModrinthProject mrProject = foundProjects.get(mrVersion.projectId);
-
-                                        if (mrProject != null) {
-                                            DisableableMod dm = sha1Hashes.get(entry.getKey());
-
-                                            // add Modrinth information
-                                            dm.modrinthProject = mrProject;
-                                            dm.modrinthVersion = mrVersion;
-
-                                            if (!dm.isFromCurseForge()
-                                                || App.settings.defaultModPlatform == ModPlatform.MODRINTH) {
-                                                dm.name = mrProject.title;
-                                                dm.description = mrProject.description;
-                                            }
-
-                                            LogManager.debug(String.format(
-                                                "Found matching mod from Modrinth called %s with file %s",
-                                                mrProject.title, mrVersion.name));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                // the fourth copy of the same hashing and lookups, now shared
+                ModFingerprinter.identify(allMods, this, true);
 
                 allMods.forEach(mod -> LogManager.info("Found extra mod with name of " + mod.file));
                 mods.addAll(allMods);

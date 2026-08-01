@@ -41,7 +41,6 @@ import com.atlauncher.gui.dialogs.EditModsDialog;
 import com.atlauncher.gui.dialogs.ModsChooser;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.OS;
-import com.atlauncher.utils.Utils;
 
 /**
  * This class extends {@link JCheckBox} and overrides the need to use JCheckBox
@@ -325,10 +324,22 @@ public class ModsJCheckBox extends JCheckBox {
 
         JMenuItem remove = new JMenuItem(GetText.tr("Remove"));
         remove.addActionListener(e -> {
-            dialog.instanceOrServer.getMods().remove(getDisableableMod());
-            Utils.delete(
-                    (getDisableableMod().isDisabled() ? getDisableableMod().getDisabledFile(dialog.instanceOrServer)
-                            : getDisableableMod().getFile(dialog.instanceOrServer)));
+            // deleting from here used to happen the moment it was clicked, with no confirmation -
+            // unlike "Remove Selected" two pixels away, which has always asked
+            int ret = DialogManager.yesNoDialog(false)
+                    .setTitle(GetText.tr("Delete Mod?"))
+                    // #. {0} is the name of the mod being deleted
+                    .setContent(new HTMLBuilder().center()
+                            .text(GetText.tr("This will delete {0} from the instance.<br/><br/>"
+                                    + "Are you sure you want to do this?", getDisableableMod().getName()))
+                            .build())
+                    .setType(DialogManager.WARNING).show();
+
+            if (ret != 0) {
+                return;
+            }
+
+            dialog.instanceOrServer.removeMod(getDisableableMod());
 
             dialog.reloadPanels();
         });

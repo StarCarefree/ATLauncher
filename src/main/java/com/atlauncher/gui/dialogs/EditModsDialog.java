@@ -18,6 +18,7 @@
 package com.atlauncher.gui.dialogs;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -25,13 +26,11 @@ import java.awt.event.ItemEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,7 +43,10 @@ import javax.swing.JLabel;
 import javax.swing.JLayer;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.Timer;
 import javax.swing.UIManager;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -53,36 +55,46 @@ import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.data.DisableableMod;
 import com.atlauncher.data.Instance;
 import com.atlauncher.data.ModManagement;
+import com.atlauncher.data.ModUpdate;
 import com.atlauncher.data.Server;
-import com.atlauncher.data.curseforge.CurseForgeFingerprint;
-import com.atlauncher.data.curseforge.CurseForgeProject;
-import com.atlauncher.data.minecraft.FabricMod;
-import com.atlauncher.data.minecraft.MCMod;
-import com.atlauncher.data.modrinth.ModrinthProject;
-import com.atlauncher.data.modrinth.ModrinthVersion;
 import com.atlauncher.gui.WheelScrollLayerUI;
+import com.atlauncher.gui.components.ModRow;
 import com.atlauncher.gui.components.ModsJCheckBox;
 import com.atlauncher.gui.handlers.ModsJCheckBoxTransferHandler;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.input.MD3FilterChip;
+import com.atlauncher.gui.md3.input.MD3TextField;
+import com.atlauncher.gui.md3.nav.MD3TopAppBar;
 import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
+import com.atlauncher.managers.ModUpdateManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
-import com.atlauncher.utils.CurseForgeApi;
-import com.atlauncher.utils.FileUtils;
-import com.atlauncher.utils.Hashing;
-import com.atlauncher.utils.ModrinthApi;
+import com.atlauncher.utils.ComboItem;
+import com.atlauncher.utils.ModFingerprinter;
 import com.atlauncher.utils.Utils;
 
 import com.formdev.flatlaf.util.UIScale;
 
 public class EditModsDialog extends JDialog {
     private static final long serialVersionUID = 7004414192679481818L;
+
+    /** How long typing has to stop for before the lists are filtered. */
+    private static final int SETTLE_MS = 250;
+
+    /** Wide enough for a mod name, and no wider - the chips need the rest of the row. */
+    private static final int SEARCH_COLUMNS = 16;
+
+    private static final String SOURCE_CURSEFORGE = "curseforge";
+    private static final String SOURCE_MODRINTH = "modrinth";
+    private static final String SOURCE_MANUAL = "manual";
+    private static final String UPDATABLE = "updatable";
 
     public final ModManagement instanceOrServer;
 
@@ -95,6 +107,19 @@ public class EditModsDialog extends JDialog {
     private MD3Button refreshMetadataButton;
     private JCheckBox selectAllEnabledModsCheckbox, selectAllDisabledModsCheckbox;
     private ArrayList<ModsJCheckBox> enabledMods, disabledMods;
+
+    private MD3TextField searchField;
+
+    /**
+     * Keyed on the group's own name rather than on {@code com.atlauncher.data.Type}: this dialog is
+     * a {@link java.awt.Window}, whose inherited {@code Window.Type} shadows the import, and the
+     * grouping is coarser than the enum anyway - a texture pack and a resource pack are one row of
+     * the filter.
+     */
+    private MD3FilterChip<String> typeChip;
+    private MD3FilterChip<String> sourceChip;
+    private MD3FilterChip<String> statusChip;
+    private Timer settle;
 
     public EditModsDialog(Instance instance) {
         super(App.launcher.getParent(),
@@ -177,7 +202,12 @@ public class EditModsDialog extends JDialog {
         columns.add(buildColumn(GetText.tr("Enabled Mods"), selectAllEnabledModsCheckbox, enabledModsPanel));
         columns.add(buildColumn(GetText.tr("Disabled Mods"), selectAllDisabledModsCheckbox, disabledModsPanel));
 
-        add(columns, BorderLayout.CENTER);
+        JPanel centre = new JPanel(new BorderLayout());
+        centre.setOpaque(false);
+        centre.add(buildToolbar(), BorderLayout.NORTH);
+        centre.add(columns, BorderLayout.CENTER);
+
+        add(centre, BorderLayout.CENTER);
 
         // left aligned, because this is a toolbar rather than an action bar - there is nothing to
         // confirm here, the dialog is closed by its window control and every change is already made
@@ -335,6 +365,165 @@ public class EditModsDialog extends JDialog {
     }
 
     /**
+     * Search and the three facets, above both lists and filtering them together.
+     *
+     * <p>
+     * There was nothing here at all: two lists of ticks, and a modpack with four hundred mods in it
+     * gave you a scrollbar and your own eyes. Every other list in the launcher had picked up a
+     * search box by now.
+     *
+     * <p>
+     * Each slot is centred in its own wrapper because {@link FlowLayout} centres its children
+     * within the tallest one in the row, not within the container - so 32dp chips beside a 40dp
+     * search box sit four pixels high otherwise. Every other toolbar in the launcher hit this.
+     */
+    private JComponent buildToolbar() {
+        searchField = MD3TextField.search(GetText.tr("Search"));
+        searchField.setName("editModsSearchField");
+        searchField.setColumns(SEARCH_COLUMNS);
+        searchField.setLeadingIcon(MD3Icons.SEARCH);
+        searchField.putClientProperty("JTextField.showClearButton", true);
+        searchField.putClientProperty("JTextField.clearCallback", (Runnable) () -> {
+            searchField.setText("");
+            applyFilters();
+        });
+
+        // filters as you type rather than on Enter: the mods are already in memory, so there was
+        // never anything to wait for. The settle is what keeps a rebuild off every keystroke
+        settle = new Timer(SETTLE_MS, e -> applyFilters());
+        settle.setRepeats(false);
+
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                settle.restart();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                settle.restart();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                settle.restart();
+            }
+        });
+
+        searchField.addActionListener(e -> {
+            settle.stop();
+            applyFilters();
+        });
+
+        typeChip = new MD3FilterChip<>(GetText.tr("Type"), true, this::applyFilters);
+        sourceChip = new MD3FilterChip<>(GetText.tr("Source"), true, this::applyFilters);
+        statusChip = new MD3FilterChip<>(GetText.tr("Status"), true, this::applyFilters);
+
+        populateFilterOptions();
+
+        JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S), 0));
+        filters.setOpaque(false);
+        filters.setBorder(MD3Spacing.border(0, MD3Spacing.M, 0, 0));
+        filters.add(MD3TopAppBar.centred(typeChip.getChip()));
+        filters.add(MD3TopAppBar.centred(sourceChip.getChip()));
+        filters.add(MD3TopAppBar.centred(statusChip.getChip()));
+
+        JPanel leading = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        leading.setOpaque(false);
+        leading.add(MD3TopAppBar.centred(searchField));
+
+        JPanel toolbar = new JPanel(new BorderLayout());
+        toolbar.setOpaque(false);
+        toolbar.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L, 0, MD3Spacing.L));
+        toolbar.add(leading, BorderLayout.WEST);
+        toolbar.add(filters, BorderLayout.CENTER);
+
+        return toolbar;
+    }
+
+    /**
+     * The facets, built from what this instance actually holds - a pack with no shaders in it does
+     * not need to be told it can filter by them.
+     */
+    private void populateFilterOptions() {
+        List<ComboItem<String>> types = new ArrayList<>();
+        types.add(new ComboItem<>(null, GetText.tr("All Types")));
+
+        List<String> seen = new ArrayList<>();
+
+        for (DisableableMod mod : instanceOrServer.getMods()) {
+            if (!mod.wasSelected() || mod.skipped || mod.type == com.atlauncher.data.Type.worlds) {
+                continue;
+            }
+
+            String name = ModRow.nameFor(mod.type);
+
+            if (!seen.contains(name)) {
+                seen.add(name);
+                types.add(new ComboItem<>(name, name));
+            }
+        }
+
+        typeChip.setOptions(types);
+        typeChip.setVisible(types.size() > 2);
+
+        List<ComboItem<String>> sources = new ArrayList<>();
+        sources.add(new ComboItem<>(null, GetText.tr("All Sources")));
+        sources.add(new ComboItem<>(SOURCE_CURSEFORGE, "CurseForge"));
+        sources.add(new ComboItem<>(SOURCE_MODRINTH, "Modrinth"));
+        sources.add(new ComboItem<>(SOURCE_MANUAL, GetText.tr("Added Manually")));
+
+        sourceChip.setOptions(sources);
+
+        List<ComboItem<String>> statuses = new ArrayList<>();
+        statuses.add(new ComboItem<>(null, GetText.tr("Any Status")));
+        statuses.add(new ComboItem<>(UPDATABLE, GetText.tr("Update Available")));
+
+        statusChip.setOptions(statuses);
+    }
+
+    /**
+     * Rebuilds both lists against the filters, keeping what was ticked.
+     *
+     * <p>
+     * Not {@link #reloadPanels()}: that saves the instance, which a keystroke in a search box has
+     * no business doing.
+     */
+    private void applyFilters() {
+        Set<DisableableMod> ticked = selectedMods();
+
+        enabledModsPanel.removeAll();
+        disabledModsPanel.removeAll();
+        loadMods();
+
+        for (ModsJCheckBox mod : enabledMods) {
+            mod.setSelected(ticked.contains(mod.getDisableableMod()));
+        }
+
+        for (ModsJCheckBox mod : disabledMods) {
+            mod.setSelected(ticked.contains(mod.getDisableableMod()));
+        }
+
+        checkBoxesChanged();
+        enabledModsPanel.revalidate();
+        enabledModsPanel.repaint();
+        disabledModsPanel.revalidate();
+        disabledModsPanel.repaint();
+    }
+
+    /**
+     * A pending settle would otherwise fire into a dialog that has been closed.
+     */
+    @Override
+    public void dispose() {
+        if (settle != null) {
+            settle.stop();
+        }
+
+        super.dispose();
+    }
+
+    /**
      * One of the two lists: what it holds, a way to tick all of it, and the mods themselves.
      *
      * <p>
@@ -366,8 +555,11 @@ public class EditModsDialog extends JDialog {
     }
 
     private void loadMods() {
+        List<ModUpdate> updates = ModUpdateManager.getUpdates(instanceOrServer);
+
         List<DisableableMod> mods = instanceOrServer.getMods().stream().filter(DisableableMod::wasSelected)
             .filter(m -> !m.skipped && m.type != com.atlauncher.data.Type.worlds)
+            .filter(m -> matchesFilters(m, updates))
             .sorted(Comparator.comparing(m -> m.name, String.CASE_INSENSITIVE_ORDER)).collect(Collectors.toList());
         enabledMods = new ArrayList<>();
         disabledMods = new ArrayList<>();
@@ -376,32 +568,75 @@ public class EditModsDialog extends JDialog {
             // the bounds these used to be given here were overwritten by the box layout before
             // anything read them
             ModsJCheckBox checkBox = new ModsJCheckBox(mod, this);
+            checkBox.addItemListener(e -> {
+                if (e.getStateChange() == ItemEvent.SELECTED || e.getStateChange() == ItemEvent.DESELECTED) {
+                    checkBoxesChanged();
+                }
+            });
+
+            ModRow row = new ModRow(checkBox, updates.stream().anyMatch(u -> u.mod == mod));
 
             if (mod.isDisabled()) {
                 disabledMods.add(checkBox);
+                disabledModsPanel.add(row);
             } else {
                 enabledMods.add(checkBox);
+                enabledModsPanel.add(row);
             }
         }
 
-        for (ModsJCheckBox checkBox : enabledMods) {
-            checkBox.addItemListener(e -> {
-                if (e.getStateChange() == ItemEvent.SELECTED || e.getStateChange() == ItemEvent.DESELECTED) {
-                    checkBoxesChanged();
-                }
-            });
-            enabledModsPanel.add(checkBox);
+        enabledModsPanel.setPreferredSize(new Dimension(0, heightOf(enabledModsPanel)));
+        disabledModsPanel.setPreferredSize(new Dimension(0, heightOf(disabledModsPanel)));
+    }
+
+    /**
+     * Whether a mod survives the search box and the three chips.
+     *
+     * <p>
+     * The search reads the name, the filename and the description, because half of what is in a
+     * mods folder is named for its jar rather than for itself, and a user looking for "the one that
+     * does the minimap" has only the description to go on.
+     */
+    private boolean matchesFilters(DisableableMod mod, List<ModUpdate> updates) {
+        String query = searchField == null ? "" : searchField.getText().trim().toLowerCase(Locale.ENGLISH);
+
+        if (!query.isEmpty()) {
+            boolean matches = contains(mod.getName(), query) || contains(mod.getFilename(), query)
+                || contains(mod.description, query);
+
+            if (!matches) {
+                return false;
+            }
         }
-        for (ModsJCheckBox checkBox : disabledMods) {
-            checkBox.addItemListener(e -> {
-                if (e.getStateChange() == ItemEvent.SELECTED || e.getStateChange() == ItemEvent.DESELECTED) {
-                    checkBoxesChanged();
-                }
-            });
-            disabledModsPanel.add(checkBox);
+
+        String type = typeChip == null ? null : typeChip.getValue();
+
+        if (type != null && !type.equals(ModRow.nameFor(mod.type))) {
+            return false;
         }
-        enabledModsPanel.setPreferredSize(new Dimension(0, heightOf(enabledMods)));
-        disabledModsPanel.setPreferredSize(new Dimension(0, heightOf(disabledMods)));
+
+        String source = sourceChip == null ? null : sourceChip.getValue();
+
+        if (source != null) {
+            if (SOURCE_CURSEFORGE.equals(source) && !mod.isFromCurseForge()) {
+                return false;
+            }
+
+            if (SOURCE_MODRINTH.equals(source) && !mod.isFromModrinth()) {
+                return false;
+            }
+
+            if (SOURCE_MANUAL.equals(source) && mod.isUpdatable()) {
+                return false;
+            }
+        }
+
+        return !UPDATABLE.equals(statusChip == null ? null : statusChip.getValue())
+            || updates.stream().anyMatch(u -> u.mod == mod);
+    }
+
+    private static boolean contains(String haystack, String needle) {
+        return haystack != null && haystack.toLowerCase(Locale.ENGLISH).contains(needle);
     }
 
     /**
@@ -410,13 +645,14 @@ public class EditModsDialog extends JDialog {
      * <p>
      * Was the number of them times a hardcoded 20 - the height of a check box at 100% and at no
      * other scale or font size, so the last few mods fell off the bottom of a list that would not
-     * scroll far enough to reach them. Asking the rows how tall they are is right at any scale.
+     * scroll far enough to reach them. Asking the rows how tall they are is right at any scale, and
+     * has to be asked of the rows rather than of the ticks inside them.
      */
-    private static int heightOf(List<ModsJCheckBox> mods) {
+    private static int heightOf(JPanel list) {
         int height = 0;
 
-        for (ModsJCheckBox mod : mods) {
-            height += mod.getPreferredSize().height;
+        for (Component row : list.getComponents()) {
+            height += row.getPreferredSize().height;
         }
 
         return height;
@@ -431,7 +667,11 @@ public class EditModsDialog extends JDialog {
                 || (disabledMods.stream().anyMatch(AbstractButton::isSelected) && disabledMods.stream()
                 .filter(AbstractButton::isSelected).anyMatch(cb -> cb.getDisableableMod().isUpdatable()));
 
-            checkForUpdatesButton.setEnabled(hasSelectedACurseForgeOrModrinthMod);
+            // checking is no longer scoped to the selection - it asks about the whole instance in
+            // one request - so the button is offered whenever there is anything at all to ask about
+            checkForUpdatesButton.setEnabled(
+                enabledMods.stream().anyMatch(cb -> cb.getDisableableMod().isUpdatable())
+                    || disabledMods.stream().anyMatch(cb -> cb.getDisableableMod().isUpdatable()));
             reinstallButton.setEnabled(hasSelectedACurseForgeOrModrinthMod);
         }
 
@@ -448,29 +688,65 @@ public class EditModsDialog extends JDialog {
             .setSelected(!disabledMods.isEmpty() && disabledMods.stream().allMatch(AbstractButton::isSelected));
     }
 
+    /**
+     * Asks both platforms what is newer, once, and then offers the lot.
+     *
+     * <p>
+     * This used to call {@link DisableableMod#checkForUpdate} in a loop, which opens a progress
+     * dialog and a version selector for every mod that had one - so ticking fifty mods meant
+     * clicking through a hundred dialogs. It also announced "the selected mods have been checked"
+     * from the event thread <em>while</em> the worker was still running, and ignored every result,
+     * so it said the same thing whether it had found anything or not.
+     */
     private void checkForUpdates() {
-        ArrayList<ModsJCheckBox> mods = new ArrayList<>();
-        mods.addAll(enabledMods);
-        mods.addAll(disabledMods);
-
-        ProgressDialog<Void> progressDialog = new ProgressDialog<>(GetText.tr("Checking For Updates"), mods.size(),
-            GetText.tr("Checking For Updates"), this);
+        ProgressDialog<List<ModUpdate>> progressDialog = new ProgressDialog<>(GetText.tr("Checking For Updates"), 0,
+            GetText.tr("Checking For Updates"), "Cancelled checking for mod updates", this);
         progressDialog.addThread(new Thread(() -> {
-            for (ModsJCheckBox mod : mods) {
-                if (mod.isSelected() && mod.getDisableableMod().isUpdatable()) {
-                    mod.getDisableableMod().checkForUpdate(progressDialog, instanceOrServer);
-                }
-                progressDialog.doneTask();
-            }
-
+            progressDialog.setReturnValue(ModUpdateManager.checkForUpdates(instanceOrServer));
             progressDialog.close();
         }));
         progressDialog.start();
 
-        DialogManager.okDialog().setTitle(GetText.tr("Checking For Updates Complete"))
-            .setContent(GetText.tr("The selected mods have been checked for updates.")).show();
+        List<ModUpdate> found = progressDialog.getReturnValue();
 
-        reloadPanels();
+        if (found == null) {
+            return;
+        }
+
+        // a selection narrows what is offered, but never what is checked - one bulk request costs
+        // the same either way, and the answer is worth keeping for the rest of the session
+        Set<DisableableMod> selected = selectedMods();
+
+        List<ModUpdate> toOffer = selected.isEmpty() ? found
+            : found.stream().filter(u -> selected.contains(u.mod)).collect(Collectors.toList());
+
+        if (toOffer.isEmpty()) {
+            ModUpdatesDialog.showNoUpdates();
+            return;
+        }
+
+        if (ModUpdatesDialog.show(this, instanceOrServer, toOffer) > 0) {
+            reloadPanels();
+        }
+    }
+
+    /** The mods that are ticked in either list. */
+    private Set<DisableableMod> selectedMods() {
+        Set<DisableableMod> selected = new HashSet<>();
+
+        for (ModsJCheckBox mod : enabledMods) {
+            if (mod.isSelected()) {
+                selected.add(mod.getDisableableMod());
+            }
+        }
+
+        for (ModsJCheckBox mod : disabledMods) {
+            if (mod.isSelected()) {
+                selected.add(mod.getDisableableMod());
+            }
+        }
+
+        return selected;
     }
 
     private void reinstall() {
@@ -515,185 +791,58 @@ public class EditModsDialog extends JDialog {
             .setType(DialogManager.WARNING).show();
 
         if (ret == 0) {
-            ArrayList<ModsJCheckBox> mods = new ArrayList<>(enabledMods);
-            for (ModsJCheckBox mod : mods) {
+            List<DisableableMod> toRemove = new ArrayList<>();
+
+            for (ModsJCheckBox mod : new ArrayList<>(enabledMods)) {
                 if (mod.isSelected()) {
-                    instanceOrServer.getMods().remove(mod.getDisableableMod());
-                    FileUtils.delete(
-                        (mod.getDisableableMod().isDisabled()
-                            ? mod.getDisableableMod().getDisabledFile(instanceOrServer)
-                            : mod.getDisableableMod().getFile(instanceOrServer)).toPath(),
-                        true);
+                    toRemove.add(mod.getDisableableMod());
                     enabledMods.remove(mod);
                 }
             }
-            mods = new ArrayList<>(disabledMods);
-            for (ModsJCheckBox mod : mods) {
+
+            for (ModsJCheckBox mod : new ArrayList<>(disabledMods)) {
                 if (mod.isSelected()) {
-                    instanceOrServer.getMods().remove(mod.getDisableableMod());
-                    FileUtils.delete(
-                        (mod.getDisableableMod().isDisabled()
-                            ? mod.getDisableableMod().getDisabledFile(instanceOrServer)
-                            : mod.getDisableableMod().getFile(instanceOrServer)).toPath(),
-                        true);
+                    toRemove.add(mod.getDisableableMod());
                     disabledMods.remove(mod);
                 }
             }
+
+            // was two copies of the remove-then-delete-the-file dance written out in place, neither
+            // of which went through the interface method that exists for it
+            instanceOrServer.removeMods(toRemove);
+
             reloadPanels();
         }
     }
 
+    /**
+     * Looks the selected mods up on both platforms again, by hashing what is on disk.
+     *
+     * <p>
+     * This was 150 lines of fingerprinting written out in place - the third copy of it, and the one
+     * carrying the author's own note about that. It also hashed the enabled path for every mod, so
+     * refreshing a disabled one looked up a file that is not there.
+     */
     private void refreshMetadata() {
         final ProgressDialog<Boolean> dialog = new ProgressDialog<>(GetText.tr("Refreshing Metadata"), 0,
             GetText.tr("Refreshing Metadata"),
             "Aborting refreshing metadata");
         dialog.addThread(new Thread(() -> {
+            List<DisableableMod> modsToRefresh = new ArrayList<>();
 
-            List<ModsJCheckBox> modsToRefresh = new ArrayList<>();
-            modsToRefresh
-                .addAll(enabledMods.parallelStream().filter(ModsJCheckBox::isSelected)
-                    .collect(Collectors.toList()));
-            modsToRefresh
-                .addAll(disabledMods.parallelStream().filter(ModsJCheckBox::isSelected)
-                    .collect(Collectors.toList()));
-
-            // TODO: Generalise this, cause fuck me I've copy pasted this like 10 times now
-            if (!App.settings.dontCheckModsOnCurseForge) {
-                Map<Long, ModsJCheckBox> murmurHashes = new HashMap<>();
-
-                modsToRefresh.stream()
-                    .filter(mjc -> mjc.getDisableableMod().getFile(instanceOrServer.getRoot(),
-                        instanceOrServer.getMinecraftVersion()) != null)
-                    .forEach(mjc -> {
-                        try {
-                            long hash = Hashing
-                                .murmur(mjc.getDisableableMod().getFile(instanceOrServer.getRoot(),
-                                    instanceOrServer.getMinecraftVersion()).toPath());
-                            murmurHashes.put(hash, mjc);
-                        } catch (IOException t) {
-                            LogManager.logStackTrace(t);
-                        }
-                    });
-
-                if (!murmurHashes.isEmpty()) {
-                    CurseForgeFingerprint fingerprintResponse = CurseForgeApi
-                        .checkFingerprints(murmurHashes.keySet().stream().toArray(Long[]::new));
-
-                    if (fingerprintResponse != null && fingerprintResponse.exactMatches != null) {
-                        int[] projectIdsFound = fingerprintResponse.exactMatches.stream().mapToInt(em -> em.id)
-                            .toArray();
-
-                        if (projectIdsFound.length != 0) {
-                            Map<Integer, CurseForgeProject> foundProjects = CurseForgeApi
-                                .getProjectsAsMap(projectIdsFound);
-
-                            if (foundProjects != null) {
-                                fingerprintResponse.exactMatches.stream().filter(em -> em != null && em.file != null
-                                    && murmurHashes.containsKey(em.file.packageFingerprint)).forEach(foundMod -> {
-                                    DisableableMod dm = murmurHashes.get(foundMod.file.packageFingerprint)
-                                        .getDisableableMod();
-
-                                    CurseForgeProject curseForgeProject = foundProjects.get(foundMod.id);
-
-                                    if (curseForgeProject != null && curseForgeProject.status == 4) {
-                                        dm.curseForgeProjectId = foundMod.id;
-                                        dm.curseForgeFile = foundMod.file;
-                                        dm.curseForgeFileId = foundMod.file.id;
-                                        dm.curseForgeProject = curseForgeProject;
-                                        dm.name = curseForgeProject.name;
-                                        dm.description = curseForgeProject.summary;
-
-                                        LogManager.debug("Found matching mod from CurseForge called "
-                                            + dm.curseForgeFile.displayName);
-                                    }
-
-                                    // reset if the file is not approved
-                                    if (curseForgeProject != null && curseForgeProject.status != 4) {
-                                        dm.curseForgeProjectId = null;
-                                        dm.curseForgeFile = null;
-                                        dm.curseForgeFileId = null;
-                                        dm.curseForgeProject = null;
-
-                                        File path = dm.getFile(instanceOrServer);
-                                        MCMod mcMod = Utils.getMCModForFile(path);
-                                        if (mcMod != null) {
-                                            dm.name = Optional.ofNullable(mcMod.name)
-                                                .orElse(path.getName());
-                                            dm.description = mcMod.description;
-                                        } else {
-                                            FabricMod fabricMod = Utils.getFabricModForFile(path);
-                                            if (fabricMod != null) {
-                                                dm.name = Optional.ofNullable(fabricMod.name)
-                                                    .orElse(path.getName());
-                                                dm.description = fabricMod.description;
-                                            }
-                                        }
-                                    }
-                                });
-                            }
-                        }
-                    }
+            for (ModsJCheckBox mod : enabledMods) {
+                if (mod.isSelected()) {
+                    modsToRefresh.add(mod.getDisableableMod());
                 }
             }
 
-            if (!App.settings.dontCheckModsOnModrinth) {
-                Map<String, ModsJCheckBox> sha1Hashes = new HashMap<>();
-
-                modsToRefresh.stream()
-                    .filter(mjc -> mjc.getDisableableMod().getFile(instanceOrServer.getRoot(),
-                        instanceOrServer.getMinecraftVersion()) != null)
-                    .forEach(mjc -> {
-                        try {
-                            sha1Hashes.put(
-                                Hashing.sha1(
-                                        mjc.getDisableableMod()
-                                            .getFile(instanceOrServer.getRoot(),
-                                                instanceOrServer.getMinecraftVersion())
-                                            .toPath())
-                                    .toString(),
-                                mjc);
-                        } catch (Throwable t) {
-                            LogManager.logStackTrace(t);
-                        }
-                    });
-
-                if (!sha1Hashes.isEmpty()) {
-                    Set<String> keys = sha1Hashes.keySet();
-                    Map<String, ModrinthVersion> modrinthVersions = ModrinthApi
-                        .getVersionsFromSha1Hashes(keys.toArray(new String[0]));
-
-                    if (modrinthVersions != null && !modrinthVersions.isEmpty()) {
-                        String[] projectIdsFound = modrinthVersions.values().stream().map(mv -> mv.projectId)
-                            .toArray(String[]::new);
-
-                        if (projectIdsFound.length != 0) {
-                            Map<String, ModrinthProject> foundProjects = ModrinthApi.getProjectsAsMap(projectIdsFound);
-
-                            if (foundProjects != null) {
-                                for (Map.Entry<String, ModrinthVersion> entry : modrinthVersions.entrySet()) {
-                                    ModrinthVersion version = entry.getValue();
-                                    ModrinthProject project = foundProjects.get(version.projectId);
-
-                                    if (project != null) {
-                                        DisableableMod dm = sha1Hashes.get(entry.getKey()).getDisableableMod();
-
-                                        // add Modrinth information
-                                        dm.modrinthProject = project;
-                                        dm.modrinthVersion = version;
-                                        dm.name = project.title;
-                                        dm.description = project.description;
-
-                                        LogManager
-                                            .debug(String.format(
-                                                "Found matching mod from Modrinth called %s with file %s",
-                                                project.title, version.name));
-                                    }
-                                }
-                            }
-                        }
-                    }
+            for (ModsJCheckBox mod : disabledMods) {
+                if (mod.isSelected()) {
+                    modsToRefresh.add(mod.getDisableableMod());
                 }
             }
+
+            ModFingerprinter.identify(modsToRefresh, instanceOrServer, false);
 
             instanceOrServer.save();
 

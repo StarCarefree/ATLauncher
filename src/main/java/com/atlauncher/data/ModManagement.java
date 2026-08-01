@@ -21,6 +21,8 @@ import java.awt.Window;
 import java.nio.file.Path;
 import java.util.List;
 
+import org.mini2Dx.gettext.GetText;
+
 import com.atlauncher.data.curseforge.CurseForgeFile;
 import com.atlauncher.data.curseforge.CurseForgeProject;
 import com.atlauncher.data.minecraft.loaders.LoaderVersion;
@@ -29,6 +31,8 @@ import com.atlauncher.data.modrinth.ModrinthFile;
 import com.atlauncher.data.modrinth.ModrinthProject;
 import com.atlauncher.data.modrinth.ModrinthVersion;
 import com.atlauncher.gui.dialogs.ProgressDialog;
+import com.atlauncher.managers.NotificationManager;
+import com.atlauncher.utils.FileUtils;
 
 /**
  * Interface for mod management. Used by Instances as well as Servers to manage the mods/plugins for them.
@@ -53,6 +57,41 @@ public interface ModManagement {
     public abstract void addMods(List<DisableableMod> modsToAdd);
 
     public abstract void removeMod(DisableableMod mod);
+
+    /**
+     * Removes several mods at once.
+     *
+     * <p>
+     * Not a loop over {@link #removeMod}: that saves and posts a notification per mod, and only one
+     * snackbar shows at a time with the rest queued behind it - so deleting twenty mods would leave
+     * the user watching twenty messages go past. This saves once and says so once.
+     *
+     * <p>
+     * It exists at all because the two places that delete in bulk had each grown their own copy of
+     * the remove-then-delete-the-file dance, one of them using a different delete helper, and
+     * neither going anywhere near {@link #removeMod}.
+     */
+    public default void removeMods(List<DisableableMod> modsToRemove) {
+        if (modsToRemove == null || modsToRemove.isEmpty()) {
+            return;
+        }
+
+        if (modsToRemove.size() == 1) {
+            removeMod(modsToRemove.get(0));
+
+            return;
+        }
+
+        for (DisableableMod mod : modsToRemove) {
+            getMods().remove(mod);
+            FileUtils.delete((mod.isDisabled() ? mod.getDisabledFile(this) : mod.getFile(this)).toPath(), true);
+        }
+
+        save();
+
+        // #. {0} is the number of mods that were removed
+        NotificationManager.show(GetText.tr("{0} Mods Removed", modsToRemove.size()));
+    }
 
     public abstract void addFileFromCurseForge(CurseForgeProject mod, CurseForgeFile file, ProgressDialog<Void> dialog);
 

@@ -60,9 +60,12 @@ import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.managers.MinecraftManager;
 import com.atlauncher.network.Analytics;
+import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.utils.ComboItem;
+import com.atlauncher.utils.ModDependencyResolver;
 import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.OS;
+import com.atlauncher.utils.Pair;
 
 import com.formdev.flatlaf.util.UIScale;
 
@@ -78,6 +81,11 @@ public class ModrinthVersionSelectorDialog extends JDialog {
     private boolean selectNewest = true;
 
     private final JPanel dependenciesPanel = new JPanel(new FlowLayout());
+
+    /** What the panel is showing, so "Install All Required" acts on the same list the user sees. */
+    private List<ModrinthDependency> lastDependenciesNeeded;
+
+    private JButton installAllDependencies;
     private JScrollPane scrollPane;
     private JButton addButton;
     private JButton viewModButton;
@@ -287,8 +295,13 @@ public class ModrinthVersionSelectorDialog extends JDialog {
                     }))
                 .collect(Collectors.toList());
 
+            lastDependenciesNeeded = dependenciesNeeded;
+
             if (!dependenciesNeeded.isEmpty()) {
                 dependenciesPanel.removeAll();
+
+                installAllDependencies.setVisible(true);
+                installAllDependencies.setEnabled(true);
 
                 dependenciesNeeded.forEach(dependency -> dependenciesPanel
                     .add(new ModrinthProjectDependencyCard(this, dependency, instanceOrServer)));
@@ -305,11 +318,64 @@ public class ModrinthVersionSelectorDialog extends JDialog {
                 scrollPane.repaint();
                 scrollPane.validate();
             } else {
+                installAllDependencies.setVisible(false);
                 setSize(UIScale.scale(550), UIScale.scale(200));
             }
         } else {
+            installAllDependencies.setVisible(false);
             setSize(UIScale.scale(550), UIScale.scale(200));
         }
+    }
+
+    /**
+     * Installs every required dependency, and everything those need in turn, behind one progress
+     * dialog.
+     *
+     * <p>
+     * Each is recorded as installed for this mod, the same way the per dependency cards do it, so
+     * the platform's own analytics still see why the file was fetched.
+     */
+    private void installAllDependencies() {
+        installAllDependencies.setEnabled(false);
+
+        List<ModrinthDependency> required = lastDependenciesNeeded;
+
+        if (required == null || required.isEmpty()) {
+            return;
+        }
+
+        final ProgressDialog<Void> dialog = new ProgressDialog<>(GetText.tr("Installing Dependencies"), 0,
+            GetText.tr("Installing Dependencies"), this);
+
+        dialog.addThread(new Thread(() -> {
+            // the count is only known once the graph has been walked, and the dialog's task total
+            // is fixed at construction - so this one counts up in its label instead
+            List<Pair<ModrinthProject, ModrinthVersion>> toInstall = ModDependencyResolver
+                .resolveModrinth(instanceOrServer, required);
+
+            for (int i = 0; i < toInstall.size(); i++) {
+                Pair<ModrinthProject, ModrinthVersion> pair = toInstall.get(i);
+
+                // #. {0} is the mod being installed, {1} is which one it is, {2} is how many there are
+                dialog.setLabel(GetText.tr("Installing {0} ({1} of {2})", pair.left().title, i + 1,
+                    toInstall.size()));
+
+                try {
+                    Analytics.trackEvent(AnalyticsEvent.forAddMod(pair.left()));
+                    instanceOrServer.addFileFromModrinth(pair.left(), pair.right(), null,
+                        getEffectiveInstallType(pair.right()), ModrinthDownloadMetadata.Reason.DEPENDENCY,
+                        getSelectedVersionId(), dialog);
+                } catch (Exception e) {
+                    LogManager.logStackTrace("Failed to install dependency " + pair.left().title, e);
+                }
+            }
+
+            dialog.close();
+        }));
+
+        dialog.start();
+
+        reloadDependenciesPanel();
     }
 
     private void setupComponents() {
@@ -383,13 +449,27 @@ public class ModrinthVersionSelectorDialog extends JDialog {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setPreferredSize(UIScale.scale(new Dimension(550, 250)));
 
+        // one click for the lot, rather than a card each with its own Add and its own dialog behind
+        // it - and unlike those cards this follows the chain, so a dependency's own dependencies
+        // come too. They were never shown at all before: the panel is built from this mod's list
+        installAllDependencies = new JButton(GetText.tr("Install All Required"));
+        installAllDependencies.setVisible(false);
+        installAllDependencies.addActionListener(e -> installAllDependencies());
+
+        JPanel dependencyActions = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        dependencyActions.add(installAllDependencies);
+
+        JPanel dependencies = new JPanel(new BorderLayout());
+        dependencies.add(dependencyActions, BorderLayout.NORTH);
+        dependencies.add(scrollPane, BorderLayout.CENTER);
+
         JPanel selectorPanel = new JPanel();
         selectorPanel.setLayout(new BoxLayout(selectorPanel, BoxLayout.Y_AXIS));
         selectorPanel.add(versionsPanel);
         selectorPanel.add(filesPanel);
 
         middle.add(selectorPanel, BorderLayout.NORTH);
-        middle.add(scrollPane, BorderLayout.SOUTH);
+        middle.add(dependencies, BorderLayout.SOUTH);
 
         this.getFiles();
 

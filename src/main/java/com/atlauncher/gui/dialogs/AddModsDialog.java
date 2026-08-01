@@ -20,10 +20,12 @@ package com.atlauncher.gui.dialogs;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.LayoutManager;
 import java.awt.Window;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import javax.swing.BoxLayout;
@@ -33,6 +35,10 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
+import javax.swing.Timer;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -54,7 +60,8 @@ import com.atlauncher.data.modrinth.ModrinthSearchResult;
 import com.atlauncher.exceptions.InvalidMinecraftVersion;
 import com.atlauncher.gui.card.CurseForgeProjectCard;
 import com.atlauncher.gui.card.ModrinthSearchHitCard;
-import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.card.packbrowser.MD3PackCard;
+import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Divider;
@@ -63,6 +70,7 @@ import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3FilterChip;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.gui.md3.nav.MD3Tabs;
+import com.atlauncher.gui.md3.nav.MD3TopAppBar;
 import com.atlauncher.gui.panels.LoadingPanel;
 import com.atlauncher.gui.panels.NoCurseModsPanel;
 import com.atlauncher.managers.ConfigManager;
@@ -85,18 +93,38 @@ public final class AddModsDialog extends JDialog {
     /** Wide enough for a mod name, and no wider - the grid needs the rest. */
     private static final int SEARCH_COLUMNS = 18;
 
+    /**
+     * How long typing has to stop for before a search is sent.
+     *
+     * <p>
+     * Longer than the instances list's 250ms because this one goes over the network: at 250ms a
+     * user typing "sodium" would send five requests and read the answer to the last of them.
+     */
+    private static final int SETTLE_MS = 400;
+
     private final ModManagement instanceOrServer;
 
     private boolean updating = false;
 
+    /**
+     * Which search the grid is showing. Every request carries the value it was started with and
+     * drops itself if the counter has moved on - without it a slow response to an earlier query
+     * lands on top of a later one, which is what a chip changed twice in quick succession does.
+     */
+    private final AtomicLong searchGeneration = new AtomicLong();
+
+    private Timer settle;
+
     /** Holds {@link #platformMessageLabel}, so the padding around it goes when the message does. */
     private JPanel platformMessagePanel;
 
-    private final JPanel contentPanel = new JPanel(new WrapLayout());
+    private final JPanel contentPanel = new JPanel(
+            new CardGridLayout(MD3PackCard.CARD_WIDTH, MD3PackCard.MAX_CARD_WIDTH, MD3Spacing.L));
     private final JPanel topPanel = new JPanel();
     private final JPanel warningPanel = new JPanel();
     private final MD3TextField searchField = MD3TextField.search(GetText.tr("Search"));
     private final JLabel platformMessageLabel = new JLabel();
+    private final JLabel pageLabel = new JLabel();
 
     /**
      * Which platform is being browsed. A destination rather than a filter - the two hold different
@@ -196,6 +224,7 @@ public final class AddModsDialog extends JDialog {
 
         hostTabs.setVisible(hosts.size() > 1);
 
+        searchField.setName("addModsSearchField");
         searchField.setColumns(SEARCH_COLUMNS);
         searchField.setLeadingIcon(MD3Icons.SEARCH);
         searchField.putClientProperty("JTextField.showClearButton", true);
@@ -208,14 +237,29 @@ public final class AddModsDialog extends JDialog {
 
         addSectionAndSortOptions(true);
 
-        addCategories();
-
         setupComponents();
+
+        // the categories used to be fetched here, on the event thread, so the dialog did not appear
+        // until two API calls had come back - and there was no way to open it offline at all, which
+        // is why it is the one dialog in the launcher with no render test
+        loadCategories();
 
         this.loadDefaultMods();
 
         this.pack();
         this.setLocationRelativeTo(parent);
+    }
+
+    /**
+     * A pending settle would otherwise fire into a dialog that has been closed.
+     */
+    @Override
+    public void dispose() {
+        if (settle != null) {
+            settle.stop();
+        }
+
+        super.dispose();
     }
 
     private void setupComponents() {
@@ -660,10 +704,17 @@ public final class AddModsDialog extends JDialog {
         nextButton.setEnabled(false);
         nextButton.addActionListener(e -> goToNextPage());
 
+        // there was no way to tell where in a result set you were, or how much of one there was -
+        // just two chevrons, the second of which CurseForge could only guess the enabled state of
+        pageLabel.setFont(MD3Type.font(MD3Type.LABEL_MEDIUM));
+        pageLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.LABEL_MEDIUM);
+        pageLabel.setForeground(MD3Color.onSurfaceVariant());
+
         JPanel bottomButtonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, MD3Spacing.scale(MD3Spacing.S), 0));
         bottomButtonsPanel.setOpaque(false);
         bottomButtonsPanel.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
         bottomButtonsPanel.add(prevButton);
+        bottomButtonsPanel.add(MD3TopAppBar.centred(pageLabel));
         bottomButtonsPanel.add(nextButton);
 
         JPanel bottomPanel = new JPanel(new BorderLayout());
@@ -693,7 +744,7 @@ public final class AddModsDialog extends JDialog {
                 platformMessage = ConfigManager.getConfigItem("platforms.modrinth.message", null);
             }
 
-            addCategories();
+            loadCategories();
 
             setPlatformMessage(platformMessage);
 
@@ -701,7 +752,56 @@ public final class AddModsDialog extends JDialog {
             updating = false;
         });
 
-        this.searchField.addActionListener(e -> searchForMods());
+        // searches as you type rather than only on Enter, on a settle long enough that a word
+        // typed at speed is one request rather than one per letter
+        settle = new Timer(SETTLE_MS, e -> searchForMods());
+        settle.setRepeats(false);
+
+        this.searchField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                settle.restart();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                settle.restart();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                settle.restart();
+            }
+        });
+
+        this.searchField.addActionListener(e -> {
+            settle.stop();
+            searchForMods();
+        });
+    }
+
+    private static LayoutManager grid() {
+        return new CardGridLayout(MD3PackCard.CARD_WIDTH, MD3PackCard.MAX_CARD_WIDTH, MD3Spacing.L);
+    }
+
+    /**
+     * @param shown what is on this page
+     * @param total how many results there are, 0 for none and -1 where the platform does not say
+     */
+    private void setPageLabel(int shown, int total) {
+        if (shown == 0) {
+            pageLabel.setText("");
+
+            return;
+        }
+
+        if (total > 0) {
+            // #. {0} is the page number, {1} is the total number of search results
+            pageLabel.setText(GetText.tr("Page {0} · {1} results", page + 1, total));
+        } else {
+            // #. {0} is the page number
+            pageLabel.setText(GetText.tr("Page {0}", page + 1));
+        }
     }
 
     /**
@@ -787,7 +887,7 @@ public final class AddModsDialog extends JDialog {
 
         page = 0;
 
-        addCategories();
+        loadCategories();
         reload();
     }
 
@@ -858,63 +958,73 @@ public final class AddModsDialog extends JDialog {
         String sortValue = Optional.ofNullable(sortChip.getValue())
                 .orElse(selectedModPlatform == ModPlatform.CURSEFORGE ? "Popularity" : "relevance");
 
+        final long generation = searchGeneration.incrementAndGet();
+
         new Thread(() -> {
+            if (generation != searchGeneration.get()) {
+                return;
+            }
+
             if (selectedModPlatform == ModPlatform.CURSEFORGE) {
                 String versionToSearchFor = App.settings.addModRestriction == AddModRestriction.STRICT
                         ? instanceOrServer.getMinecraftVersion()
                         : null;
 
                 if (sectionValue.equals("Data Packs")) {
-                    setCurseForgeMods(CurseForgeApi.searchDataPacks(versionToSearchFor, query, page,
+                    setCurseForgeMods(generation, CurseForgeApi.searchDataPacks(versionToSearchFor, query, page,
                             sortValue,
                             categoryChip.getValue()));
                 } else if (sectionValue.equals("Resource Packs")) {
-                    setCurseForgeMods(CurseForgeApi.searchResourcePacks(query, page,
+                    setCurseForgeMods(generation, CurseForgeApi.searchResourcePacks(query, page,
                             sortValue,
                             categoryChip.getValue()));
                 } else if (sectionValue.equals("Shaders")) {
-                    setCurseForgeMods(CurseForgeApi.searchShaderPacks(query, page,
+                    setCurseForgeMods(generation, CurseForgeApi.searchShaderPacks(query, page,
                             sortValue,
                             categoryChip.getValue()));
                 } else if (sectionValue.equals("Worlds")) {
-                    setCurseForgeMods(CurseForgeApi.searchWorlds(versionToSearchFor, query, page,
+                    setCurseForgeMods(generation, CurseForgeApi.searchWorlds(versionToSearchFor, query, page,
                             sortValue,
                             categoryChip.getValue()));
                 } else if (sectionValue.equals("Plugins")) {
-                    setCurseForgeMods(CurseForgeApi.searchPlugins(versionToSearchFor, query, page,
+                    setCurseForgeMods(generation, CurseForgeApi.searchPlugins(versionToSearchFor, query, page,
                             sortValue,
                             categoryChip.getValue()));
                 } else {
-                    if (instanceOrServer.getLoaderVersion().isFabric()
-                            || instanceOrServer.getLoaderVersion().isLegacyFabric()) {
-                        setCurseForgeMods(CurseForgeApi.searchModsForFabric(versionToSearchFor, query, page,
+                    // read once and null checked: an instance with no loader at all reaches here if
+                    // the section chip is left at its default, and every branch below used to
+                    // dereference this without asking
+                    LoaderVersion loader = instanceOrServer.getLoaderVersion();
+
+                    if (loader != null && (loader.isFabric() || loader.isLegacyFabric())) {
+                        setCurseForgeMods(generation, CurseForgeApi.searchModsForFabric(versionToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
-                    } else if (instanceOrServer.getLoaderVersion().isQuilt()) {
-                        setCurseForgeMods(CurseForgeApi.searchModsForQuilt(versionToSearchFor, query, page,
+                    } else if (loader != null && loader.isQuilt()) {
+                        setCurseForgeMods(generation, CurseForgeApi.searchModsForQuilt(versionToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
-                    } else if (instanceOrServer.isForgeLikeAndHasInstalledSinytraConnector()) {
-                        if (instanceOrServer.getLoaderVersion().isForge()) {
-                            setCurseForgeMods(CurseForgeApi.searchModsForForgeOrFabric(versionToSearchFor, query, page,
+                    } else if (loader != null && instanceOrServer.isForgeLikeAndHasInstalledSinytraConnector()) {
+                        if (loader.isForge()) {
+                            setCurseForgeMods(generation, CurseForgeApi.searchModsForForgeOrFabric(versionToSearchFor, query, page,
                                     sortValue,
                                     categoryChip.getValue()));
                         } else {
-                            setCurseForgeMods(CurseForgeApi.searchModsForNeoForgeOrFabric(versionToSearchFor, query,
+                            setCurseForgeMods(generation, CurseForgeApi.searchModsForNeoForgeOrFabric(versionToSearchFor, query,
                                     page,
                                     sortValue,
                                     categoryChip.getValue()));
                         }
-                    } else if (instanceOrServer.getLoaderVersion().isForge()) {
-                        setCurseForgeMods(CurseForgeApi.searchModsForForge(versionToSearchFor, query, page,
+                    } else if (loader != null && loader.isForge()) {
+                        setCurseForgeMods(generation, CurseForgeApi.searchModsForForge(versionToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
-                    } else if (instanceOrServer.getLoaderVersion().isNeoForge()) {
-                        setCurseForgeMods(CurseForgeApi.searchModsForNeoForge(versionToSearchFor, query, page,
+                    } else if (loader != null && loader.isNeoForge()) {
+                        setCurseForgeMods(generation, CurseForgeApi.searchModsForNeoForge(versionToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
                     } else {
-                        setCurseForgeMods(CurseForgeApi.searchMods(versionToSearchFor, query, page,
+                        setCurseForgeMods(generation, CurseForgeApi.searchMods(versionToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
                     }
@@ -938,63 +1048,74 @@ public final class AddModsDialog extends JDialog {
                 }
 
                 if (sectionValue.equals("Data Packs")) {
-                    setModrinthMods(ModrinthApi.searchDataPacks(versionsToSearchFor, query, page,
+                    setModrinthMods(generation, ModrinthApi.searchDataPacks(versionsToSearchFor, query, page,
                             sortValue,
                             categoryChip.getValue()));
                 } else if (sectionValue.equals("Resource Packs")) {
-                    setModrinthMods(ModrinthApi.searchResourcePacks(versionsToSearchFor, query, page,
+                    setModrinthMods(generation, ModrinthApi.searchResourcePacks(versionsToSearchFor, query, page,
                             sortValue,
                             categoryChip.getValue()));
                 } else if (sectionValue.equals("Shaders")) {
-                    setModrinthMods(ModrinthApi.searchShaders(versionsToSearchFor, query, page,
+                    setModrinthMods(generation, ModrinthApi.searchShaders(versionsToSearchFor, query, page,
                             sortValue,
                             categoryChip.getValue()));
                 } else if (sectionValue.equals("Plugins")) {
-                    if (instanceOrServer.getLoaderVersion().isPaper()) {
-                        setModrinthMods(ModrinthApi.searchPluginsForPaper(versionsToSearchFor, query, page,
+                    LoaderVersion loader = instanceOrServer.getLoaderVersion();
+
+                    if (loader != null && loader.isPaper()) {
+                        setModrinthMods(generation, ModrinthApi.searchPluginsForPaper(versionsToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
-                    } else if (instanceOrServer.getLoaderVersion().isPurpur()) {
-                        setModrinthMods(ModrinthApi.searchPluginsForPurpur(versionsToSearchFor, query, page,
+                    } else if (loader != null && loader.isPurpur()) {
+                        setModrinthMods(generation, ModrinthApi.searchPluginsForPurpur(versionsToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
+                    } else {
+                        setModrinthMods(generation, null);
                     }
                 } else {
-                    if (instanceOrServer.getLoaderVersion().isFabric()) {
-                        setModrinthMods(ModrinthApi.searchModsForFabric(versionsToSearchFor, query, page,
+                    LoaderVersion loader = instanceOrServer.getLoaderVersion();
+
+                    if (loader != null && loader.isFabric()) {
+                        setModrinthMods(generation, ModrinthApi.searchModsForFabric(versionsToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
-                    } else if (instanceOrServer.getLoaderVersion().isLegacyFabric()) {
-                        setModrinthMods(ModrinthApi.searchModsForLegacyFabric(versionsToSearchFor, query, page,
+                    } else if (loader != null && loader.isLegacyFabric()) {
+                        setModrinthMods(generation, ModrinthApi.searchModsForLegacyFabric(versionsToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
-                    } else if (instanceOrServer.getLoaderVersion().isQuilt()) {
-                        setModrinthMods(ModrinthApi.searchModsForQuiltOrFabric(versionsToSearchFor, query, page,
+                    } else if (loader != null && loader.isQuilt()) {
+                        setModrinthMods(generation, ModrinthApi.searchModsForQuiltOrFabric(versionsToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
-                    } else if (instanceOrServer.isForgeLikeAndHasInstalledSinytraConnector()) {
-                        if (instanceOrServer.getLoaderVersion().isForge()) {
-                            setModrinthMods(ModrinthApi.searchModsForForgeOrFabric(versionsToSearchFor, query, page,
+                    } else if (loader != null && instanceOrServer.isForgeLikeAndHasInstalledSinytraConnector()) {
+                        if (loader.isForge()) {
+                            setModrinthMods(generation, ModrinthApi.searchModsForForgeOrFabric(versionsToSearchFor, query, page,
                                     sortValue,
                                     categoryChip.getValue()));
                         } else {
-                            setModrinthMods(ModrinthApi.searchModsForNeoForgeOrFabric(versionsToSearchFor, query, page,
+                            setModrinthMods(generation, ModrinthApi.searchModsForNeoForgeOrFabric(versionsToSearchFor, query, page,
                                     sortValue,
                                     categoryChip.getValue()));
                         }
-                    } else if (instanceOrServer.getLoaderVersion().isForge()) {
-                        setModrinthMods(ModrinthApi.searchModsForForge(versionsToSearchFor, query, page,
+                    } else if (loader != null && loader.isForge()) {
+                        setModrinthMods(generation, ModrinthApi.searchModsForForge(versionsToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
-                    } else if (instanceOrServer.getLoaderVersion().isNeoForge()) {
-                        setModrinthMods(ModrinthApi.searchModsForNeoForge(versionsToSearchFor, query, page,
+                    } else if (loader != null && loader.isNeoForge()) {
+                        setModrinthMods(generation, ModrinthApi.searchModsForNeoForge(versionsToSearchFor, query, page,
                                 sortValue,
                                 categoryChip.getValue()));
+                    } else {
+                        // no loader, or one Modrinth has no mods for - the grid says so rather than
+                        // being left on the loading indicator for ever, which is what used to
+                        // happen when none of these branches matched
+                        setModrinthMods(generation, null);
                     }
                 }
             }
 
-            setLoading(false);
+            SwingUtilities.invokeLater(() -> setLoading(false));
         }).start();
     }
 
@@ -1015,17 +1136,34 @@ public final class AddModsDialog extends JDialog {
         getMods();
     }
 
-    private void setCurseForgeMods(List<CurseForgeProject> mods) {
+    /**
+     * @param generation which search this is the answer to; a stale one is dropped rather than
+     *                   painted over a newer result
+     */
+    private void setCurseForgeMods(long generation, List<CurseForgeProject> mods) {
+        // the whole grid used to be rebuilt from whichever thread the search ran on
+        SwingUtilities.invokeLater(() -> applyCurseForgeMods(generation, mods));
+    }
+
+    private void applyCurseForgeMods(long generation, List<CurseForgeProject> mods) {
+        if (generation != searchGeneration.get()) {
+            return;
+        }
+
         contentPanel.removeAll();
 
         if (mods == null || mods.isEmpty()) {
             contentPanel.setLayout(new BorderLayout());
             contentPanel.add(new NoCurseModsPanel(!this.searchField.getText().isEmpty()), BorderLayout.CENTER);
+            setPageLabel(0, 0);
         } else {
             prevButton.setEnabled(page > 0);
             nextButton.setEnabled(mods.size() == Constants.CURSEFORGE_PAGINATION_SIZE);
+            // CurseForge does return a total, in a pagination block that was being deserialized and
+            // read nowhere; until that is threaded through, a full page means there is another one
+            setPageLabel(mods.size(), -1);
 
-            contentPanel.setLayout(new WrapLayout());
+            contentPanel.setLayout(grid());
 
             mods.forEach(mod -> {
                 CurseForgeProject castMod = mod;
@@ -1090,17 +1228,27 @@ public final class AddModsDialog extends JDialog {
         repaint();
     }
 
-    private void setModrinthMods(ModrinthSearchResult searchResult) {
+    private void setModrinthMods(long generation, ModrinthSearchResult searchResult) {
+        SwingUtilities.invokeLater(() -> applyModrinthMods(generation, searchResult));
+    }
+
+    private void applyModrinthMods(long generation, ModrinthSearchResult searchResult) {
+        if (generation != searchGeneration.get()) {
+            return;
+        }
+
         contentPanel.removeAll();
 
         if (searchResult == null || searchResult.hits.isEmpty()) {
             contentPanel.setLayout(new BorderLayout());
             contentPanel.add(new NoCurseModsPanel(!this.searchField.getText().isEmpty()), BorderLayout.CENTER);
+            setPageLabel(0, 0);
         } else {
             prevButton.setEnabled(page > 0);
             nextButton.setEnabled((searchResult.offset + searchResult.limit) < searchResult.totalHits);
+            setPageLabel(searchResult.hits.size(), searchResult.totalHits);
 
-            contentPanel.setLayout(new WrapLayout());
+            contentPanel.setLayout(grid());
 
             searchResult.hits.forEach(mod -> {
                 ModrinthSearchHit castMod = mod;
@@ -1250,9 +1398,43 @@ public final class AddModsDialog extends JDialog {
         }
     }
 
-    private void addCategories() {
-        updating = true;
+    /**
+     * Fetches the categories for the platform and section being browsed, off the event thread.
+     *
+     * <p>
+     * {@link MD3FilterChip#setOptions} deliberately does not fire its change callback, so filling
+     * the chip in later does not reload a grid that is already loading.
+     */
+    private void loadCategories() {
+        final long generation = searchGeneration.get();
 
+        new SwingWorker<List<ComboItem<String>>, Void>() {
+            @Override
+            protected List<ComboItem<String>> doInBackground() {
+                return fetchCategories();
+            }
+
+            @Override
+            protected void done() {
+                if (isCancelled() || generation != searchGeneration.get()) {
+                    return;
+                }
+
+                try {
+                    updating = true;
+                    categoryChip.setOptions(get());
+                } catch (Exception e) {
+                    // the chip stays on "All Categories", which is a working filter rather than an
+                    // error - the grid below it is unaffected
+                    LogManager.logStackTrace("Failed to fetch mod categories", e);
+                } finally {
+                    updating = false;
+                }
+            }
+        }.execute();
+    }
+
+    private List<ComboItem<String>> fetchCategories() {
         List<ComboItem<String>> options = new ArrayList<>();
         options.add(new ComboItem<>(null, GetText.tr("All Categories")));
 
@@ -1294,7 +1476,6 @@ public final class AddModsDialog extends JDialog {
             categories.forEach(c -> options.add(new ComboItem<>(c.name, Utils.capitalize(c.name))));
         }
 
-        categoryChip.setOptions(options);
-        updating = false;
+        return options;
     }
 }

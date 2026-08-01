@@ -48,15 +48,15 @@ import com.atlauncher.data.curseforge.CurseForgeFile;
 import com.atlauncher.data.curseforge.CurseForgeFileDependency;
 import com.atlauncher.data.curseforge.CurseForgeProject;
 import com.atlauncher.data.minecraft.loaders.LoaderVersion;
-import com.atlauncher.exceptions.InvalidMinecraftVersion;
 import com.atlauncher.gui.card.CurseForgeFileDependencyCard;
-import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
-import com.atlauncher.managers.MinecraftManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.utils.CurseForgeApi;
+import com.atlauncher.utils.ModCompatibility;
+import com.atlauncher.utils.ModDependencyResolver;
 import com.atlauncher.utils.OS;
+import com.atlauncher.utils.Pair;
 
 import com.formdev.flatlaf.util.UIScale;
 
@@ -68,6 +68,11 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
     private boolean selectNewest = true;
 
     private final JPanel dependenciesPanel = new JPanel(new FlowLayout());
+
+    /** What the panel is showing, so "Install All Required" acts on the same list the user sees. */
+    private List<CurseForgeFileDependency> lastDependenciesNeeded;
+
+    private JButton installAllDependencies;
     private JScrollPane scrollPane;
     private JButton addButton;
     private JButton viewModButton;
@@ -167,8 +172,21 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setPreferredSize(UIScale.scale(new Dimension(550, 250)));
 
+        // one click for the lot, and it follows the chain - a dependency's own dependencies were
+        // never mentioned, since this panel is built from this mod's list and nothing else
+        installAllDependencies = new JButton(GetText.tr("Install All Required"));
+        installAllDependencies.setVisible(false);
+        installAllDependencies.addActionListener(e -> installAllDependencies());
+
+        JPanel dependencyActions = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        dependencyActions.add(installAllDependencies);
+
+        JPanel dependencies = new JPanel(new BorderLayout());
+        dependencies.add(dependencyActions, BorderLayout.NORTH);
+        dependencies.add(scrollPane, BorderLayout.CENTER);
+
         middle.add(filesPanel, BorderLayout.NORTH);
-        middle.add(scrollPane, BorderLayout.SOUTH);
+        middle.add(dependencies, BorderLayout.SOUTH);
 
         this.getFiles();
 
@@ -274,8 +292,13 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
                     }))
                 .collect(Collectors.toList());
 
+            lastDependenciesNeeded = dependencies;
+
             if (!dependencies.isEmpty()) {
                 dependenciesPanel.removeAll();
+
+                installAllDependencies.setVisible(true);
+                installAllDependencies.setEnabled(true);
 
                 dependencies.forEach(dependency -> dependenciesPanel
                     .add(new CurseForgeFileDependencyCard(this, dependency, instanceOrServer)));
@@ -291,11 +314,55 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
                 scrollPane.repaint();
                 scrollPane.validate();
             } else {
+                installAllDependencies.setVisible(false);
                 setSize(UIScale.scale(550), UIScale.scale(200));
             }
         } else {
+            installAllDependencies.setVisible(false);
             setSize(UIScale.scale(550), UIScale.scale(200));
         }
+    }
+
+    /**
+     * Installs every required dependency, and everything those need in turn, behind one progress
+     * dialog rather than a version selector each.
+     */
+    private void installAllDependencies() {
+        installAllDependencies.setEnabled(false);
+
+        List<CurseForgeFileDependency> required = lastDependenciesNeeded;
+
+        if (required == null || required.isEmpty()) {
+            return;
+        }
+
+        final ProgressDialog<Void> dialog = new ProgressDialog<>(GetText.tr("Installing Dependencies"), 0,
+            GetText.tr("Installing Dependencies"), this);
+
+        dialog.addThread(new Thread(() -> {
+            List<Pair<CurseForgeProject, CurseForgeFile>> toInstall = ModDependencyResolver
+                .resolveCurseForge(instanceOrServer, required);
+
+            for (int i = 0; i < toInstall.size(); i++) {
+                Pair<CurseForgeProject, CurseForgeFile> pair = toInstall.get(i);
+
+                // #. {0} is the mod being installed, {1} is which one it is, {2} is how many there are
+                dialog.setLabel(GetText.tr("Installing {0} ({1} of {2})", pair.left().name, i + 1, toInstall.size()));
+
+                try {
+                    Analytics.trackEvent(pair.left().getAnalyticsEventForAdded(pair.right()));
+                    instanceOrServer.addFileFromCurseForge(pair.left(), pair.right(), dialog);
+                } catch (Exception e) {
+                    LogManager.logStackTrace("Failed to install dependency " + pair.left().name, e);
+                }
+            }
+
+            dialog.close();
+        }));
+
+        dialog.start();
+
+        reloadDependenciesPanel();
     }
 
     protected void getFiles() {
@@ -320,69 +387,26 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
             Stream<CurseForgeFile> curseForgeFilesStream = projectFiles.stream()
                 .sorted(Comparator.comparingInt((CurseForgeFile file) -> file.id).reversed());
 
-            if (App.settings.addModRestriction == AddModRestriction.STRICT) {
-                curseForgeFilesStream = curseForgeFilesStream.filter(
-                    file -> mod.getRootCategoryId() == Constants.CURSEFORGE_RESOURCE_PACKS_SECTION_ID
-                        || mod.getRootCategoryId() == Constants.CURSEFORGE_PLUGINS_SECTION_ID
-                        || file.gameVersions.contains(instanceOrServer.getMinecraftVersion()));
-            } else if (App.settings.addModRestriction == AddModRestriction.LAX) {
-                try {
-                    List<String> minecraftVersionsToSearch = MinecraftManager
-                        .getMajorMinecraftVersions(instanceOrServer.getMinecraftVersion()).stream().map(mv -> mv.id)
-                        .collect(Collectors.toList());
+            // resource packs and plugins declare version ranges the launcher cannot reason about, so
+            // an exact match on the instance's version leaves nothing at all. Only STRICT exempts
+            // them, which is what this has always done - LAX is loose enough to keep them anyway
+            boolean exemptFromStrict = App.settings.addModRestriction == AddModRestriction.STRICT
+                && (mod.getRootCategoryId() == Constants.CURSEFORGE_RESOURCE_PACKS_SECTION_ID
+                    || mod.getRootCategoryId() == Constants.CURSEFORGE_PLUGINS_SECTION_ID);
 
-                    curseForgeFilesStream = curseForgeFilesStream
-                        .filter(v -> v.gameVersions.stream()
-                            .anyMatch(minecraftVersionsToSearch::contains));
-                } catch (InvalidMinecraftVersion e) {
-                    LogManager.logStackTrace(e);
-                }
+            if (!exemptFromStrict) {
+                List<String> versionsToMatch = ModCompatibility.minecraftVersionsToMatch(instanceOrServer);
+
+                curseForgeFilesStream = curseForgeFilesStream
+                    .filter(file -> ModCompatibility.matchesMinecraftVersion(file.gameVersions, versionsToMatch));
             }
-
-            List<String> neoForgeForgeCompatabilityVersions = ConfigManager
-                .getConfigItem("loaders.neoforge.forgeCompatibleMinecraftVersions", new ArrayList<>());
-            boolean hasNeoForgeVersion = projectFiles.stream()
-                .anyMatch(v -> v.gameVersions.contains("NeoForge")
-                    || (neoForgeForgeCompatabilityVersions.contains(instanceOrServer.getMinecraftVersion())
-                    && v.gameVersions.contains("Forge")));
-            boolean hasForgeVersion = projectFiles.stream().anyMatch(v -> v.gameVersions.contains("Forge"));
 
             // filter out files not for our loader (if browsing mods)
             if (mod.getRootCategoryId() == Constants.CURSEFORGE_MODS_SECTION_ID) {
-                curseForgeFilesStream = curseForgeFilesStream.filter(cf -> {
-                    if (cf.gameVersions.contains("Fabric") && loaderVersion != null
-                        && (loaderVersion.isFabric() || loaderVersion.isLegacyFabric()
-                        || loaderVersion.isQuilt()
-                        || (instanceOrServer.isForgeLikeAndHasInstalledSinytraConnector()
-                        && instanceOrServer.getLoaderVersion().isForge() && !hasForgeVersion)
-                        || (instanceOrServer.isForgeLikeAndHasInstalledSinytraConnector()
-                        && instanceOrServer.getLoaderVersion().isNeoForge()
-                        && !hasNeoForgeVersion))) {
-                        return true;
-                    }
+                boolean hasOwnLoaderFile = ModCompatibility.hasFileForOwnLoader(instanceOrServer, projectFiles);
 
-                    if (cf.gameVersions.contains("NeoForge") && loaderVersion != null
-                        && loaderVersion.isNeoForge()) {
-                        return true;
-                    }
-
-                    if (cf.gameVersions.contains("Forge") && loaderVersion != null
-                        && (loaderVersion.isForge()
-                        || (loaderVersion.isNeoForge()
-                        && neoForgeForgeCompatabilityVersions
-                        .contains(instanceOrServer.getMinecraftVersion())))) {
-                        return true;
-                    }
-
-                    if (cf.gameVersions.contains("Quilt") && loaderVersion != null
-                        && loaderVersion.isQuilt()) {
-                        return true;
-                    }
-
-                    // if there's no loaders, assume the mod is untagged so we should show it
-                    return !cf.gameVersions.contains("Fabric") && !cf.gameVersions.contains("NeoForge")
-                        && !cf.gameVersions.contains("Forge") && !cf.gameVersions.contains("Quilt");
-                });
+                curseForgeFilesStream = curseForgeFilesStream.filter(cf -> ModCompatibility
+                    .matchesCurseForgeLoaderTags(cf.gameVersions, instanceOrServer, hasOwnLoaderFile));
             }
 
             files.addAll(curseForgeFilesStream.collect(Collectors.toList()));

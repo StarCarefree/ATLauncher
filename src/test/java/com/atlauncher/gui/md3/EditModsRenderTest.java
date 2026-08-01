@@ -40,6 +40,8 @@ import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
@@ -262,8 +264,10 @@ public class EditModsRenderTest {
             List<ModsJCheckBox> boxes = new ArrayList<>();
             collect(dialog.getContentPane(), boxes);
 
+            assertTrue(!boxes.isEmpty(), "no mods to measure");
+
             for (ModsJCheckBox box : boxes) {
-                Container list = box.getParent();
+                Container list = listHolding(box);
                 int needed = 0;
 
                 for (Component sibling : list.getComponents()) {
@@ -275,6 +279,95 @@ public class EditModsRenderTest {
                                 + "px of mods, so the ones at the bottom cannot be scrolled to");
             }
         });
+    }
+
+    /**
+     * The list had no search at all, and a modpack with four hundred mods in it gave you a
+     * scrollbar. Typing narrows both columns at once, and clearing puts them back.
+     */
+    @Test
+    public void testSearchNarrowsBothLists() throws Exception {
+        onEdt(() -> {
+            EditModsDialog dialog = build();
+
+            JTextField search = searchField(dialog.getContentPane());
+            assertNotNull(search, "the mod list has no search box");
+
+            search.setText("sodium");
+            // Enter commits immediately; the settle timer would otherwise land after the assertions
+            search.postActionEvent();
+
+            List<ModsJCheckBox> found = new ArrayList<>();
+            collect(dialog.getContentPane(), found);
+
+            assertEquals(1, found.size(), "searching for sodium left " + found.size() + " mods showing");
+            assertTrue(found.get(0).getText().contains("Sodium"),
+                    "the one mod left is \"" + found.get(0).getText() + "\"");
+
+            search.setText("");
+            search.postActionEvent();
+
+            found.clear();
+            collect(dialog.getContentPane(), found);
+
+            assertEquals(4, found.size(), "clearing the search did not bring the other mods back");
+        });
+    }
+
+    /**
+     * Searching also reads the description, because half of what is in a mods folder is named for
+     * its jar rather than for itself.
+     */
+    @Test
+    public void testSearchReadsMoreThanTheName() throws Exception {
+        onEdt(() -> {
+            EditModsDialog dialog = build();
+
+            JTextField search = searchField(dialog.getContentPane());
+            assertNotNull(search, "the mod list has no search box");
+
+            // no mod is called this; every one of them is described as it
+            search.setText("a mod.");
+            search.postActionEvent();
+
+            List<ModsJCheckBox> found = new ArrayList<>();
+            collect(dialog.getContentPane(), found);
+
+            assertEquals(4, found.size(), "the description was not searched");
+        });
+    }
+
+    private static JTextField searchField(Container root) {
+        for (Component c : root.getComponents()) {
+            if (c instanceof JTextField && "editModsSearchField".equals(c.getName())) {
+                return (JTextField) c;
+            }
+
+            if (c instanceof Container) {
+                JTextField found = searchField((Container) c);
+
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The panel the scroll pane is showing, which is no longer the tick's own parent - each mod is
+     * a row carrying a type glyph and its version as well as the tick, so measuring the tick's
+     * parent would measure one row against itself and pass whatever the list did.
+     */
+    private static Container listHolding(Component box) {
+        Component c = box;
+
+        while (c.getParent() != null && !(c.getParent() instanceof JViewport)) {
+            c = c.getParent();
+        }
+
+        return (Container) c;
     }
 
     private static void collect(Container root, List<ModsJCheckBox> found) {
