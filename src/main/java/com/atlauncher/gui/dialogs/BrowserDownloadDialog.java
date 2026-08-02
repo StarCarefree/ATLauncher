@@ -34,12 +34,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
 import org.mini2Dx.gettext.GetText;
@@ -50,6 +48,8 @@ import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.json.Mod;
 import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.utils.FileUtils;
@@ -70,10 +70,10 @@ public final class BrowserDownloadDialog extends JDialog {
     private final JPanel bottomPanel = new JPanel(new WrapLayout());
 
     private JScrollPane mainScrollPanel = Utils.wrapInVerticalScroller(mainPanel, 16);
-    private final JButton openFolderButton = new JButton(GetText.tr("Open Folder"));
-    private final JButton openAllButton = new JButton(GetText.tr("Open All In Browser"));
-    private final JButton skipRemainingButton = new JButton(GetText.tr("Skip Remaining"));
-    private final JButton cancelInstallButton = new JButton(GetText.tr("Cancel Install"));
+    private final MD3Button openFolderButton = MD3Button.outlined(GetText.tr("Open Folder"));
+    private final MD3Button openAllButton = MD3Button.filled(GetText.tr("Open All In Browser"));
+    private final MD3Button skipRemainingButton = MD3Button.text(GetText.tr("Skip Remaining"));
+    private final MD3Button cancelInstallButton = MD3Button.text(GetText.tr("Cancel Install"));
 
     private final Path downloadPath = FileSystem.getUserDownloadsPath();
 
@@ -323,7 +323,8 @@ public final class BrowserDownloadDialog extends JDialog {
 
             gbc.insets = UIConstants.LEFT_TO_RIGHT_SPACER;
             gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-            JTextField nameTextField = new JTextField(mod.name);
+            MD3TextField nameTextField = new MD3TextField();
+            nameTextField.setText(mod.name);
             nameTextField.setEditable(false);
             nameTextField.setBorder(null);
             nameTextField.setBackground(null);
@@ -333,7 +334,8 @@ public final class BrowserDownloadDialog extends JDialog {
             gbc.gridx++;
             gbc.insets = UIConstants.LEFT_TO_RIGHT_SPACER;
             gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-            JTextField fileTextField = new JTextField(mod.file);
+            MD3TextField fileTextField = new MD3TextField();
+            fileTextField.setText(mod.file);
             fileTextField.setEditable(false);
             fileTextField.setBorder(null);
             fileTextField.setBackground(null);
@@ -348,11 +350,11 @@ public final class BrowserDownloadDialog extends JDialog {
                 this.mainPanel.add(new JLabel(GetText.tr("Download Complete")), gbc);
             } else {
                 JPanel buttonPanel = new JPanel(new FlowLayout());
-                JButton openButton = new JButton(GetText.tr("Open"));
+                MD3Button openButton = MD3Button.outlined(GetText.tr("Open"));
                 buttonPanel.add(openButton, gbc);
                 openButton.addActionListener(l -> OS.openWebBrowser(mod.url));
 
-                JButton copyLinkButton = new JButton(GetText.tr("Copy Link"));
+                MD3Button copyLinkButton = MD3Button.outlined(GetText.tr("Copy Link"));
                 buttonPanel.add(copyLinkButton, gbc);
                 copyLinkButton.addActionListener(l -> OS.copyToClipboard(mod.url));
                 this.mainPanel.add(buttonPanel, gbc);

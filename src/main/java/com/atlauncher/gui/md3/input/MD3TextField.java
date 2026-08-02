@@ -58,6 +58,31 @@ public class MD3TextField extends JTextField {
         this(null, Variant.OUTLINED);
     }
 
+    /**
+     * A field of a given width in characters, with no label.
+     *
+     * <p>
+     * The shape a settings row wants: the row's headline names the setting, so a label inside the
+     * box would say it twice, and a field with nothing to float is held to 40dp rather than the
+     * 56dp a floating label needs room for.
+     *
+     * <p>
+     * <b>There is deliberately no {@code MD3TextField(String, int)}.</b> {@link JTextField}'s
+     * version of that takes the initial <em>text</em>, while this class's single-String constructor
+     * takes the <em>label</em> - one silent mix-up away from a field that shows its contents as a
+     * placeholder. Set the text with {@link #setText(String)}, where it says what it is.
+     *
+     * @param columns width in characters, as {@link JTextField#setColumns(int)} means it
+     */
+    public MD3TextField(int columns) {
+        this(null, Variant.OUTLINED);
+
+        setColumns(columns);
+    }
+
+    /**
+     * @param label the floating label. Leave it off for a field whose name is already beside it.
+     */
     public MD3TextField(String label) {
         this(label, Variant.OUTLINED);
     }

@@ -38,12 +38,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -98,6 +95,9 @@ import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.container.MD3SettingsList;
+import com.atlauncher.gui.md3.input.MD3Checkbox;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.CurseForgeUpdateManager;
 import com.atlauncher.managers.DialogManager;
@@ -116,6 +116,7 @@ import com.atlauncher.utils.ModrinthApi;
 import com.atlauncher.utils.Pair;
 import com.atlauncher.utils.TechnicApi;
 import com.atlauncher.utils.WindowUtils;
+import com.formdev.flatlaf.util.UIScale;
 
 import okhttp3.CacheControl;
 
@@ -139,12 +140,12 @@ public class InstanceInstallerDialog extends JDialog {
 
     private final MD3SettingsList middle;
     private final MD3Button install;
-    private final JTextField nameField;
-    private JComboBox<PackVersion> versionsDropDown;
-    private final JComboBox<ComboItem<LoaderVersion>> loaderVersionsDropDown = new JComboBox<>();
+    private final MD3TextField nameField;
+    private MD3ComboBox<PackVersion> versionsDropDown;
+    private final MD3ComboBox<ComboItem<LoaderVersion>> loaderVersionsDropDown = new MD3ComboBox<>();
     private final List<LoaderVersion> loaderVersions = new ArrayList<>();
 
-    private final JCheckBox showAllMinecraftVersionsCheckbox = new JCheckBox(GetText.tr("Show All"));
+    private final MD3Checkbox showAllMinecraftVersionsCheckbox = new MD3Checkbox(GetText.tr("Show All"));
 
     /**
      * The rows, kept because each of them is shown only when it applies: there is no version to
@@ -155,7 +156,7 @@ public class InstanceInstallerDialog extends JDialog {
     private MD3SettingsList.Row loaderVersionRow;
     private MD3SettingsList.Row saveModsRow;
 
-    private JCheckBox saveModsCheckbox;
+    private MD3Checkbox saveModsCheckbox;
     private final boolean isUpdate;
     private final PackVersion autoInstallVersion;
     private final Path extractedPath;
@@ -273,7 +274,7 @@ public class InstanceInstallerDialog extends JDialog {
         // The form
         middle = new MD3SettingsList();
 
-        nameField = new JTextField(17);
+        nameField = new MD3TextField(17);
         nameField.setText(((isReinstall) ? instance.launcher.name : packName));
         if (isReinstall) {
             nameField.setEnabled(false);
@@ -312,7 +313,7 @@ public class InstanceInstallerDialog extends JDialog {
         this.setupLoaderVersionsDropdown();
 
         if (!this.isServer && isReinstall) {
-            saveModsCheckbox = new JCheckBox();
+            saveModsCheckbox = new MD3Checkbox();
 
             saveModsRow = middle.addRow(GetText.tr("Save Mods"), MD3Text.plain(GetText.tr(
                 "Since this update changes the Minecraft version, your custom mods may no longer work.<br/><br/>Checking this box will keep your custom mods, otherwise they'll be removed.")),
@@ -1049,7 +1050,7 @@ public class InstanceInstallerDialog extends JDialog {
     }
 
     private void setupVersionsDropdown() {
-        versionsDropDown = new JComboBox<>();
+        versionsDropDown = new MD3ComboBox<>();
         setVersionsDropdown();
 
         // "Show All" only applies to the version beside it, so it belongs on that row rather than
@@ -1159,7 +1160,10 @@ public class InstanceInstallerDialog extends JDialog {
         // ensures that there is a maximum width of 250 px to prevent overflow
         versionLength = Math.min(250, versionLength);
 
-        versionsDropDown.setPreferredSize(new Dimension(versionLength, 23));
+        // the height is the control's own; it paints a container that does not fit in the 23px this
+        // used to be pinned to
+        versionsDropDown.setPreferredSize(new Dimension(UIScale.scale(versionLength),
+                versionsDropDown.getPreferredSize().height));
     }
 
     protected void updateLoaderVersions(@Nonnull PackVersion item) {

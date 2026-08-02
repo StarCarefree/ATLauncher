@@ -25,11 +25,9 @@ import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -37,6 +35,8 @@ import com.atlauncher.App;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.Instance;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.InstanceManager;
 import com.atlauncher.managers.LogManager;
@@ -47,7 +47,7 @@ import com.formdev.flatlaf.util.UIScale;
 
 public class RenameInstanceDialog extends JDialog {
 
-    private JTextField instanceName;
+    private MD3TextField instanceName;
 
     private final Instance instance;
 
@@ -99,14 +99,14 @@ public class RenameInstanceDialog extends JDialog {
         gbc.gridx++;
         gbc.insets = UIConstants.FIELD_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        instanceName = new JTextField(16);
+        instanceName = new MD3TextField(16);
         instanceName.setText(this.instance.launcher.name);
         middle.add(instanceName, gbc);
 
         // Bottom Panel Stuff
         JPanel bottom = new JPanel();
         bottom.setLayout(new FlowLayout());
-        JButton saveButton = new JButton(GetText.tr("Save"));
+        MD3Button saveButton = MD3Button.filled(GetText.tr("Save"));
         saveButton.addActionListener(e -> {
             if (InstanceManager.isInstance(instanceName.getText())) {
                 DialogManager.okDialog().setParent(RenameInstanceDialog.this).setTitle(GetText.tr("Error"))

@@ -23,7 +23,6 @@ import java.awt.FlowLayout;
 import java.util.Optional;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
@@ -38,6 +37,7 @@ import com.atlauncher.data.curseforge.CurseForgeAttachment;
 import com.atlauncher.data.curseforge.CurseForgeFileDependency;
 import com.atlauncher.data.curseforge.CurseForgeProject;
 import com.atlauncher.gui.dialogs.CurseForgeProjectFileSelectorDialog;
+import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.utils.CurseForgeApi;
@@ -87,8 +87,8 @@ public final class CurseForgeFileDependencyCard extends JPanel {
         summaryPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
 
         JPanel buttonsPanel = new JPanel(new FlowLayout());
-        JButton addButton = new JButton(GetText.tr("Add"));
-        JButton viewButton = new JButton(GetText.tr("View"));
+        MD3Button addButton = MD3Button.filled(GetText.tr("Add"));
+        MD3Button viewButton = MD3Button.outlined(GetText.tr("View"));
         buttonsPanel.add(addButton);
         buttonsPanel.add(viewButton);
 

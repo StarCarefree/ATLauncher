@@ -22,7 +22,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Map;
 
-import javax.swing.JButton;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
@@ -34,6 +33,7 @@ import javax.swing.table.DefaultTableModel;
 
 import org.mini2Dx.gettext.GetText;
 
+import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.viewmodel.impl.settings.EnvironmentVariablesViewModel;
 import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
@@ -45,7 +45,7 @@ public class EnvironmentVariablesTab extends AbstractSettingsTab {
     private final EnvironmentVariablesViewModel viewModel;
     private JTable table;
     private DefaultTableModel tableModel;
-    private JButton addButton, deleteButton, clearButton;
+    private MD3Button addButton, deleteButton, clearButton;
 
     public EnvironmentVariablesTab(EnvironmentVariablesViewModel viewModel) {
         this.viewModel = viewModel;
@@ -87,7 +87,7 @@ public class EnvironmentVariablesTab extends AbstractSettingsTab {
             }
         });
 
-        addButton = new JButton(GetText.tr("Add"));
+        addButton = MD3Button.filled(GetText.tr("Add"));
         addButton.addActionListener(e -> {
             String key = DialogManager.okDialog().setTitle(GetText.tr("Environment Variable Name"))
                     .setContent(GetText.tr("Environment Variable Name:")).showInput("ENV_VARIABLE");
@@ -104,9 +104,9 @@ public class EnvironmentVariablesTab extends AbstractSettingsTab {
                 }
             }
         });
-        deleteButton = new JButton(GetText.tr("Delete"));
+        deleteButton = MD3Button.outlined(GetText.tr("Delete"));
         deleteButton.addActionListener(e -> deleteSelected());
-        clearButton = new JButton(GetText.tr("Clear"));
+        clearButton = MD3Button.outlined(GetText.tr("Clear"));
         clearButton.addActionListener(e -> clearAll());
 
         addRow(GetText.tr("Environment Variables"),

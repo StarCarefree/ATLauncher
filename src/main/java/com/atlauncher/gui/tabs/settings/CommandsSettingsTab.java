@@ -20,13 +20,13 @@ package com.atlauncher.gui.tabs.settings;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 
-import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
 import com.atlauncher.gui.md3.input.MD3Switch;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.viewmodel.impl.settings.CommandsSettingsViewModel;
 
@@ -36,9 +36,9 @@ public class CommandsSettingsTab extends AbstractSettingsTab {
     private static final int COMMAND_HEIGHT = 24;
 
     private final CommandsSettingsViewModel viewModel;
-    private JTextField preLaunchCommand;
-    private JTextField postExitCommand;
-    private JTextField wrapperCommand;
+    private MD3TextField preLaunchCommand;
+    private MD3TextField postExitCommand;
+    private MD3TextField wrapperCommand;
     private MD3Switch enableCommands;
 
     public CommandsSettingsTab(CommandsSettingsViewModel viewModel) {
@@ -56,7 +56,8 @@ public class CommandsSettingsTab extends AbstractSettingsTab {
         // endregion
 
         // region Pre-launch command
-        preLaunchCommand = new JTextField(App.settings.preLaunchCommand, 32);
+        preLaunchCommand = new MD3TextField(32);
+        preLaunchCommand.setText(App.settings.preLaunchCommand);
         preLaunchCommand.setPreferredSize(new Dimension(COMMAND_WIDTH, COMMAND_HEIGHT));
         preLaunchCommand.addKeyListener(
             new DelayedSavingKeyListener(
@@ -72,7 +73,8 @@ public class CommandsSettingsTab extends AbstractSettingsTab {
         // endregion
 
         // region Post-exit command
-        postExitCommand = new JTextField(App.settings.postExitCommand, 32);
+        postExitCommand = new MD3TextField(32);
+        postExitCommand.setText(App.settings.postExitCommand);
         postExitCommand.setPreferredSize(new Dimension(COMMAND_WIDTH, COMMAND_HEIGHT));
         postExitCommand.addKeyListener(
             new DelayedSavingKeyListener(
@@ -88,7 +90,8 @@ public class CommandsSettingsTab extends AbstractSettingsTab {
         // endregion
 
         // region Wrapper command
-        wrapperCommand = new JTextField(App.settings.wrapperCommand, 32);
+        wrapperCommand = new MD3TextField(32);
+        wrapperCommand.setText(App.settings.wrapperCommand);
         wrapperCommand.setPreferredSize(new Dimension(COMMAND_WIDTH, COMMAND_HEIGHT));
         wrapperCommand.addKeyListener(
             new DelayedSavingKeyListener(

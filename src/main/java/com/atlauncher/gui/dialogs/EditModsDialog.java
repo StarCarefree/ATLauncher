@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 
 import javax.swing.AbstractButton;
 import javax.swing.BoxLayout;
-import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -65,6 +64,7 @@ import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.input.MD3Checkbox;
 import com.atlauncher.gui.md3.input.MD3FilterChip;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.gui.md3.nav.MD3TopAppBar;
@@ -105,7 +105,7 @@ public class EditModsDialog extends JDialog {
     private MD3Button disableButton;
     private MD3Button removeButton;
     private MD3Button refreshMetadataButton;
-    private JCheckBox selectAllEnabledModsCheckbox, selectAllDisabledModsCheckbox;
+    private MD3Checkbox selectAllEnabledModsCheckbox, selectAllDisabledModsCheckbox;
     private ArrayList<ModsJCheckBox> enabledMods, disabledMods;
 
     private MD3TextField searchField;
@@ -180,7 +180,7 @@ public class EditModsDialog extends JDialog {
         enabledModsPanel.setBackground(UIManager.getColor("Mods.modSelectionColor"));
         enabledModsPanel.setTransferHandler(new ModsJCheckBoxTransferHandler(this, true));
 
-        selectAllEnabledModsCheckbox = new JCheckBox(GetText.tr("Select All"));
+        selectAllEnabledModsCheckbox = new MD3Checkbox(GetText.tr("Select All"));
         selectAllEnabledModsCheckbox.setOpaque(false);
         selectAllEnabledModsCheckbox.addActionListener(e -> {
             boolean selected = selectAllEnabledModsCheckbox.isSelected();
@@ -188,7 +188,7 @@ public class EditModsDialog extends JDialog {
             enabledMods.forEach(em -> em.setSelected(selected));
         });
 
-        selectAllDisabledModsCheckbox = new JCheckBox(GetText.tr("Select All"));
+        selectAllDisabledModsCheckbox = new MD3Checkbox(GetText.tr("Select All"));
         selectAllDisabledModsCheckbox.setOpaque(false);
         selectAllDisabledModsCheckbox.addActionListener(e -> {
             boolean selected = selectAllDisabledModsCheckbox.isSelected();
@@ -530,7 +530,7 @@ public class EditModsDialog extends JDialog {
      * The select-all box used to be an unlabelled tick beside the heading, which said nothing about
      * what ticking it would do.
      */
-    private JComponent buildColumn(String title, JCheckBox selectAll, JPanel mods) {
+    private JComponent buildColumn(String title, MD3Checkbox selectAll, JPanel mods) {
         JLabel label = new JLabel(title);
         label.setFont(MD3Type.font(MD3Type.TITLE_SMALL, title));
         label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);

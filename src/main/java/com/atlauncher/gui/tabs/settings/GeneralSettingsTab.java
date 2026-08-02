@@ -23,10 +23,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
-import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -36,7 +33,10 @@ import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.data.LauncherTheme;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3Switch;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -59,7 +59,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Language
 
-        JComboBox<String> language = new JComboBox<>(viewModel.getLanguages());
+        MD3ComboBox<String> language = new MD3ComboBox<>(viewModel.getLanguages());
         language.addItemListener(itemEvent -> {
             if (itemEvent.getStateChange() == ItemEvent.SELECTED)
                 viewModel.setSelectedLanguage((String) itemEvent.getItem());
@@ -68,7 +68,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
         // and looking for an entry equal to a number, so the picker sat on whatever was first
         addDisposable(viewModel.getSelectedLanguage().subscribe(language::setSelectedIndex));
 
-        JButton translateButton = new JButton(GetText.tr("Help Translate"));
+        MD3Button translateButton = MD3Button.outlined(GetText.tr("Help Translate"));
         translateButton.addActionListener(e -> OS.openWebBrowser(Constants.CROWDIN_URL));
 
         addRow(GetText.tr("Language"), GetText.tr("This specifies the language used by the Launcher."),
@@ -76,7 +76,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Theme
 
-        JComboBox<ComboItem<String>> theme = new JComboBox<>();
+        MD3ComboBox<ComboItem<String>> theme = new MD3ComboBox<>();
 
         for (LauncherTheme launcherTheme : viewModel.getThemes()) {
             theme.addItem(new ComboItem<>(launcherTheme.id, launcherTheme.label));
@@ -93,7 +93,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Date Format
 
-        JComboBox<ComboItem<String>> dateFormat = new JComboBox<>();
+        MD3ComboBox<ComboItem<String>> dateFormat = new MD3ComboBox<>();
 
         Date exampleDate = viewModel.getDate();
 
@@ -113,7 +113,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Instance Title Format
 
-        JComboBox<ComboItem<String>> instanceTitleFormat = new JComboBox<>();
+        MD3ComboBox<ComboItem<String>> instanceTitleFormat = new MD3ComboBox<>();
 
         for (String format : viewModel.getInstanceTitleFormats()) {
             instanceTitleFormat.addItem(new ComboItem<>(format, String.format(format, GetText.tr("Instance Name"),
@@ -158,7 +158,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Selected tab on startup
 
-        JComboBox<ComboItem<Integer>> selectedTabOnStartup = new JComboBox<>();
+        MD3ComboBox<ComboItem<Integer>> selectedTabOnStartup = new MD3ComboBox<>();
         selectedTabOnStartup.addItem(new ComboItem<>(UIConstants.LAUNCHER_NEWS_TAB, GetText.tr("News")));
         selectedTabOnStartup
                 .addItem(new ComboItem<>(UIConstants.LAUNCHER_CREATE_PACK_TAB, GetText.tr("Create Pack")));
@@ -181,7 +181,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Default instance sorting
 
-        JComboBox<InstanceSortingStrategies> defaultInstanceSorting = new JComboBox<>(
+        MD3ComboBox<InstanceSortingStrategies> defaultInstanceSorting = new MD3ComboBox<>(
                 InstanceSortingStrategies.values());
         addDisposable(viewModel.getInstanceSortingObservable().subscribe(defaultInstanceSorting::setSelectedIndex));
         defaultInstanceSorting.addItemListener(itemEvent -> {
@@ -277,7 +277,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Custom Downloads Path
 
-        JTextField customDownloadsPath = new JTextField(16);
+        MD3TextField customDownloadsPath = new MD3TextField(16);
         customDownloadsPathChecker = new JLabelWithHover("", null, null);
         addDisposable(viewModel.getCustomsDownloadPath().subscribe(customDownloadsPath::setText));
         customDownloadsPath.addKeyListener(
@@ -287,14 +287,14 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
                         viewModel::setCustomsDownloadPathPending));
         addDisposable(viewModel.getCustomDownloadsPathChecker().subscribe(this::setCustomDownloadsPathCheckState));
 
-        JButton customDownloadsPathResetButton = new JButton(GetText.tr("Reset"));
+        MD3Button customDownloadsPathResetButton = MD3Button.outlined(GetText.tr("Reset"));
 
         customDownloadsPathResetButton.addActionListener(e -> {
             viewModel.resetCustomDownloadPath();
             resetCustomDownloadsPathCheckLabel();
         });
 
-        JButton customDownloadsPathBrowseButton = new JButton(GetText.tr("Browse"));
+        MD3Button customDownloadsPathBrowseButton = MD3Button.outlined(GetText.tr("Browse"));
         customDownloadsPathBrowseButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setCurrentDirectory(new File(customDownloadsPath.getText()));

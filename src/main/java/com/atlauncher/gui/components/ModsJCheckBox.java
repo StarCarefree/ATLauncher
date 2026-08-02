@@ -20,7 +20,6 @@ package com.atlauncher.gui.components;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 
-import javax.swing.JCheckBox;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JToolTip;
@@ -28,6 +27,7 @@ import javax.swing.JToolTip;
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.builders.HTMLBuilder;
+import com.atlauncher.gui.md3.input.MD3Checkbox;
 import com.atlauncher.data.DisableableMod;
 import com.atlauncher.data.ModPlatform;
 import com.atlauncher.data.Type;
@@ -43,13 +43,13 @@ import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.OS;
 
 /**
- * This class extends {@link JCheckBox} and overrides the need to use JCheckBox
+ * This class extends {@link MD3Checkbox} and overrides the need to use JCheckBox
  * in the {@link ModsChooser}, {@link ModsChooser} and {@link EditModsDialog},
  * providing specific functionality for those two components. Mainly providing a
  * hover tooltip for a mods description, as well as giving pack developers a way
  * to colour mod's names.
  */
-public class ModsJCheckBox extends JCheckBox {
+public class ModsJCheckBox extends MD3Checkbox {
     /**
      * The mod this object will use to display it's data. Will be type {@link Mod},
      * {@link com.atlauncher.data.json.Mod} or {@link DisableableMod}.
@@ -66,6 +66,10 @@ public class ModsJCheckBox extends JCheckBox {
      */
     public ModsJCheckBox(Mod mod, EditModsDialog dialog) {
         super(mod.getName());
+
+        // one row of a list that runs to dozens of mods: the box is the same 18dp, but
+        // the 40dp target a standalone checkbox gets would double the list's height
+        setCompact(true);
 
         if (mod.hasColour() && mod.getCompiledColour() != null) {
             setForeground(mod.getCompiledColour());
@@ -91,6 +95,10 @@ public class ModsJCheckBox extends JCheckBox {
      */
     public ModsJCheckBox(DisableableMod mod, EditModsDialog dialog) {
         super(mod.type == Type.plugins ? "[Plugin] " + mod.getName() : mod.getName());
+
+        // one row of a list that runs to dozens of mods: the box is the same 18dp, but
+        // the 40dp target a standalone checkbox gets would double the list's height
+        setCompact(true);
 
         if (mod.hasColour()) {
             setForeground(mod.getColour());

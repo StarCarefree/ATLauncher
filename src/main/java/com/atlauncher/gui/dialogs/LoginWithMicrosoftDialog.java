@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
@@ -57,6 +56,7 @@ import com.atlauncher.data.microsoft.OauthTokenResponse;
 import com.atlauncher.data.microsoft.Profile;
 import com.atlauncher.data.microsoft.XboxLiveAuthErrorResponse;
 import com.atlauncher.data.microsoft.XboxLiveAuthResponse;
+import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.panels.LoadingPanel;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.DialogManager;
@@ -106,7 +106,7 @@ public final class LoginWithMicrosoftDialog extends JDialog {
 
         // Browser login at the top
         JPanel topPanel = new JPanel(new FlowLayout());
-        JButton browserLoginButton = new JButton(GetText.tr("Login with Browser"));
+        MD3Button browserLoginButton = MD3Button.filled(GetText.tr("Login with Browser"));
         browserLoginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -155,7 +155,7 @@ public final class LoginWithMicrosoftDialog extends JDialog {
         JPanel bottomPanel = new JPanel(new BorderLayout());
         JPanel linkPanel = new JPanel(new FlowLayout());
 
-        JButton copyCodeButton = new JButton(GetText.tr("Copy Code"));
+        MD3Button copyCodeButton = MD3Button.outlined(GetText.tr("Copy Code"));
         copyCodeButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -164,7 +164,7 @@ public final class LoginWithMicrosoftDialog extends JDialog {
         });
         linkPanel.add(copyCodeButton);
 
-        JButton openLinkButton = new JButton(GetText.tr("Open Link & Copy Code"));
+        MD3Button openLinkButton = MD3Button.outlined(GetText.tr("Open Link & Copy Code"));
         openLinkButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {

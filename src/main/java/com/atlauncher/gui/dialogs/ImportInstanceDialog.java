@@ -28,14 +28,12 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileFilter;
@@ -47,6 +45,8 @@ import com.atlauncher.FileSystem;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.UIConstants;
 import com.atlauncher.dbus.DBusUtils;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.network.Analytics;
@@ -59,10 +59,10 @@ import com.formdev.flatlaf.util.UIScale;
 
 public class ImportInstanceDialog extends JDialog {
 
-    private final JTextField url;
-    private final JTextField filePath;
+    private final MD3TextField url;
+    private final MD3TextField filePath;
 
-    private final JButton addButton;
+    private final MD3Button addButton;
 
     public ImportInstanceDialog() {
         super(App.launcher.getParent(), GetText.tr("Import Instance"), ModalityType.DOCUMENT_MODAL);
@@ -98,7 +98,7 @@ public class ImportInstanceDialog extends JDialog {
         gbc.gridx++;
         gbc.insets = UIConstants.FIELD_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        url = new JTextField(25);
+        url = new MD3TextField(25);
         url.getDocument().addDocumentListener(new DocumentListener() {
             @Override
             public void insertUpdate(DocumentEvent e) {
@@ -132,11 +132,11 @@ public class ImportInstanceDialog extends JDialog {
         gbc.insets = UIConstants.FIELD_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         JPanel filePathPanel = new JPanel(new FlowLayout());
-        filePath = new JTextField(17);
+        filePath = new MD3TextField(17);
         filePath.setEnabled(false);
         filePathPanel.add(filePath);
 
-        JButton browseButton = new JButton(GetText.tr("Browse"));
+        MD3Button browseButton = MD3Button.outlined(GetText.tr("Browse"));
         browseButton.addActionListener(e -> {
             if (OS.isUsingFlatpak()) {
                 File[] filesChosen = DBusUtils.selectFiles();
@@ -196,7 +196,7 @@ public class ImportInstanceDialog extends JDialog {
         // Bottom Panel Stuff
         JPanel bottom = new JPanel();
         bottom.setLayout(new FlowLayout());
-        addButton = new JButton(GetText.tr("Import"));
+        addButton = MD3Button.filled(GetText.tr("Import"));
         addButton.addActionListener(e -> {
             if (AccountManager.getSelectedAccount() == null) {
                 DialogManager.okDialog().setTitle(GetText.tr("No Account Selected"))

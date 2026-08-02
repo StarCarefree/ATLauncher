@@ -25,15 +25,12 @@ import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
@@ -50,7 +47,10 @@ import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.data.Instance;
 import com.atlauncher.data.minecraft.JavaRuntime;
 import com.atlauncher.gui.md3.MD3Text;
+import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3SettingsList;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.Java;
@@ -59,21 +59,17 @@ import com.atlauncher.utils.javafinder.JavaInfo;
 import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
 
 public class JavaInstanceSettingsTab extends MD3SettingsList {
-    /** A Java path is long enough that its field gets its own line. */
-    private static final int JAVA_FIELD_WIDTH = 516;
-    private static final int JAVA_FIELD_HEIGHT = 24;
-
     private final Instance instance;
 
     private JSpinner maximumMemory;
     private JSpinner permGen;
-    private JTextField javaPath;
+    private MD3TextField javaPath;
     private JTextArea javaParameters;
-    private JComboBox<ComboItem<String>> javaRuntimeOverride;
-    private JComboBox<ComboItem<Boolean>> useJavaProvidedByMinecraft;
-    private JComboBox<ComboItem<Boolean>> disableLegacyLaunching;
-    private JComboBox<ComboItem<Boolean>> useSystemGlfw;
-    private JComboBox<ComboItem<Boolean>> useSystemOpenAl;
+    private MD3ComboBox<ComboItem<String>> javaRuntimeOverride;
+    private MD3ComboBox<ComboItem<Boolean>> useJavaProvidedByMinecraft;
+    private MD3ComboBox<ComboItem<Boolean>> disableLegacyLaunching;
+    private MD3ComboBox<ComboItem<Boolean>> useSystemGlfw;
+    private MD3ComboBox<ComboItem<Boolean>> useSystemOpenAl;
 
     /**
      * The Java rows that swap over: either Minecraft provides the runtime, in which case there is
@@ -151,12 +147,12 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
 
         // Java Path
 
-        javaPath = new JTextField(32);
+        javaPath = new MD3TextField(32);
         javaPath.setText(getIfNotNull(this.instance.launcher.javaPath, App.settings.javaPath));
 
-        JButton javaPathResetButton = new JButton(GetText.tr("Reset"));
+        MD3Button javaPathResetButton = MD3Button.outlined(GetText.tr("Reset"));
         javaPathResetButton.addActionListener(e -> javaPath.setText(OS.getDefaultJavaPath()));
-        JButton javaBrowseButton = new JButton(GetText.tr("Browse"));
+        MD3Button javaBrowseButton = MD3Button.outlined(GetText.tr("Browse"));
         javaBrowseButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setCurrentDirectory(new File(javaPath.getText()));
@@ -179,8 +175,9 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
             }
         });
 
-        JComboBox<ComboItem<JavaInfo>> installedJavasComboBox = new JComboBox<>();
-        installedJavasComboBox.setPreferredSize(new Dimension(JAVA_FIELD_WIDTH, JAVA_FIELD_HEIGHT));
+        // no size of its own: the wide row gives it the width, and a control that paints its own
+        // container knows its own height
+        MD3ComboBox<ComboItem<JavaInfo>> installedJavasComboBox = new MD3ComboBox<>();
         installedJavasComboBox.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         List<JavaInfo> installedJavas = Java.getInstalledJavas();
         int selectedIndex = 0;
@@ -244,7 +241,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
         javaParameters.setWrapStyleWord(true);
         javaParametersScrollPane.setViewportView(javaParameters);
 
-        JButton javaParametersResetButton = new JButton(GetText.tr("Reset"));
+        MD3Button javaParametersResetButton = MD3Button.outlined(GetText.tr("Reset"));
         javaParametersResetButton.addActionListener(e -> javaParameters.setText(App.settings.javaParameters));
 
         addWideRow(GetText.tr("Java Parameters"),
@@ -253,7 +250,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
 
         // Runtime Override
 
-        javaRuntimeOverride = new JComboBox<>();
+        javaRuntimeOverride = new MD3ComboBox<>();
         if (instance.javaVersion != null) {
             javaRuntimeOverride.addItem(new ComboItem<>(null, GetText.tr("Use Default (Recommended)")));
         } else {
@@ -285,7 +282,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
 
         // Use Java Provided By Minecraft
 
-        useJavaProvidedByMinecraft = new JComboBox<>();
+        useJavaProvidedByMinecraft = new MD3ComboBox<>();
         useJavaProvidedByMinecraft.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         useJavaProvidedByMinecraft.addItem(new ComboItem<>(true, GetText.tr("Yes")));
         useJavaProvidedByMinecraft.addItem(new ComboItem<>(false, GetText.tr("No")));
@@ -332,7 +329,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
 
         // Disable Legacy Launching (hidden for legacy fabric as it never uses legacy launching)
         if (instance.launcher.loaderVersion == null || !instance.launcher.loaderVersion.isLegacyFabric()) {
-            disableLegacyLaunching = new JComboBox<>();
+            disableLegacyLaunching = new MD3ComboBox<>();
             disableLegacyLaunching.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
             disableLegacyLaunching.addItem(new ComboItem<>(true, GetText.tr("Yes")));
             disableLegacyLaunching.addItem(new ComboItem<>(false, GetText.tr("No")));
@@ -351,7 +348,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
         }
 
         // Use System GLFW
-        useSystemGlfw = new JComboBox<>();
+        useSystemGlfw = new MD3ComboBox<>();
         useSystemGlfw.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         useSystemGlfw.addItem(new ComboItem<>(true, GetText.tr("Yes")));
         useSystemGlfw.addItem(new ComboItem<>(false, GetText.tr("No")));
@@ -368,7 +365,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
             useSystemGlfw);
 
         // Use System OpenAL
-        useSystemOpenAl = new JComboBox<>();
+        useSystemOpenAl = new MD3ComboBox<>();
         useSystemOpenAl.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         useSystemOpenAl.addItem(new ComboItem<>(true, GetText.tr("Yes")));
         useSystemOpenAl.addItem(new ComboItem<>(false, GetText.tr("No")));

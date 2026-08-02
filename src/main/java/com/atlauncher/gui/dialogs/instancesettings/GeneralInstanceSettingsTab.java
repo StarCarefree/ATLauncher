@@ -20,9 +20,7 @@ package com.atlauncher.gui.dialogs.instancesettings;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
-import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -31,6 +29,8 @@ import com.atlauncher.data.Instance;
 import com.atlauncher.data.QuickPlayOption;
 import com.atlauncher.data.json.QuickPlay;
 import com.atlauncher.gui.md3.container.MD3SettingsList;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -42,13 +42,13 @@ public class GeneralInstanceSettingsTab extends MD3SettingsList {
 
     private final Instance instance;
 
-    private JComboBox<ComboItem<String>> account;
+    private MD3ComboBox<ComboItem<String>> account;
 
-    private JComboBox<ComboItem<QuickPlayOption>> quickPlayType;
+    private MD3ComboBox<ComboItem<QuickPlayOption>> quickPlayType;
 
-    private JTextField quickPlayServerAddress;
-    private JComboBox<ComboItem<String>> quickPlaySinglePlayerWorld;
-    private JTextField quickPlayRealmId;
+    private MD3TextField quickPlayServerAddress;
+    private MD3ComboBox<ComboItem<String>> quickPlaySinglePlayerWorld;
+    private MD3TextField quickPlayRealmId;
 
     /**
      * The Quick Play settings, kept so the one the selected type needs can be the only one shown.
@@ -66,7 +66,7 @@ public class GeneralInstanceSettingsTab extends MD3SettingsList {
     private void setupComponents() {
         // Account
 
-        account = new JComboBox<>();
+        account = new MD3ComboBox<>();
         account.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         AccountManager.getAccounts().stream()
                 .forEach(a -> account.addItem(new ComboItem<>(a.username, a.minecraftUsername)));
@@ -89,7 +89,7 @@ public class GeneralInstanceSettingsTab extends MD3SettingsList {
 
         QuickPlay quickPlay = instance.launcher.quickPlay;
 
-        quickPlayType = new JComboBox<>();
+        quickPlayType = new MD3ComboBox<>();
         Arrays.stream(QuickPlayOption.compatibleValues(instance))
                 .forEach(option -> quickPlayType.addItem(new ComboItem<>(option, option.label)));
         quickPlayType.setSelectedIndex(
@@ -104,7 +104,7 @@ public class GeneralInstanceSettingsTab extends MD3SettingsList {
 
         // TODO: Allow to select the list of the servers in the game using dropdown as a
         // value for this text input
-        quickPlayServerAddress = new JTextField(FIELD_COLUMNS);
+        quickPlayServerAddress = new MD3TextField(FIELD_COLUMNS);
         quickPlayServerAddress.putClientProperty("JTextField.showClearButton", true);
         quickPlayServerAddress.putClientProperty("JTextField.clearCallback",
                 (Runnable) () -> quickPlayServerAddress.setText(""));
@@ -116,7 +116,7 @@ public class GeneralInstanceSettingsTab extends MD3SettingsList {
                                 " launching the game."),
                 quickPlayServerAddress);
 
-        quickPlaySinglePlayerWorld = new JComboBox<>();
+        quickPlaySinglePlayerWorld = new MD3ComboBox<>();
         List<String> worldNames = instance.getSinglePlayerWorldNamesFromFilesystem();
         worldNames.forEach(saveName -> quickPlaySinglePlayerWorld.addItem(new ComboItem<>(saveName, saveName)));
 
@@ -131,7 +131,7 @@ public class GeneralInstanceSettingsTab extends MD3SettingsList {
                 quickPlaySinglePlayerWorld);
 
         // TODO: We might want to make this as dropdown to all the realms
-        quickPlayRealmId = new JTextField(FIELD_COLUMNS);
+        quickPlayRealmId = new MD3TextField(FIELD_COLUMNS);
         quickPlayRealmId.putClientProperty("JTextField.showClearButton", true);
         quickPlayRealmId.putClientProperty("JTextField.clearCallback", (Runnable) () -> quickPlayRealmId.setText(""));
         quickPlayRealmId.setText(quickPlay.realmId);

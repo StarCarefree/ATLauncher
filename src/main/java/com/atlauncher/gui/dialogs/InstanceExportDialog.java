@@ -35,13 +35,9 @@ import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -51,6 +47,10 @@ import com.atlauncher.data.Instance;
 import com.atlauncher.data.InstanceExportFormat;
 import com.atlauncher.data.MicrosoftAccount;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3Checkbox;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.NotificationManager;
@@ -111,7 +111,7 @@ public class InstanceExportDialog extends JDialog {
         gbc.gridx++;
         gbc.insets = UIConstants.LABEL_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final JTextField name = new JTextField(30);
+        final MD3TextField name = new MD3TextField(30);
         name.setText(Optional.ofNullable(instance.launcher.lastExportName).orElse(instance.launcher.name));
         topPanel.add(name, gbc);
 
@@ -128,7 +128,7 @@ public class InstanceExportDialog extends JDialog {
         gbc.gridx++;
         gbc.insets = UIConstants.LABEL_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final JTextField version = new JTextField(30);
+        final MD3TextField version = new MD3TextField(30);
         version.setText(Optional.ofNullable(instance.launcher.lastExportVersion).orElse(instance.launcher.version));
         topPanel.add(version, gbc);
 
@@ -145,7 +145,7 @@ public class InstanceExportDialog extends JDialog {
         gbc.gridx++;
         gbc.insets = UIConstants.LABEL_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final JTextField author = new JTextField(30);
+        final MD3TextField author = new MD3TextField(30);
         final MicrosoftAccount selectedAccount = AccountManager.getSelectedAccount();
         author.setText(Optional.ofNullable(instance.launcher.lastExportAuthor)
             .orElse(selectedAccount == null ? "" : selectedAccount.minecraftUsername));
@@ -164,7 +164,7 @@ public class InstanceExportDialog extends JDialog {
         gbc.gridx++;
         gbc.insets = UIConstants.LABEL_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final JComboBox<ComboItem<InstanceExportFormat>> format = new JComboBox<>();
+        final MD3ComboBox<ComboItem<InstanceExportFormat>> format = new MD3ComboBox<>();
         format.addItem(new ComboItem<>(InstanceExportFormat.CURSEFORGE, "CurseForge"));
         format.addItem(new ComboItem<>(InstanceExportFormat.MODRINTH, "Modrinth"));
         format.addItem(new ComboItem<>(InstanceExportFormat.CURSEFORGE_AND_MODRINTH, "CurseForge & Modrinth"));
@@ -197,14 +197,14 @@ public class InstanceExportDialog extends JDialog {
         JPanel saveToPanel = new JPanel();
         saveToPanel.setLayout(new BoxLayout(saveToPanel, BoxLayout.X_AXIS));
 
-        final JTextField saveTo = new JTextField(25);
+        final MD3TextField saveTo = new MD3TextField(25);
         saveTo.setText(Optional.ofNullable(instance.launcher.lastExportSaveTo)
             .orElse(instance.getRoot().toAbsolutePath().toString()));
 
         // Disable manual input on flatpak (require proper xdg selection)
         saveTo.setEnabled(!OS.isUsingFlatpak());
 
-        JButton browseButton = new JButton(GetText.tr("Browse"));
+        MD3Button browseButton = MD3Button.outlined(GetText.tr("Browse"));
         browseButton.addActionListener(e -> {
             FileChooserDialog fcd = new FileChooserDialog(this,
                 GetText.tr("Select export directory"),
@@ -224,7 +224,7 @@ public class InstanceExportDialog extends JDialog {
             }
         });
 
-        JButton resetButton = new JButton(GetText.tr("Reset"));
+        MD3Button resetButton = MD3Button.outlined(GetText.tr("Reset"));
         resetButton.addActionListener(e -> saveTo.setText(instance.getRoot().toAbsolutePath().toString()));
 
         saveToPanel.add(saveTo);
@@ -265,7 +265,7 @@ public class InstanceExportDialog extends JDialog {
                 continue;
             }
 
-            JCheckBox checkBox = new JCheckBox(filename.getName());
+            MD3Checkbox checkBox = new MD3Checkbox(filename.getName());
 
             checkBox.addItemListener(e -> {
                 if (checkBox.isSelected()) {
@@ -301,7 +301,7 @@ public class InstanceExportDialog extends JDialog {
         // bottom panel
         bottomPanel.setLayout(new FlowLayout());
 
-        JButton exportButton = new JButton(GetText.tr("Export"));
+        MD3Button exportButton = MD3Button.filled(GetText.tr("Export"));
         exportButton.addActionListener(arg0 -> {
             instance.scanMissingMods(this);
 
@@ -350,7 +350,7 @@ public class InstanceExportDialog extends JDialog {
         });
         bottomPanel.add(exportButton);
 
-        JButton cancelButton = new JButton(GetText.tr("Cancel"));
+        MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
         cancelButton.addActionListener(arg0 -> close());
         bottomPanel.add(cancelButton);
 

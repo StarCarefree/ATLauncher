@@ -22,14 +22,11 @@ import java.awt.event.ItemEvent;
 import java.io.File;
 
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
-import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
@@ -45,7 +42,10 @@ import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.data.ScreenResolution;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3Switch;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -55,17 +55,13 @@ import com.atlauncher.viewmodel.impl.settings.JavaSettingsViewModel;
 import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
 
 public class JavaSettingsTab extends AbstractSettingsTab {
-    /** A Java path is long enough that its field gets its own line. */
-    private static final int JAVA_FIELD_WIDTH = 516;
-    private static final int JAVA_FIELD_HEIGHT = 24;
-
     private final JavaSettingsViewModel viewModel;
 
-    private JTextField javaPath;
+    private MD3TextField javaPath;
     private JLabelWithHover javaPathChecker;
     private JTextArea javaParameters;
     private JLabelWithHover javaParamChecker;
-    private JTextField javaInstallLocation;
+    private MD3TextField javaInstallLocation;
     private JLabelWithHover javaInstallLocationChecker;
 
     public JavaSettingsTab(JavaSettingsViewModel viewModel) {
@@ -146,7 +142,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
         heightField.addChangeListener(e -> viewModel.setHeight((Integer) heightField.getValue()));
         addDisposable(viewModel.getHeight().subscribe(heightField::setValue));
 
-        JComboBox<ComboItem<ScreenResolution>> commonScreenSizes = new JComboBox<>();
+        MD3ComboBox<ComboItem<ScreenResolution>> commonScreenSizes = new MD3ComboBox<>();
         commonScreenSizes.addItem(new ComboItem<>(null, "Select An Option"));
 
         for (ScreenResolution resolution : viewModel.getScreenResolutions()) {
@@ -187,8 +183,10 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         // Java Path
 
-        JComboBox<ComboItem<String>> installedJavasComboBox = new JComboBox<>();
-        installedJavasComboBox.setPreferredSize(new Dimension(JAVA_FIELD_WIDTH, JAVA_FIELD_HEIGHT));
+        // no size of its own: it goes into a wide row, which gives it the width, and a control that
+        // paints its own container knows its own height. The 24px it used to be pinned to was
+        // shorter than the container and clipped the value through the middle.
+        MD3ComboBox<ComboItem<String>> installedJavasComboBox = new MD3ComboBox<>();
 
         installedJavasComboBox.addItem(new ComboItem<String>(null, GetText.tr("Select Java Path To Autofill")));
 
@@ -207,7 +205,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
             });
         }
 
-        javaPath = new JTextField(32);
+        javaPath = new MD3TextField(32);
         javaPathChecker = new JLabelWithHover("", null, null);
         javaPath.addKeyListener(new DelayedSavingKeyListener(
             500,
@@ -221,12 +219,12 @@ public class JavaSettingsTab extends AbstractSettingsTab {
         javaPath.setText(App.settings.javaPath);
         addDisposable(viewModel.getJavaPathChecker().subscribe(this::setJavaPathCheckState));
 
-        JButton javaPathResetButton = new JButton(GetText.tr("Reset"));
+        MD3Button javaPathResetButton = MD3Button.outlined(GetText.tr("Reset"));
         javaPathResetButton.addActionListener(e -> {
             viewModel.resetJavaPath();
             resetJavaPathCheckLabel();
         });
-        JButton javaBrowseButton = new JButton(GetText.tr("Browse"));
+        MD3Button javaBrowseButton = MD3Button.outlined(GetText.tr("Browse"));
         javaBrowseButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setCurrentDirectory(new File(javaPath.getText()));
@@ -295,7 +293,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
         }));
         addDisposable(viewModel.getJavaParamsChecker().subscribe(this::setJavaParamCheckState));
 
-        JButton javaParametersResetButton = new JButton(GetText.tr("Reset"));
+        MD3Button javaParametersResetButton = MD3Button.outlined(GetText.tr("Reset"));
         javaParametersResetButton.addActionListener(e -> viewModel.resetJavaParams());
 
         javaParametersScrollPane.setViewportView(javaParameters);
@@ -306,7 +304,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         // Jave Install Location
 
-        javaInstallLocation = new JTextField(32);
+        javaInstallLocation = new MD3TextField(32);
         javaInstallLocationChecker = new JLabelWithHover("", null, null);
         javaInstallLocation.addKeyListener(new DelayedSavingKeyListener(
             500,
@@ -320,7 +318,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
         javaInstallLocation.setText(App.settings.javaInstallLocation);
         addDisposable(viewModel.getJavaInstallLocationChecker().subscribe(this::setJavaInstallLocationState));
 
-        JButton javaInstallLocationBrowseButton = new JButton(GetText.tr("Browse"));
+        MD3Button javaInstallLocationBrowseButton = MD3Button.outlined(GetText.tr("Browse"));
         javaInstallLocationBrowseButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setCurrentDirectory(new File(javaInstallLocation.getText()));

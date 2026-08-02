@@ -30,8 +30,6 @@ import java.util.stream.Stream;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -55,6 +53,8 @@ import com.atlauncher.data.modrinth.ModrinthProjectType;
 import com.atlauncher.data.modrinth.ModrinthVersion;
 import com.atlauncher.exceptions.InvalidMinecraftVersion;
 import com.atlauncher.gui.card.ModrinthProjectDependencyCard;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
@@ -85,19 +85,19 @@ public class ModrinthVersionSelectorDialog extends JDialog {
     /** What the panel is showing, so "Install All Required" acts on the same list the user sees. */
     private List<ModrinthDependency> lastDependenciesNeeded;
 
-    private JButton installAllDependencies;
+    private MD3Button installAllDependencies;
     private JScrollPane scrollPane;
-    private JButton addButton;
-    private JButton viewModButton;
-    private JButton viewFileButton;
+    private MD3Button addButton;
+    private MD3Button viewModButton;
+    private MD3Button viewFileButton;
     private JLabel versionsLabel;
     private JLabel installedJLabel;
-    private JComboBox<ModrinthVersion> versionsDropdown;
+    private MD3ComboBox<ModrinthVersion> versionsDropdown;
     private final List<ModrinthVersion> versions = new ArrayList<>();
     private List<ModrinthVersion> versionsData;
 
     private JLabel filesLabel;
-    private JComboBox<ComboItem<ModrinthFile>> filesDropdown;
+    private MD3ComboBox<ComboItem<ModrinthFile>> filesDropdown;
 
     public ModrinthVersionSelectorDialog(ModrinthProject mod, ModManagement instanceOrServer) {
         this(App.launcher.getParent(), mod, instanceOrServer, (com.atlauncher.data.Type) null);
@@ -389,10 +389,10 @@ public class ModrinthVersionSelectorDialog extends JDialog {
         setResizable(true);
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-        addButton = new JButton(GetText.tr("Add"));
+        addButton = MD3Button.filled(GetText.tr("Add"));
         addButton.setEnabled(false);
 
-        viewModButton = new JButton(GetText.tr("View Mod"));
+        viewModButton = MD3Button.outlined(GetText.tr("View Mod"));
         if (instanceOrServer.getLoaderVersion() != null && ((instanceOrServer.getLoaderVersion().isPaper()
             && (project.projectType == ModrinthProjectType.PLUGIN || project.loaders.contains("paper")
             || project.loaders.contains("bukkit") || project.loaders.contains("spigot")))
@@ -404,7 +404,7 @@ public class ModrinthVersionSelectorDialog extends JDialog {
         }
         viewModButton.setEnabled(false);
 
-        viewFileButton = new JButton(GetText.tr("View File"));
+        viewFileButton = MD3Button.outlined(GetText.tr("View File"));
         viewFileButton.setEnabled(false);
 
         dependenciesPanel.setVisible(false);
@@ -429,7 +429,7 @@ public class ModrinthVersionSelectorDialog extends JDialog {
         versionsLabel = new JLabel(GetText.tr("Version To Install") + ": ");
         versionsPanel.add(versionsLabel);
 
-        versionsDropdown = new JComboBox<>();
+        versionsDropdown = new MD3ComboBox<>();
         ModrinthVersion loadingProject = new ModrinthVersion();
         loadingProject.name = GetText.tr("Loading");
         versionsDropdown.addItem(loadingProject);
@@ -440,7 +440,7 @@ public class ModrinthVersionSelectorDialog extends JDialog {
         filesPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0));
         filesLabel = new JLabel(GetText.tr("File To Install") + ": ");
         filesPanel.add(filesLabel);
-        filesDropdown = new JComboBox<>();
+        filesDropdown = new MD3ComboBox<>();
         filesPanel.add(filesDropdown);
         filesPanel.setVisible(false);
 
@@ -452,7 +452,7 @@ public class ModrinthVersionSelectorDialog extends JDialog {
         // one click for the lot, rather than a card each with its own Add and its own dialog behind
         // it - and unlike those cards this follows the chain, so a dependency's own dependencies
         // come too. They were never shown at all before: the panel is built from this mod's list
-        installAllDependencies = new JButton(GetText.tr("Install All Required"));
+        installAllDependencies = MD3Button.outlined(GetText.tr("Install All Required"));
         installAllDependencies.setVisible(false);
         installAllDependencies.addActionListener(e -> installAllDependencies());
 
@@ -539,7 +539,7 @@ public class ModrinthVersionSelectorDialog extends JDialog {
             }
         });
 
-        JButton cancel = new JButton(GetText.tr("Cancel"));
+        MD3Button cancel = MD3Button.text(GetText.tr("Cancel"));
         cancel.addActionListener(e -> dispose());
         bottom.add(addButton);
         bottom.add(viewModButton);

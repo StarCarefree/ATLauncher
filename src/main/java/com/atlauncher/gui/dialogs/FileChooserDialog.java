@@ -33,14 +33,11 @@ import java.util.List;
 import javax.annotation.Nullable;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 import javax.swing.filechooser.FileFilter;
 
 import org.mini2Dx.gettext.GetText;
@@ -49,6 +46,9 @@ import com.atlauncher.App;
 import com.atlauncher.FileSystem;
 import com.atlauncher.constants.UIConstants;
 import com.atlauncher.dbus.DBusUtils;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 
@@ -56,9 +56,9 @@ import com.formdev.flatlaf.util.UIScale;
 
 public class FileChooserDialog extends JDialog {
 
-    private final JTextField textField;
+    private final MD3TextField textField;
 
-    private final JComboBox<String> selector;
+    private final MD3ComboBox<String> selector;
 
     private File[] filesChosen;
 
@@ -136,10 +136,10 @@ public class FileChooserDialog extends JDialog {
         JPanel filePathPanel = new JPanel();
         filePathPanel.setLayout(new BoxLayout(filePathPanel, BoxLayout.X_AXIS));
 
-        textField = new JTextField(16);
+        textField = new MD3TextField(16);
         textField.setEnabled(false);
 
-        JButton selectButton = new JButton(GetText.tr("Select"));
+        MD3Button selectButton = MD3Button.filled(GetText.tr("Select"));
         selectButton.addActionListener(e -> {
             if (OS.isUsingFlatpak()) {
                 filesChosen = DBusUtils.selectFiles(directory);
@@ -175,19 +175,19 @@ public class FileChooserDialog extends JDialog {
             gbc.gridx++;
             gbc.anchor = GridBagConstraints.BASELINE_LEADING;
             gbc.insets = UIConstants.FIELD_INSETS;
-            selector = new JComboBox<>();
+            selector = new MD3ComboBox<>();
             for (String item : subOptions) {
                 selector.addItem(item);
             }
             middle.add(selector, gbc);
         } else {
-            selector = new JComboBox<>();
+            selector = new MD3ComboBox<>();
         }
 
         // Bottom Panel Stuff
         JPanel bottom = new JPanel();
         bottom.setLayout(new FlowLayout());
-        JButton bottomButton = new JButton(bottomText);
+        MD3Button bottomButton = MD3Button.filled(bottomText);
         bottomButton.addActionListener(e -> close());
         bottom.add(bottomButton);
 

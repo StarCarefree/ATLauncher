@@ -19,14 +19,13 @@ package com.atlauncher.gui.tabs.settings;
 
 import java.awt.event.ItemEvent;
 
-import javax.swing.JComboBox;
-
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
 import com.atlauncher.data.AddModRestriction;
 import com.atlauncher.data.InstanceExportFormat;
 import com.atlauncher.data.ModPlatform;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.viewmodel.impl.settings.ModsSettingsViewModel;
@@ -42,7 +41,7 @@ public class ModsSettingsTab extends AbstractSettingsTab {
     protected void onShow() {
         // Default mod platform
 
-        JComboBox<ComboItem<ModPlatform>> defaultModPlatform = new JComboBox<>();
+        MD3ComboBox<ComboItem<ModPlatform>> defaultModPlatform = new MD3ComboBox<>();
         defaultModPlatform.addItem(new ComboItem<>(ModPlatform.CURSEFORGE, "CurseForge"));
         defaultModPlatform.addItem(new ComboItem<>(ModPlatform.MODRINTH, "Modrinth"));
 
@@ -62,7 +61,7 @@ public class ModsSettingsTab extends AbstractSettingsTab {
 
         // Default export format
 
-        JComboBox<ComboItem<InstanceExportFormat>> defaultExportFormat = new JComboBox<>();
+        MD3ComboBox<ComboItem<InstanceExportFormat>> defaultExportFormat = new MD3ComboBox<>();
         defaultExportFormat.addItem(new ComboItem<>(InstanceExportFormat.CURSEFORGE, "CurseForge"));
         defaultExportFormat.addItem(new ComboItem<>(InstanceExportFormat.MODRINTH, "Modrinth"));
         defaultExportFormat
@@ -85,7 +84,7 @@ public class ModsSettingsTab extends AbstractSettingsTab {
 
         // Add Mod Restrictions
 
-        JComboBox<ComboItem<AddModRestriction>> addModRestriction = new JComboBox<>();
+        MD3ComboBox<ComboItem<AddModRestriction>> addModRestriction = new MD3ComboBox<>();
         addModRestriction.addItem(
                 new ComboItem<>(AddModRestriction.STRICT, GetText.tr("Only show mods for current Minecraft version")));
         addModRestriction.addItem(new ComboItem<>(AddModRestriction.LAX,

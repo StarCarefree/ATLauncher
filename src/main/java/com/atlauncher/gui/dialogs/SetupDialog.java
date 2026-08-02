@@ -26,9 +26,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.Locale;
 
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -43,6 +40,9 @@ import com.atlauncher.data.Language;
 import com.atlauncher.evnt.listener.RelocalizationListener;
 import com.atlauncher.evnt.manager.RelocalizationManager;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.utils.OS;
@@ -56,12 +56,12 @@ public class SetupDialog extends JDialog implements RelocalizationListener {
     private final JLabel setupLabel;
 
     private final JLabel languageLabel;
-    private final JComboBox<String> language;
+    private final MD3ComboBox<String> language;
 
     private final JLabel enableAnalyticsLabel;
-    private final JCheckBox enableAnalytics;
+    private final MD3Switch enableAnalytics;
 
-    private final JButton saveButton;
+    private final MD3Button saveButton;
 
     public SetupDialog() {
         // #. {0} is the name of the launcher (ATLauncher)
@@ -96,7 +96,7 @@ public class SetupDialog extends JDialog implements RelocalizationListener {
         gbc.gridx++;
         gbc.insets = UIConstants.FIELD_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        language = new JComboBox<>(
+        language = new MD3ComboBox<>(
                 Language.locales.stream().filter(l -> l.equals(Locale.ENGLISH) || Language.languages.containsValue(l))
                         .map(Language::displayName).toArray(String[]::new));
         language.setSelectedItem(Language.selected);
@@ -124,11 +124,11 @@ public class SetupDialog extends JDialog implements RelocalizationListener {
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
 
         JPanel enableAnalyticsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, UIConstants.SPACING_LARGE, 0));
-        enableAnalytics = new JCheckBox();
+        enableAnalytics = new MD3Switch();
         enableAnalytics.setSelected(!App.disableAnalytics);
         enableAnalyticsPanel.add(enableAnalytics);
 
-        JButton privacyPolicyButton = new JButton(GetText.tr("Open Privacy Policy"));
+        MD3Button privacyPolicyButton = MD3Button.outlined(GetText.tr("Open Privacy Policy"));
         privacyPolicyButton.addActionListener(e -> OS.openWebBrowser("https://atlauncher.com/privacy-policy"));
         enableAnalyticsPanel.add(privacyPolicyButton);
 
@@ -137,7 +137,7 @@ public class SetupDialog extends JDialog implements RelocalizationListener {
         // Bottom Panel Stuff
         JPanel bottom = new JPanel();
         bottom.setLayout(new FlowLayout());
-        saveButton = new JButton(GetText.tr("Save"));
+        saveButton = MD3Button.filled(GetText.tr("Save"));
         saveButton.addActionListener(e -> {
             Language.setLanguage((String) language.getSelectedItem());
             App.settings.language = (String) language.getSelectedItem();

@@ -21,10 +21,7 @@ import java.awt.event.ItemEvent;
 import java.io.File;
 
 import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
-import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -32,7 +29,10 @@ import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.data.BackupMode;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3Switch;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -51,7 +51,7 @@ public class BackupsSettingsTab extends AbstractSettingsTab {
     protected void onShow() {
         // Backup mode
 
-        JComboBox<ComboItem<BackupMode>> backupMode = new JComboBox<>();
+        MD3ComboBox<ComboItem<BackupMode>> backupMode = new MD3ComboBox<>();
         backupMode.addItem(new ComboItem<>(BackupMode.NORMAL, GetText.tr("Backup saves, configs and options only")));
         backupMode.addItem(new ComboItem<>(BackupMode.NORMAL_PLUS_MODS,
                 GetText.tr("Backup saves, mods, configs and options only")));
@@ -68,7 +68,7 @@ public class BackupsSettingsTab extends AbstractSettingsTab {
 
         // Custom Backups Path
 
-        JTextField backupsPath = new JTextField(16);
+        MD3TextField backupsPath = new MD3TextField(16);
         backupsPathChecker = new JLabelWithHover("", null, null);
         addDisposable(viewModel.getBackupsPath().subscribe(backupsPath::setText));
         backupsPath.addKeyListener(
@@ -78,14 +78,14 @@ public class BackupsSettingsTab extends AbstractSettingsTab {
                         viewModel::setBackupsPathPending));
         addDisposable(viewModel.getBackupsPathChecker().subscribe(this::setBackupsPathCheckState));
 
-        JButton backupsPathResetButton = new JButton(GetText.tr("Reset"));
+        MD3Button backupsPathResetButton = MD3Button.outlined(GetText.tr("Reset"));
 
         backupsPathResetButton.addActionListener(e -> {
             viewModel.resetBackupsPath();
             resetBackupsPathCheckLabel();
         });
 
-        JButton backupsPathBrowseButton = new JButton(GetText.tr("Browse"));
+        MD3Button backupsPathBrowseButton = MD3Button.outlined(GetText.tr("Browse"));
         backupsPathBrowseButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setCurrentDirectory(new File(backupsPath.getText()));

@@ -23,7 +23,6 @@ import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -33,6 +32,7 @@ import javax.swing.JTextArea;
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.builders.HTMLBuilder;
+import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.utils.OS;
 
 import com.formdev.flatlaf.util.UIScale;
@@ -72,12 +72,12 @@ public class ModrinthExportOverridesDialog extends JDialog {
         JPanel buttonPanel = new JPanel();
 
         // Copy button
-        JButton copyButton = new JButton(GetText.tr("Copy"));
+        MD3Button copyButton = MD3Button.outlined(GetText.tr("Copy"));
         copyButton.addActionListener(e -> OS.copyToClipboard(text));
         buttonPanel.add(copyButton);
 
         // Close button
-        JButton closeButton = new JButton(GetText.tr("Close"));
+        MD3Button closeButton = MD3Button.text(GetText.tr("Close"));
         closeButton.addActionListener(e -> close());
         buttonPanel.add(closeButton);
 

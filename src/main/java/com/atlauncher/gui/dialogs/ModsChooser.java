@@ -26,7 +26,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -40,6 +39,7 @@ import org.mini2Dx.gettext.GetText;
 import com.atlauncher.App;
 import com.atlauncher.data.json.Mod;
 import com.atlauncher.gui.components.ModsJCheckBox;
+import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Analytics;
@@ -49,9 +49,9 @@ import com.atlauncher.workers.InstanceInstaller;
 public class ModsChooser extends JDialog {
     private static final long serialVersionUID = -5309108183485463434L;
     private final InstanceInstaller installer;
-    private final JButton selectAllButton;
-    private final JButton clearAllButton;
-    private final JButton installButton;
+    private final MD3Button selectAllButton;
+    private final MD3Button clearAllButton;
+    private final MD3Button installButton;
     private List<ModsJCheckBox> modCheckboxes;
     private List<ModsJCheckBox> sortedOut;
 
@@ -131,7 +131,8 @@ public class ModsChooser extends JDialog {
         JPanel bottomPanel = new JPanel();
         add(bottomPanel, BorderLayout.SOUTH);
 
-        selectAllButton = new JButton();
+        // its label depends on what the pack offers, so it is set below rather than at construction
+        selectAllButton = MD3Button.outlined("");
 
         if (installer.hasRecommendedMods()) {
             selectAllButton.setText(GetText.tr("Select Recommended"));
@@ -164,7 +165,7 @@ public class ModsChooser extends JDialog {
         });
         bottomPanel.add(selectAllButton);
 
-        clearAllButton = new JButton(GetText.tr("Clear All"));
+        clearAllButton = MD3Button.outlined(GetText.tr("Clear All"));
         clearAllButton.addActionListener(e -> {
             for (ModsJCheckBox check : modCheckboxes) {
                 if ((installer.isServer ? check.getMod().isServerOptional() : check.getMod().isOptional())) {
@@ -182,7 +183,8 @@ public class ModsChooser extends JDialog {
         });
         bottomPanel.add(clearAllButton);
 
-        installButton = new JButton(GetText.tr("Install"));
+        // the one thing this dialog is for: it closes it and the install proceeds
+        installButton = MD3Button.filled(GetText.tr("Install"));
         installButton.addActionListener(e -> dispose());
         bottomPanel.add(installButton);
 

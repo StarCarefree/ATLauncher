@@ -24,20 +24,20 @@ import java.awt.GridBagLayout;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import com.atlauncher.App;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 
 import com.formdev.flatlaf.util.UIScale;
 
 public class FileTypeDialog extends JDialog {
 
-    private final JComboBox<String> selector;
+    private final MD3ComboBox<String> selector;
 
     private boolean closed = false;
 
@@ -66,7 +66,7 @@ public class FileTypeDialog extends JDialog {
 
         gbc.gridx++;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        selector = new JComboBox<>();
+        selector = new MD3ComboBox<>();
         for (String item : subOptions) {
             selector.addItem(item);
         }
@@ -75,7 +75,7 @@ public class FileTypeDialog extends JDialog {
         // Bottom Panel Stuff
         JPanel bottom = new JPanel();
         bottom.setLayout(new FlowLayout());
-        JButton bottomButton = new JButton(bottomText);
+        MD3Button bottomButton = MD3Button.filled(bottomText);
         bottomButton.addActionListener(e -> close());
         bottom.add(bottomButton);
 

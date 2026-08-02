@@ -21,8 +21,6 @@ import java.awt.event.ItemEvent;
 import java.util.List;
 import java.util.Optional;
 
-import javax.swing.JComboBox;
-
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
@@ -36,6 +34,7 @@ import com.atlauncher.gui.AccountsDropDownRenderer;
 import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.nav.MD3TopAppBar;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.network.Analytics;
@@ -68,7 +67,7 @@ public class LauncherAppBar extends MD3TopAppBar implements RelocalizationListen
     private final MD3IconButton toggleConsole;
     private final MD3IconButton openFolder;
     private final MD3IconButton checkForUpdates;
-    private final JComboBox<MicrosoftAccount> accountSelector = new JComboBox<>();
+    private final MD3ComboBox<MicrosoftAccount> accountSelector = new MD3ComboBox<>();
 
     /** Guards against writing the account back while the list is being rebuilt. */
     private boolean rebuilding;

@@ -30,6 +30,9 @@ import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.geom.Rectangle2D;
 import java.beans.PropertyChangeListener;
 
@@ -43,6 +46,7 @@ import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Motion;
@@ -76,6 +80,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
     private FocusListener focusListener;
     private DocumentListener documentListener;
     private PropertyChangeListener documentPropertyListener;
+    private MouseListener clearListener;
 
     private float floatFraction;
     private float from;
@@ -156,7 +161,28 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
             retarget();
         };
 
+        clearListener = new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                JTextComponent c = getComponent();
+                Rectangle bounds = clearBounds(c);
+
+                if (bounds == null || !c.isEnabled() || !bounds.contains(e.getPoint())) {
+                    return;
+                }
+
+                c.setText("");
+
+                Runnable callback = clearCallback(c);
+
+                if (callback != null) {
+                    callback.run();
+                }
+            }
+        };
+
         getComponent().addFocusListener(focusListener);
+        getComponent().addMouseListener(clearListener);
         getComponent().addPropertyChangeListener("document", documentPropertyListener);
 
         Document document = getComponent().getDocument();
@@ -171,6 +197,11 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         if (focusListener != null) {
             getComponent().removeFocusListener(focusListener);
             focusListener = null;
+        }
+
+        if (clearListener != null) {
+            getComponent().removeMouseListener(clearListener);
+            clearListener = null;
         }
 
         if (documentPropertyListener != null) {
@@ -200,6 +231,21 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         MD3TextField f = field(c);
 
         return f != null && f.getVariant() == MD3TextField.Variant.SEARCH;
+    }
+
+    /**
+     * Whether there is a label to float at all.
+     *
+     * <p>
+     * A field given none is the common case in this launcher: every field in a settings row is
+     * named by the row's own headline, and repeating it inside the box would say it twice. The
+     * 56dp box exists to hold a label above the text and the 8dp overflow to let it sit on the
+     * outline - neither is needed when there is nothing to put there.
+     */
+    private static boolean hasLabel(Component c) {
+        MD3TextField f = field(c);
+
+        return f != null && f.getLabel() != null && !f.getLabel().isEmpty();
     }
 
     private boolean hasText() {
@@ -255,7 +301,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
     private static int labelOverflow(Component c) {
         MD3TextField f = field(c);
 
-        return f != null && f.getVariant() == MD3TextField.Variant.OUTLINED ? LABEL_OVERFLOW : 0;
+        return f != null && f.getVariant() == MD3TextField.Variant.OUTLINED && hasLabel(c) ? LABEL_OVERFLOW : 0;
     }
 
     private static int supportingHeight(Component c) {
@@ -265,7 +311,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
     }
 
     private static int boxHeight(Component c) {
-        return isSearch(c) ? SEARCH_HEIGHT : BOX_HEIGHT;
+        return isSearch(c) || !hasLabel(c) ? SEARCH_HEIGHT : BOX_HEIGHT;
     }
 
     /** The box, in component coordinates. */
@@ -339,6 +385,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
             }
 
             paintLeadingIcon(g2, f, box);
+            paintClearIcon(g2, f);
             paintLabel(g2, f, box);
             paintSupportingText(g2, f, box);
         } finally {
@@ -406,6 +453,50 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         }
 
         return MD3Color.surface();
+    }
+
+    /**
+     * Whether the field offers to clear itself.
+     *
+     * <p>
+     * Read from the same two client properties FlatLaf's own field UI uses, since that is what the
+     * call sites were already written against - three optional settings where emptying the box is
+     * how you say "do not use this". A Material field puts that on a trailing icon.
+     */
+    private static boolean isClearable(Component c) {
+        return c instanceof JComponent
+                && Boolean.TRUE.equals(((JComponent) c).getClientProperty("JTextField.showClearButton"));
+    }
+
+    private static Runnable clearCallback(JComponent c) {
+        Object callback = c.getClientProperty("JTextField.clearCallback");
+
+        return callback instanceof Runnable ? (Runnable) callback : null;
+    }
+
+    /** Where the clear icon is drawn, or null for a field that has none to draw. */
+    private static Rectangle clearBounds(JComponent c) {
+        if (!isClearable(c)) {
+            return null;
+        }
+
+        int size = UIScale.scale(MD3Spacing.ICON_SIZE);
+        Rectangle box = boxBounds(c);
+
+        return new Rectangle(c.getWidth() - UIScale.scale(MD3Spacing.M) - size,
+                box.y + (box.height - size) / 2, size, size);
+    }
+
+    private void paintClearIcon(Graphics2D g, MD3TextField f) {
+        Rectangle bounds = clearBounds(f);
+
+        // nothing to clear is nothing to offer
+        if (bounds == null || !f.isEnabled() || !hasText()) {
+            return;
+        }
+
+        MD3Icon.of(MD3Icons.CLOSE, MD3Spacing.ICON_SIZE).withColor(MD3Color.onSurfaceVariant())
+                .paintIcon(f, g, bounds.x, bounds.y);
     }
 
     private int textLeftEdge(MD3TextField f) {
@@ -490,22 +581,30 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
                 box.y + box.height + UIScale.scale(MD3Spacing.XS) + metrics.getAscent());
     }
 
-    @Override
-    public Dimension getPreferredSize(JComponent c) {
-        Dimension size = super.getPreferredSize(c);
+    /**
+     * The box's own height, or the content's where that is taller - the same rule
+     * {@link MD3ComboBoxUI} follows, so a field and a dropdown in one row stay within a pixel or
+     * two of each other however the UI font is set.
+     */
+    private static Dimension sized(JComponent c, Dimension size) {
+        if (size == null) {
+            return null;
+        }
 
-        size.height = UIScale.scale(labelOverflow(c) + boxHeight(c) + supportingHeight(c));
+        size.height = Math.max(size.height,
+                UIScale.scale(labelOverflow(c) + boxHeight(c) + supportingHeight(c)));
 
         return size;
     }
 
     @Override
+    public Dimension getPreferredSize(JComponent c) {
+        return sized(c, super.getPreferredSize(c));
+    }
+
+    @Override
     public Dimension getMinimumSize(JComponent c) {
-        Dimension size = super.getMinimumSize(c);
-
-        size.height = UIScale.scale(labelOverflow(c) + boxHeight(c) + supportingHeight(c));
-
-        return size;
+        return sized(c, super.getMinimumSize(c));
     }
 
     /**
@@ -518,9 +617,10 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
             MD3TextField f = field(c);
             boolean filled = f != null && f.getVariant() == MD3TextField.Variant.FILLED;
 
-            // a search box has no label above the text, so it is padded evenly and the text lands
-            // on the box's centre line
-            int top = isSearch(c) ? MD3Spacing.S : (filled ? MD3Spacing.XL : labelOverflow(c) + MD3Spacing.S);
+            // nothing above the text means it is padded evenly and lands on the box's centre line -
+            // true of a search box, and of any field that was given no label
+            int top = isSearch(c) || !hasLabel(c) ? MD3Spacing.S
+                    : (filled ? MD3Spacing.XL : labelOverflow(c) + MD3Spacing.S);
             int bottom = MD3Spacing.S + supportingHeight(c);
 
             // the icon's width is already in device pixels, so it is added after scaling the
@@ -531,7 +631,10 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
                 left += f.getLeadingIcon().getIconWidth() + UIScale.scale(MD3Spacing.M);
             }
 
-            insets.set(UIScale.scale(top), left, UIScale.scale(bottom), UIScale.scale(MD3Spacing.L));
+            // the clear icon is painted over the trailing edge, so the text stops short of it
+            int right = isClearable(c) ? MD3Spacing.M + MD3Spacing.ICON_SIZE + MD3Spacing.S : MD3Spacing.L;
+
+            insets.set(UIScale.scale(top), left, UIScale.scale(bottom), UIScale.scale(right));
 
             return insets;
         }

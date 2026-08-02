@@ -26,17 +26,17 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.regex.Pattern;
 
-import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.UIConstants;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Analytics;
@@ -48,7 +48,7 @@ import com.formdev.flatlaf.util.UIScale;
 public class CreateMinecraftProfileDialog extends JDialog {
     private final Pattern VALID_PROFILE_NAME = Pattern.compile("[a-zA-Z0-9_]{3,16}");
 
-    private JTextField profileName;
+    private MD3TextField profileName;
 
     private final String accessToken;
 
@@ -100,14 +100,14 @@ public class CreateMinecraftProfileDialog extends JDialog {
         gbc.gridx++;
         gbc.insets = UIConstants.FIELD_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        profileName = new JTextField(16);
+        profileName = new MD3TextField(16);
         profileName.setText("");
         middle.add(profileName, gbc);
 
         // Bottom Panel Stuff
         JPanel bottom = new JPanel();
         bottom.setLayout(new FlowLayout());
-        JButton createButton = new JButton(GetText.tr("Create"));
+        MD3Button createButton = MD3Button.filled(GetText.tr("Create"));
         createButton.addActionListener(e -> {
             ProgressDialog<Boolean> progressDialog = new ProgressDialog<>(GetText.tr("Creating Minecraft Profile"), 0,
                 GetText.tr("Creating Minecraft Profile"));

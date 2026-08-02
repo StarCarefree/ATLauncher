@@ -63,7 +63,6 @@ import javax.imageio.ImageIO;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -117,8 +116,8 @@ import com.atlauncher.data.minecraft.loaders.forge.ForgeLoader;
 import com.atlauncher.data.minecraft.loaders.legacyfabric.LegacyFabricLoader;
 import com.atlauncher.data.minecraft.loaders.neoforge.NeoForgeLoader;
 import com.atlauncher.data.minecraft.loaders.quilt.QuiltLoader;
-import com.atlauncher.data.modrinth.ModrinthFile;
 import com.atlauncher.data.modrinth.ModrinthDownloadMetadata;
+import com.atlauncher.data.modrinth.ModrinthFile;
 import com.atlauncher.data.modrinth.ModrinthProject;
 import com.atlauncher.data.modrinth.ModrinthProjectType;
 import com.atlauncher.data.modrinth.ModrinthSide;
@@ -139,6 +138,7 @@ import com.atlauncher.graphql.type.PackLogAction;
 import com.atlauncher.gui.dialogs.InstanceInstallerDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.dialogs.RenameInstanceDialog;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.CurseForgeUpdateManager;
@@ -2548,7 +2548,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
             return null;
         }
 
-        JComboBox<ComboItem<LoaderVersion>> loaderVersionsDropDown = new JComboBox<>();
+        MD3ComboBox<ComboItem<LoaderVersion>> loaderVersionsDropDown = new MD3ComboBox<>();
 
         int loaderVersionLength = 0;
 

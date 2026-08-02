@@ -31,13 +31,10 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 import javax.swing.filechooser.FileFilter;
 
 import org.mini2Dx.gettext.GetText;
@@ -47,6 +44,9 @@ import com.atlauncher.FileSystem;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.MicrosoftAccount;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Analytics;
@@ -57,10 +57,10 @@ import com.atlauncher.utils.Utils;
 import com.formdev.flatlaf.util.UIScale;
 
 public class ChangeSkinDialog extends JDialog {
-    private JTextField skinPath;
-    private JComboBox<ComboItem<String>> skinType;
+    private MD3TextField skinPath;
+    private MD3ComboBox<ComboItem<String>> skinType;
     private File selectedSkinFile;
-    private JButton uploadButton;
+    private MD3Button uploadButton;
 
     private final MicrosoftAccount account;
 
@@ -116,8 +116,8 @@ public class ChangeSkinDialog extends JDialog {
         JPanel skinPathPanel = new JPanel();
         skinPathPanel.setLayout(new BoxLayout(skinPathPanel, BoxLayout.X_AXIS));
 
-        skinPath = new JTextField(16);
-        JButton skinBrowseButton = new JButton(GetText.tr("Browse"));
+        skinPath = new MD3TextField(16);
+        MD3Button skinBrowseButton = MD3Button.outlined(GetText.tr("Browse"));
         skinBrowseButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             chooser.setCurrentDirectory(FileSystem.SKINS.toFile());
@@ -179,7 +179,7 @@ public class ChangeSkinDialog extends JDialog {
         gbc.gridx++;
         gbc.insets = UIConstants.FIELD_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        skinType = new JComboBox<>();
+        skinType = new MD3ComboBox<>();
         skinType.addItem(new ComboItem<>("classic", "Classic"));
         skinType.addItem(new ComboItem<>("slim", "Slim"));
         middle.add(skinType, gbc);
@@ -188,7 +188,7 @@ public class ChangeSkinDialog extends JDialog {
         JPanel bottom = new JPanel();
         bottom.setLayout(new FlowLayout());
 
-        uploadButton = new JButton(GetText.tr("Upload"));
+        uploadButton = MD3Button.filled(GetText.tr("Upload"));
         uploadButton.addActionListener(e -> {
             ProgressDialog<Boolean> progressDialog = new ProgressDialog<>(GetText.tr("Updating Skin"), 0,
                 GetText.tr("Updating Skin"));
@@ -218,7 +218,7 @@ public class ChangeSkinDialog extends JDialog {
         uploadButton.setEnabled(false);
         bottom.add(uploadButton);
 
-        JButton cancelButton = new JButton(GetText.tr("Cancel"));
+        MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
         cancelButton.addActionListener(e -> close());
         bottom.add(cancelButton);
 

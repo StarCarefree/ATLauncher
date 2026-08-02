@@ -29,7 +29,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -52,6 +51,7 @@ import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.input.MD3Chip;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.listener.StatefulTextKeyAdapter;
@@ -89,7 +89,7 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
     private MD3Chip loaderTypePaperRadioButton;
     private MD3Chip loaderTypePurpurRadioButton;
     private MD3Chip loaderTypeQuiltRadioButton;
-    private JComboBox<ComboItem<LoaderVersion>> loaderVersionsDropDown;
+    private MD3ComboBox<ComboItem<LoaderVersion>> loaderVersionsDropDown;
     private MD3Button createServerButton;
     private MD3Button createInstanceButton;
     private ICreatePackViewModel viewModel;
@@ -652,7 +652,7 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
         loaderTypePaperRadioButton = MD3Chip.filter("Paper");
         loaderTypePurpurRadioButton = MD3Chip.filter("Purpur");
         loaderTypeQuiltRadioButton = MD3Chip.filter("Quilt");
-        loaderVersionsDropDown = new JComboBox<>();
+        loaderVersionsDropDown = new MD3ComboBox<>();
         createServerButton = MD3Button.outlined(getCreateServerText());
         createInstanceButton = MD3Button.filled(getCreateInstanceText());
 

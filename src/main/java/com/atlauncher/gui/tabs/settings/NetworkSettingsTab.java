@@ -20,9 +20,7 @@ package com.atlauncher.gui.tabs.settings;
 import java.awt.event.ItemEvent;
 
 import javax.swing.ImageIcon;
-import javax.swing.JComboBox;
 import javax.swing.JSpinner;
-import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
 
 import org.mini2Dx.gettext.GetText;
@@ -31,7 +29,9 @@ import com.atlauncher.App;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.data.ProxyType;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3Switch;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.listener.StatefulTextKeyAdapter;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -41,9 +41,9 @@ import com.atlauncher.viewmodel.impl.settings.NetworkSettingsViewModel;
 public class NetworkSettingsTab extends AbstractSettingsTab {
     private final NetworkSettingsViewModel viewModel;
     private JLabelWithHover proxyCheckIndicator;
-    private JTextField proxyHost;
+    private MD3TextField proxyHost;
     private JSpinner proxyPort;
-    private JComboBox<ComboItem<ProxyType>> proxyType;
+    private MD3ComboBox<ComboItem<ProxyType>> proxyType;
 
     public NetworkSettingsTab(NetworkSettingsViewModel viewModel) {
         this.viewModel = viewModel;
@@ -79,7 +79,7 @@ public class NetworkSettingsTab extends AbstractSettingsTab {
             GetText.tr("This determines how long connections will wait before timing out."), connectionTimeout);
 
         // Modrinth Api Key Settings
-        JTextField modrinthApiKey = new JTextField(40);
+        MD3TextField modrinthApiKey = new MD3TextField(40);
         modrinthApiKey.putClientProperty("JTextField.showClearButton", true);
         modrinthApiKey.putClientProperty("JTextField.clearCallback", (Runnable) () -> viewModel.setModrinthAPIKey(""));
         modrinthApiKey.addKeyListener(new StatefulTextKeyAdapter(
@@ -109,7 +109,7 @@ public class NetworkSettingsTab extends AbstractSettingsTab {
             group(proxyCheckIndicator, enableProxy));
 
         // Proxy Host Settings
-        proxyHost = new JTextField(20);
+        proxyHost = new MD3TextField(20);
         proxyHost.addKeyListener(new StatefulTextKeyAdapter(
             (e) -> viewModel.setProxyHost(proxyHost.getText())
         ));
@@ -138,7 +138,7 @@ public class NetworkSettingsTab extends AbstractSettingsTab {
         addRow(GetText.tr("Proxy Port"), GetText.tr("This is the port used to connect to the proxy."), proxyPort);
 
         // Proxy Type Settings
-        proxyType = new JComboBox<>();
+        proxyType = new MD3ComboBox<>();
         proxyType.addItem(new ComboItem<>(ProxyType.HTTP, "HTTP"));
         proxyType.addItem(new ComboItem<>(ProxyType.SOCKS, "SOCKS"));
         proxyType.addItem(new ComboItem<>(ProxyType.DIRECT, "DIRECT"));

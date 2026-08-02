@@ -20,8 +20,6 @@ package com.atlauncher.gui.dialogs.instancesettings;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 
-import javax.swing.JComboBox;
-import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
 import org.mini2Dx.gettext.GetText;
@@ -29,6 +27,8 @@ import org.mini2Dx.gettext.GetText;
 import com.atlauncher.App;
 import com.atlauncher.data.Instance;
 import com.atlauncher.gui.md3.container.MD3SettingsList;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.utils.ComboItem;
 
 public class CommandsInstanceSettingsTab extends MD3SettingsList {
@@ -38,17 +38,17 @@ public class CommandsInstanceSettingsTab extends MD3SettingsList {
 
     private final Instance instance;
 
-    private final JComboBox<ComboItem<Boolean>> enableCommands;
-    private final JTextField preLaunchCommand;
-    private final JTextField postExitCommand;
-    private final JTextField wrapperCommand;
+    private final MD3ComboBox<ComboItem<Boolean>> enableCommands;
+    private final MD3TextField preLaunchCommand;
+    private final MD3TextField postExitCommand;
+    private final MD3TextField wrapperCommand;
 
     public CommandsInstanceSettingsTab(Instance instance) {
         this.instance = instance;
 
         // Enable commands
 
-        enableCommands = new JComboBox<>();
+        enableCommands = new MD3ComboBox<>();
         enableCommands.addItem(new ComboItem<>(null, GetText.tr("Use Launcher Default")));
         enableCommands.addItem(new ComboItem<>(true, GetText.tr("Yes")));
         enableCommands.addItem(new ComboItem<>(false, GetText.tr("No")));
@@ -66,7 +66,8 @@ public class CommandsInstanceSettingsTab extends MD3SettingsList {
 
         // Pre-launch command
 
-        preLaunchCommand = new JTextField(App.settings.preLaunchCommand, 32);
+        preLaunchCommand = new MD3TextField(32);
+        preLaunchCommand.setText(App.settings.preLaunchCommand);
         preLaunchCommand.setPreferredSize(new Dimension(COMMAND_WIDTH, COMMAND_HEIGHT));
 
         if (this.instance.launcher.preLaunchCommand != null) {
@@ -79,7 +80,8 @@ public class CommandsInstanceSettingsTab extends MD3SettingsList {
 
         // Post-exit command
 
-        postExitCommand = new JTextField(App.settings.postExitCommand, 32);
+        postExitCommand = new MD3TextField(32);
+        postExitCommand.setText(App.settings.postExitCommand);
         postExitCommand.setPreferredSize(new Dimension(COMMAND_WIDTH, COMMAND_HEIGHT));
 
         if (this.instance.launcher.postExitCommand != null) {
@@ -92,7 +94,8 @@ public class CommandsInstanceSettingsTab extends MD3SettingsList {
 
         // wrapper command
 
-        wrapperCommand = new JTextField(App.settings.wrapperCommand, 32);
+        wrapperCommand = new MD3TextField(32);
+        wrapperCommand.setText(App.settings.wrapperCommand);
         wrapperCommand.setPreferredSize(new Dimension(COMMAND_WIDTH, COMMAND_HEIGHT));
 
         if (this.instance.launcher.wrapperCommand != null) {

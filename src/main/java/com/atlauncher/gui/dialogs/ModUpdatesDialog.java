@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.BoxLayout;
-import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -44,6 +43,7 @@ import com.atlauncher.gui.md3.container.MD3Badge;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.container.MD3ListItem;
 import com.atlauncher.gui.md3.feedback.MD3Dialog;
+import com.atlauncher.gui.md3.input.MD3Checkbox;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.managers.ModUpdateManager;
@@ -95,13 +95,13 @@ public final class ModUpdatesDialog {
 
         Analytics.sendScreenView("Mod Updates Dialog");
 
-        Map<ModUpdate, JCheckBox> boxes = new LinkedHashMap<>();
+        Map<ModUpdate, MD3Checkbox> boxes = new LinkedHashMap<>();
         JPanel list = new JPanel();
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
         list.setOpaque(false);
 
         for (ModUpdate update : updates) {
-            JCheckBox box = new JCheckBox();
+            MD3Checkbox box = new MD3Checkbox();
             box.setOpaque(false);
             box.setSelected(true);
             box.setToolTipText(update.getName());
@@ -110,7 +110,7 @@ public final class ModUpdatesDialog {
             list.add(buildRow(update, box));
         }
 
-        JCheckBox selectAll = new JCheckBox(GetText.tr("Select All"));
+        MD3Checkbox selectAll = new MD3Checkbox(GetText.tr("Select All"));
         selectAll.setOpaque(false);
         selectAll.setSelected(true);
         selectAll.addActionListener(e -> boxes.values().forEach(b -> b.setSelected(selectAll.isSelected())));
@@ -138,7 +138,7 @@ public final class ModUpdatesDialog {
 
         List<ModUpdate> selected = new ArrayList<>();
 
-        for (Map.Entry<ModUpdate, JCheckBox> entry : boxes.entrySet()) {
+        for (Map.Entry<ModUpdate, MD3Checkbox> entry : boxes.entrySet()) {
             if (entry.getValue().isSelected()) {
                 selected.add(entry.getKey());
             }
@@ -197,7 +197,7 @@ public final class ModUpdatesDialog {
         return updated[0];
     }
 
-    private static JPanel buildHeader(JCheckBox selectAll) {
+    private static JPanel buildHeader(MD3Checkbox selectAll) {
         JPanel row = new JPanel(new BorderLayout());
         row.setOpaque(false);
         row.setBorder(MD3Spacing.border(0, 0, MD3Spacing.S, 0));
@@ -228,7 +228,7 @@ public final class ModUpdatesDialog {
      * A row: tick and icon leading, the mod's name over what it is going from and to, and the
      * platform it came from trailing.
      */
-    private static Component buildRow(ModUpdate update, JCheckBox box) {
+    private static Component buildRow(ModUpdate update, MD3Checkbox box) {
         MD3ListItem item = new MD3ListItem();
 
         item.setLeading(buildLeading(update, box));
@@ -240,7 +240,7 @@ public final class ModUpdatesDialog {
         return item;
     }
 
-    private static JPanel buildLeading(ModUpdate update, JCheckBox box) {
+    private static JPanel buildLeading(ModUpdate update, MD3Checkbox box) {
         JLabel icon = new JLabel(Utils.getIconImage("/assets/image/no-icon.png"));
         icon.setPreferredSize(UIScale.scale(new Dimension(ICON_SIZE, ICON_SIZE)));
 

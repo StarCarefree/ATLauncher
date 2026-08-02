@@ -23,7 +23,6 @@ import java.awt.FlowLayout;
 import java.util.Optional;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
@@ -38,6 +37,7 @@ import com.atlauncher.data.modrinth.ModrinthDependency;
 import com.atlauncher.data.modrinth.ModrinthDownloadMetadata;
 import com.atlauncher.data.modrinth.ModrinthProject;
 import com.atlauncher.gui.dialogs.ModrinthVersionSelectorDialog;
+import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
 import com.atlauncher.utils.ModrinthApi;
@@ -95,8 +95,8 @@ public final class ModrinthProjectDependencyCard extends JPanel {
 
         if (mod != null) {
             JPanel buttonsPanel = new JPanel(new FlowLayout());
-            JButton addButton = new JButton(GetText.tr("Add"));
-            JButton viewButton = new JButton(GetText.tr("View"));
+            MD3Button addButton = MD3Button.filled(GetText.tr("Add"));
+            MD3Button viewButton = MD3Button.outlined(GetText.tr("View"));
             buttonsPanel.add(addButton);
             buttonsPanel.add(viewButton);
 

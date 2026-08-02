@@ -30,8 +30,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -49,6 +47,8 @@ import com.atlauncher.data.curseforge.CurseForgeFileDependency;
 import com.atlauncher.data.curseforge.CurseForgeProject;
 import com.atlauncher.data.minecraft.loaders.LoaderVersion;
 import com.atlauncher.gui.card.CurseForgeFileDependencyCard;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Analytics;
@@ -57,7 +57,6 @@ import com.atlauncher.utils.ModCompatibility;
 import com.atlauncher.utils.ModDependencyResolver;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Pair;
-
 import com.formdev.flatlaf.util.UIScale;
 
 public class CurseForgeProjectFileSelectorDialog extends JDialog {
@@ -72,14 +71,14 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
     /** What the panel is showing, so "Install All Required" acts on the same list the user sees. */
     private List<CurseForgeFileDependency> lastDependenciesNeeded;
 
-    private JButton installAllDependencies;
+    private MD3Button installAllDependencies;
     private JScrollPane scrollPane;
-    private JButton addButton;
-    private JButton viewModButton;
-    private JButton viewFileButton;
+    private MD3Button addButton;
+    private MD3Button viewModButton;
+    private MD3Button viewFileButton;
     private JLabel versionsLabel;
     private JLabel installedJLabel;
-    private JComboBox<CurseForgeFile> filesDropdown;
+    private MD3ComboBox<CurseForgeFile> filesDropdown;
     private final List<CurseForgeFile> files = new ArrayList<>();
 
     public CurseForgeProjectFileSelectorDialog(CurseForgeProject mod, ModManagement instanceOrServer) {
@@ -129,13 +128,13 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
         setResizable(true);
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-        addButton = new JButton(GetText.tr("Add"));
+        addButton = MD3Button.filled(GetText.tr("Add"));
         addButton.setEnabled(false);
 
-        viewModButton = new JButton(GetText.tr("View Mod"));
+        viewModButton = MD3Button.outlined(GetText.tr("View Mod"));
         viewModButton.setEnabled(false);
 
-        viewFileButton = new JButton(GetText.tr("View File"));
+        viewFileButton = MD3Button.outlined(GetText.tr("View File"));
         viewFileButton.setEnabled(false);
 
         dependenciesPanel.setVisible(false);
@@ -160,7 +159,7 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
         versionsLabel = new JLabel(GetText.tr("Version To Install") + ": ");
         filesPanel.add(versionsLabel);
 
-        filesDropdown = new JComboBox<>();
+        filesDropdown = new MD3ComboBox<>();
         CurseForgeFile loadingProject = new CurseForgeFile();
         loadingProject.displayName = GetText.tr("Loading");
         filesDropdown.addItem(loadingProject);
@@ -174,7 +173,7 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
 
         // one click for the lot, and it follows the chain - a dependency's own dependencies were
         // never mentioned, since this panel is built from this mod's list and nothing else
-        installAllDependencies = new JButton(GetText.tr("Install All Required"));
+        installAllDependencies = MD3Button.outlined(GetText.tr("Install All Required"));
         installAllDependencies.setVisible(false);
         installAllDependencies.addActionListener(e -> installAllDependencies());
 
@@ -220,7 +219,7 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
 
         filesDropdown.addActionListener(e -> reloadDependenciesPanel());
 
-        JButton cancel = new JButton(GetText.tr("Cancel"));
+        MD3Button cancel = MD3Button.text(GetText.tr("Cancel"));
         cancel.addActionListener(e -> dispose());
         bottom.add(addButton);
         bottom.add(viewModButton);
@@ -472,8 +471,10 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
             }
 
             // ensures that the dropdown is at least 200 px wide and has a maximum width of
-            // 350 px to prevent overflow
-            filesDropdown.setPreferredSize(new Dimension(Math.min(350, Math.max(200, filesLength)), 25));
+            // 350 px to prevent overflow. The height is the control's own - it paints a container
+            // that does not fit in the 25px this used to pin it to.
+            filesDropdown.setPreferredSize(new Dimension(UIScale.scale(Math.min(350, Math.max(200, filesLength))),
+                    filesDropdown.getPreferredSize().height));
 
             filesDropdown.setEnabled(true);
             versionsLabel.setVisible(true);

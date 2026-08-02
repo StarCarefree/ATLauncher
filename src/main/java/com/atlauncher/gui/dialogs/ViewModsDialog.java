@@ -32,7 +32,6 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextField;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -40,13 +39,14 @@ import com.atlauncher.App;
 import com.atlauncher.data.Pack;
 import com.atlauncher.data.json.Mod;
 import com.atlauncher.gui.card.ModCard;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.network.Analytics;
 
 import com.formdev.flatlaf.util.UIScale;
 
 public final class ViewModsDialog extends JDialog {
     private final JPanel contentPanel = new JPanel(new GridBagLayout());
-    private final JTextField searchField = new JTextField(16);
+    private final MD3TextField searchField = new MD3TextField(16);
     private final List<ModCard> cards = new ArrayList<>();
 
     public ViewModsDialog(Pack pack) {
