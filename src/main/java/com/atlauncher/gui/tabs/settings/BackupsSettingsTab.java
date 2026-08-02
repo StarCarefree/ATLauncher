@@ -22,7 +22,6 @@ import java.io.File;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JTextField;
@@ -33,6 +32,7 @@ import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.data.BackupMode;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -107,7 +107,7 @@ public class BackupsSettingsTab extends AbstractSettingsTab {
 
         // Enable automatic backup after launch
 
-        JCheckBox enableAutomaticBackupAfterLaunch = new JCheckBox();
+        MD3Switch enableAutomaticBackupAfterLaunch = new MD3Switch();
         enableAutomaticBackupAfterLaunch
                 .addItemListener(e -> viewModel.setEnableAutoBackup(e.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getEnableAutoBackup().subscribe(enableAutomaticBackupAfterLaunch::setSelected));

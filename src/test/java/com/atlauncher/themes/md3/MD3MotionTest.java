@@ -150,6 +150,53 @@ public class MD3MotionTest {
     }
 
     /**
+     * A stop abandons the journey; it does not complete it.
+     *
+     * <p>
+     * FlatLaf's animator delivers its {@code end} callback when it is stopped as well as when it
+     * runs out, and the two mean opposite things. Read as an arrival, every interruption put the
+     * value on the target it was still travelling towards - and since {@code setTarget} stops
+     * whatever was running before starting the next one, that is a jump to the end of the old
+     * animation at the start of every new one. It applied to every animation in the launcher: a
+     * pointer leaving a card halfway through the lift snapped it to fully lifted before fading it
+     * back down.
+     */
+    @Test
+    public void testStoppingAValueLeavesItWhereItGotTo() {
+        Assumptions.assumeTrue(Animator.useAnimation(), "animation is turned off for this JVM");
+
+        MD3Animated value = new MD3Animated(new RealisedPanel(), 0f, MD3Motion.LONG4, MD3Motion.STANDARD);
+
+        value.setTarget(1f);
+        value.stop();
+
+        assertTrue(value.value() < 0.5f,
+                "stopping a value counted as its having arrived, and it jumped to " + value.value());
+    }
+
+    /**
+     * The same thing through the door it actually comes in by: sending a value somewhere else while
+     * it is on its way.
+     */
+    @Test
+    public void testTurningAValueRoundStartsFromWhereItIsNotFromWhereItWasHeaded() {
+        Assumptions.assumeTrue(Animator.useAnimation(), "animation is turned off for this JVM");
+
+        MD3Animated value = new MD3Animated(new RealisedPanel(), 0f, MD3Motion.LONG4, MD3Motion.STANDARD);
+
+        value.setTarget(1f);
+        value.setTarget(0f);
+
+        try {
+            assertTrue(value.value() < 0.5f,
+                    "a value sent back where it came from jumped to the target it had not reached first, "
+                            + "landing at " + value.value());
+        } finally {
+            value.stop();
+        }
+    }
+
+    /**
      * Material picks a duration by how far the thing travels. A press crosses a couple of pixels of
      * corner, a card lifts, a page crosses the window - so they get progressively longer, and getting
      * that backwards is what makes an interface feel sluggish in the small and abrupt in the large.

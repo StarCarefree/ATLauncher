@@ -20,7 +20,6 @@ package com.atlauncher.gui.tabs.settings;
 import java.awt.event.ItemEvent;
 
 import javax.swing.ImageIcon;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
@@ -32,6 +31,7 @@ import com.atlauncher.App;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.data.ProxyType;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.listener.StatefulTextKeyAdapter;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -96,7 +96,7 @@ public class NetworkSettingsTab extends AbstractSettingsTab {
             modrinthApiKey);
 
         // Enable Proxy
-        JCheckBox enableProxy = new JCheckBox();
+        MD3Switch enableProxy = new MD3Switch();
         enableProxy.addItemListener(itemEvent ->
             viewModel.setEnableProxy(itemEvent.getStateChange() == ItemEvent.SELECTED));
 

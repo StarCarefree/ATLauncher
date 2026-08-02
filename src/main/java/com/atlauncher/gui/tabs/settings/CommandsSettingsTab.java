@@ -20,13 +20,13 @@ package com.atlauncher.gui.tabs.settings;
 import java.awt.Dimension;
 import java.awt.event.ItemEvent;
 
-import javax.swing.JCheckBox;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
+import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.viewmodel.impl.settings.CommandsSettingsViewModel;
 
@@ -39,7 +39,7 @@ public class CommandsSettingsTab extends AbstractSettingsTab {
     private JTextField preLaunchCommand;
     private JTextField postExitCommand;
     private JTextField wrapperCommand;
-    private JCheckBox enableCommands;
+    private MD3Switch enableCommands;
 
     public CommandsSettingsTab(CommandsSettingsViewModel viewModel) {
         this.viewModel = viewModel;
@@ -48,7 +48,7 @@ public class CommandsSettingsTab extends AbstractSettingsTab {
     @Override
     protected void onShow() {
         // region Enable Checkbox
-        enableCommands = new JCheckBox();
+        enableCommands = new MD3Switch();
         enableCommands.setSelected(App.settings.enableCommands);
         enableCommands.addItemListener(e -> viewModel.setEnableCommands(e.getStateChange() == ItemEvent.SELECTED));
         addRow(GetText.tr("Enable commands"),

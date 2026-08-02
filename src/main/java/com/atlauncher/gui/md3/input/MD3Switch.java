@@ -17,6 +17,7 @@
  */
 package com.atlauncher.gui.md3.input;
 
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -32,6 +33,7 @@ import javax.swing.JCheckBox;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Motion;
@@ -39,7 +41,6 @@ import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3State;
 import com.atlauncher.themes.md3.token.MD3Type;
-import com.formdev.flatlaf.util.Animator;
 import com.formdev.flatlaf.util.UIScale;
 
 /**
@@ -51,8 +52,12 @@ import com.formdev.flatlaf.util.UIScale;
  * those call sites with nothing but the constructor changing.
  *
  * <p>
- * Use a switch when the change takes effect immediately, and a checkbox when it takes effect on
- * save. Most of the launcher's settings are the former.
+ * Material reserves switches for changes that take effect immediately and asks for a checkbox where
+ * they take effect on save. <b>The launcher's settings page is the second kind and uses switches
+ * anyway</b>, deliberately: all 27 of its boolean settings are things that are simply on or off,
+ * a column of switches says that at a glance where a column of tick boxes does not, and the pinned
+ * save bar is what tells the user nothing has been committed yet. Somewhere with no save step - a
+ * dialog that acts on the spot - a switch is the unambiguous choice.
  *
  * <p>
  * Painted through a per-instance {@link Icon} rather than a full component UI - the checkbox UI
@@ -90,52 +95,31 @@ public class MD3Switch extends JCheckBox {
      * <p>
      * One per switch, since it holds that switch's animation position.
      */
-    private static final class SwitchIcon implements Icon {
+    static final class SwitchIcon implements Icon {
         private final AbstractButton button;
 
-        /** 0 while off, 1 while on, anywhere between mid-animation. */
-        private float position;
-        private Animator animator;
-        private float from;
-        private float to;
+        /**
+         * 0 while off, 1 while on, anywhere between mid-animation.
+         *
+         * <p>
+         * Reachable from the package so a test can hold the handle partway across - what it looks
+         * like there is the whole question, and racing a two hundred millisecond animation to find
+         * out is not a test.
+         */
+        final MD3Animated position;
 
         SwitchIcon(AbstractButton button) {
             this.button = button;
-            this.position = button.isSelected() ? 1f : 0f;
-            this.to = position;
+            this.position = new MD3Animated(button, button.isSelected() ? 1f : 0f, MD3Motion.SHORT4,
+                    MD3Motion.EMPHASIZED);
 
-            button.addChangeListener(e -> retarget());
-        }
+            button.addChangeListener(e -> {
+                position.setTarget(button.isSelected() ? 1f : 0f);
 
-        private void retarget() {
-            float target = button.isSelected() ? 1f : 0f;
-
-            if (Math.abs(target - to) < 0.001f) {
-                button.repaint();
-
-                return;
-            }
-
-            if (animator != null) {
-                animator.stop();
-            }
-
-            if (!Animator.useAnimation() || MD3Motion.isReduced()) {
-                position = target;
-                to = target;
-                button.repaint();
-
-                return;
-            }
-
-            from = position;
-            to = target;
-
-            animator = MD3Motion.animator(MD3Motion.SHORT4, MD3Motion.EMPHASIZED, fraction -> {
-                position = from + (to - from) * fraction;
+                // rollover, press and focus all change what is drawn without moving the handle, and
+                // the model reports all of them through here
                 button.repaint();
             });
-            animator.start();
         }
 
         @Override
@@ -152,7 +136,12 @@ public class MD3Switch extends JCheckBox {
         public void paintIcon(Component c, Graphics g, int x, int y) {
             ButtonModel model = button.getModel();
             boolean enabled = button.isEnabled();
-            boolean on = position > 0.5f;
+
+            // how far into being on it is, not whether it has passed halfway. Every colour here used
+            // to be picked by a boolean on that test, so the track, the handle and the outline all
+            // changed at once in the middle of the handle's travel and the tick appeared whole out
+            // of nothing - a two hundred millisecond slide with a jump cut in it.
+            float on = position.value();
 
             Graphics2D g2 = MD3Paint.setup(g);
 
@@ -165,16 +154,19 @@ public class MD3Switch extends JCheckBox {
 
                 MD3Paint.fill(g2, track, trackColor(enabled, on));
 
-                if (!on || !enabled) {
-                    MD3Paint.outline(g2, track, outlineColor(enabled), 2f);
+                // the outline belongs to the off state, and goes as the track fills in
+                if (!enabled) {
+                    MD3Paint.outline(g2, track, outlineColor(false), 2f);
+                } else if (on < 1f) {
+                    MD3Paint.outline(g2, track, MD3Color.get(MD3Color.OUTLINE, 1f - on), 2f);
                 }
 
                 // the handle grows as it travels, which is what makes the state change read as a
                 // physical movement rather than as a colour swap
-                float diameter = UIScale.scale(HANDLE_OFF + (HANDLE_ON - HANDLE_OFF) * position);
+                float diameter = UIScale.scale(HANDLE_OFF + (HANDLE_ON - HANDLE_OFF) * on);
                 float inset = UIScale.scale(4f);
                 float travel = width - inset * 2f - UIScale.scale((float) HANDLE_ON);
-                float centreX = inset + UIScale.scale(HANDLE_ON) / 2f + travel * position;
+                float centreX = inset + UIScale.scale(HANDLE_ON) / 2f + travel * on;
                 float centreY = height / 2f;
 
                 Shape handle = new Ellipse2D.Float(centreX - diameter / 2f, centreY - diameter / 2f, diameter,
@@ -194,32 +186,57 @@ public class MD3Switch extends JCheckBox {
 
                 MD3Paint.fill(g2, handle, handleColor(enabled, on));
 
-                if (on && enabled) {
-                    int glyphSize = Math.round(diameter * 0.66f);
-                    MD3Icon.of(MD3Icons.CHECK, glyphSize).withColor(MD3Color.get(MD3Color.ON_PRIMARY_CONTAINER))
-                            .paintIcon(button, g2, Math.round(centreX - glyphSize / 2f),
-                                    Math.round(centreY - glyphSize / 2f));
-                }
+                paintTick(g2, enabled, on, diameter, centreX, centreY);
             } finally {
                 g2.dispose();
             }
         }
 
-        private Color trackColor(boolean enabled, boolean on) {
-            if (!enabled) {
-                return on ? MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface())
-                        : MD3State.disabledContainer(MD3Color.surfaceVariant(), MD3Color.surface());
+        /**
+         * The tick inside the handle, fading up as the handle arrives rather than being switched on
+         * partway across.
+         */
+        private void paintTick(Graphics2D g, boolean enabled, float on, float diameter, float centreX,
+                float centreY) {
+            if (!enabled || on <= 0f) {
+                return;
             }
 
-            return on ? MD3Color.primary() : MD3Color.surfaceContainerHighest();
+            int glyphSize = Math.round(diameter * 0.66f);
+
+            if (glyphSize <= 0) {
+                return;
+            }
+
+            Graphics2D g2 = (Graphics2D) g.create();
+
+            try {
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, Math.min(1f, on)));
+
+                MD3Icon.of(MD3Icons.CHECK, glyphSize).withColor(MD3Color.get(MD3Color.ON_PRIMARY_CONTAINER))
+                        .paintIcon(button, g2, Math.round(centreX - glyphSize / 2f),
+                                Math.round(centreY - glyphSize / 2f));
+            } finally {
+                g2.dispose();
+            }
         }
 
-        private Color handleColor(boolean enabled, boolean on) {
+        private Color trackColor(boolean enabled, float on) {
             if (!enabled) {
-                return MD3State.disabledContent(on ? MD3Color.surface() : MD3Color.onSurface(), MD3Color.surface());
+                return MD3Animated.lerp(MD3State.disabledContainer(MD3Color.surfaceVariant(), MD3Color.surface()),
+                        MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface()), on);
             }
 
-            return on ? MD3Color.get(MD3Color.ON_PRIMARY) : MD3Color.outline();
+            return MD3Animated.lerp(MD3Color.surfaceContainerHighest(), MD3Color.primary(), on);
+        }
+
+        private Color handleColor(boolean enabled, float on) {
+            if (!enabled) {
+                return MD3State.disabledContent(
+                        MD3Animated.lerp(MD3Color.onSurface(), MD3Color.surface(), on), MD3Color.surface());
+            }
+
+            return MD3Animated.lerp(MD3Color.outline(), MD3Color.get(MD3Color.ON_PRIMARY), on);
         }
 
         private Color outlineColor(boolean enabled) {

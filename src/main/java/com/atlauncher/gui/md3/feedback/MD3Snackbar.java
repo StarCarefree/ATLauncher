@@ -275,13 +275,42 @@ public final class MD3Snackbar {
             validate();
         }
 
+        /**
+         * Fades the whole bar, contents included.
+         *
+         * <p>
+         * The opacity used to be set in {@code paintComponent}, which only reaches what this panel
+         * draws itself - so the container arrived over four hundred milliseconds while the message
+         * and its action were fully opaque from the first frame, and the text appeared to float in
+         * ahead of the thing it is written on. Applying it here puts the children under the same
+         * composite.
+         */
+        @Override
+        public void paint(Graphics g) {
+            float alpha = Math.max(0f, Math.min(1f, entry));
+
+            if (alpha >= 1f) {
+                super.paint(g);
+
+                return;
+            }
+
+            Graphics2D g2 = (Graphics2D) g.create();
+
+            try {
+                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+
+                super.paint(g2);
+            } finally {
+                g2.dispose();
+            }
+        }
+
         @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = MD3Paint.setup(g);
 
             try {
-                g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, Math.max(0f, Math.min(1f, entry))));
-
                 MD3Paint.shadow(g2, MD3Paint.shapeOf(this, MD3Shape.SNACKBAR), MD3Elevation.LEVEL3);
                 MD3Paint.fill(g2, MD3Paint.shapeOf(this, MD3Shape.SNACKBAR), MD3Color.inverseSurface());
             } finally {

@@ -17,10 +17,9 @@
  */
 package com.atlauncher.gui.tabs.settings;
 
-import javax.swing.JCheckBox;
-
 import org.mini2Dx.gettext.GetText;
 
+import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.viewmodel.impl.settings.LoggingSettingsViewModel;
 
 public class LoggingSettingsTab extends AbstractSettingsTab {
@@ -35,7 +34,7 @@ public class LoggingSettingsTab extends AbstractSettingsTab {
     protected void onShow() {
         // Enable Logging
 
-        JCheckBox enableLogs = new JCheckBox();
+        MD3Switch enableLogs = new MD3Switch();
         enableLogs.addActionListener(e ->
             viewModel.setEnableLogging(enableLogs.isSelected())
         );
@@ -46,7 +45,7 @@ public class LoggingSettingsTab extends AbstractSettingsTab {
 
         // Enable Analytics
 
-        JCheckBox enableAnalytics = new JCheckBox();
+        MD3Switch enableAnalytics = new MD3Switch();
         enableAnalytics.addActionListener(e ->
             viewModel.setEnableAnalytics(enableAnalytics.isSelected())
         );

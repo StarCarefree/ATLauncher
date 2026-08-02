@@ -22,6 +22,7 @@ import java.awt.CardLayout;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 
@@ -43,16 +44,21 @@ import com.formdev.flatlaf.util.Animator;
  * the last few percent into its place and fade up.
  *
  * <p>
- * The outgoing half is the half that used to be missing. The old page vanished on the frame the
- * card layout switched and the new one faded up out of the background, which reads as the window
- * having been cleared and repainted rather than as one page replacing another - and it gave the eye
- * nothing to follow across the gap.
+ * <b>The page arriving is painted live; only the one leaving is an image.</b> The page you asked
+ * for is still assembling itself while the transition runs - the launcher's pages are
+ * {@link com.atlauncher.gui.panels.HierarchyPanel}s, which build their contents when they are shown
+ * and several of which finish on a later pass of the event queue - so a picture taken at the moment
+ * of the swap is a picture of a page that is not there yet. That is what made navigating to the
+ * instances or the pack browser fade up an empty window and then snap to the real one. Anything
+ * inside the page that moves - a spinner on a page still loading - was frozen for the same reason.
+ * The page being left has no such problem and no alternative either: the card layout has already
+ * hidden it, so an image is the only way to show it at all.
  *
  * <p>
- * <b>Each page is painted once into an image and the images are what animate.</b> Fading a live
- * component tree means every child repainting on every frame, and the instances page can hold a
- * hundred cards - the cost of the transition would scale with how much is on the page, which is
- * exactly backwards. This way it is one image blit per frame whatever the page is.
+ * Painting the live tree under a transform means Swing must not repaint any of it on its own, or a
+ * child would draw itself at the position it will have when the transition is over. Hence
+ * {@link #isPaintingOrigin()} and the widened {@link #repaint(long, int, int, int, int)}: while the
+ * transition runs, every repaint that starts anywhere inside becomes a repaint of the whole host.
  */
 public class MD3PageHost extends JPanel {
     /**
@@ -72,7 +78,6 @@ public class MD3PageHost extends JPanel {
      */
     private final MD3Animated enter = new MD3Animated(this, 1f, MD3Motion.PAGE_TRANSITION, MD3Motion.LINEAR);
 
-    private BufferedImage snapshot;
     private BufferedImage leaving;
 
     public MD3PageHost() {
@@ -105,20 +110,21 @@ public class MD3PageHost extends JPanel {
                 && getHeight() > 0;
     }
 
+    /**
+     * @return whether a transition is running, which is the whole time the children are being
+     *         painted somewhere other than where they think they are
+     */
+    private boolean isTransitioning() {
+        // null while the superclass constructor is still running: installing a UI repaints, and
+        // both overrides below ask this before the field initialisers have run
+        return enter != null && enter.value() < 1f;
+    }
+
     private void beginEntrance(BufferedImage previous) {
         enter.stop();
-        snapshot = null;
         leaving = null;
 
         if (!animates()) {
-            enter.set(1f);
-
-            return;
-        }
-
-        snapshot = capture();
-
-        if (snapshot == null) {
             enter.set(1f);
 
             return;
@@ -134,19 +140,32 @@ public class MD3PageHost extends JPanel {
     }
 
     /**
-     * Paints the page that was just switched to, once, into an image.
+     * Paints the page currently showing, once, into an image.
+     *
+     * <p>
+     * At the display's own resolution rather than at the layout's. On a scaled display the two are
+     * not the same number, and an image made at the smaller one is stretched back up when it is
+     * drawn - which put the entire window through a blur for the length of every navigation, and
+     * then snapped it sharp on the last frame.
      */
     private BufferedImage capture() {
-        // the card layout has changed which child is visible but the container has not been laid out
-        // since, so an un-validated page would be captured at whatever size it last held
-        validate();
+        double scale = deviceScale();
 
-        BufferedImage image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_ARGB);
+        int width = (int) Math.ceil(getWidth() * scale);
+        int height = (int) Math.ceil(getHeight() * scale);
+
+        if (width <= 0 || height <= 0) {
+            return null;
+        }
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
 
         try {
+            g.scale(scale, scale);
+
             // super, so this goes to the real implementation rather than back into the override
-            // below, which would find the half-built snapshot and paint nothing at all
+            // below, which would find a transition already in progress and paint it twice over
             super.paintChildren(g);
         } catch (RuntimeException e) {
             return null;
@@ -157,15 +176,58 @@ public class MD3PageHost extends JPanel {
         return image;
     }
 
+    private double deviceScale() {
+        GraphicsConfiguration configuration = getGraphicsConfiguration();
+
+        if (configuration == null) {
+            return 1;
+        }
+
+        double scale = configuration.getDefaultTransform().getScaleX();
+
+        return scale > 0 ? scale : 1;
+    }
+
+    /**
+     * A child repainting itself mid-transition has to become a repaint of the host, since the host
+     * is what knows where the child is currently being drawn.
+     */
+    @Override
+    protected boolean isPaintingOrigin() {
+        return isTransitioning();
+    }
+
+    @Override
+    public void repaint(long tm, int x, int y, int width, int height) {
+        if (isTransitioning()) {
+            super.repaint(tm, 0, 0, getWidth(), getHeight());
+
+            return;
+        }
+
+        super.repaint(tm, x, y, width, height);
+    }
+
+    /**
+     * The other way a partial redraw arrives - a viewport blitting a scroll, anything calling this
+     * directly. Same answer: under a transform, part of the page cannot be redrawn on its own.
+     */
+    @Override
+    public void paintImmediately(int x, int y, int width, int height) {
+        if (isTransitioning()) {
+            super.paintImmediately(0, 0, getWidth(), getHeight());
+
+            return;
+        }
+
+        super.paintImmediately(x, y, width, height);
+    }
+
     @Override
     protected void paintChildren(Graphics g) {
         float fraction = enter.value();
 
-        // the last frame an animation delivers is exactly 1, which is where the images are done
-        // with and the live page takes over - so there is no completion callback to wire up
-        if (snapshot == null || fraction >= 1f || snapshot.getWidth() != getWidth()
-                || snapshot.getHeight() != getHeight()) {
-            snapshot = null;
+        if (fraction >= 1f) {
             leaving = null;
 
             super.paintChildren(g);
@@ -176,13 +238,24 @@ public class MD3PageHost extends JPanel {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
-            if (fraction < HANDOVER) {
-                paintLeaving(g2, fraction / HANDOVER);
-            } else {
-                paintArriving(g2, (fraction - HANDOVER) / (1f - HANDOVER));
-            }
+            paintTransition(g2, fraction);
         } finally {
             g2.dispose();
+        }
+    }
+
+    /**
+     * The transition at a point along it.
+     *
+     * <p>
+     * Package private so a test can hold it at a moment rather than racing it - the two halves look
+     * nothing alike, and which one is on screen is otherwise a question of when you looked.
+     */
+    void paintTransition(Graphics2D g2, float fraction) {
+        if (fraction < HANDOVER) {
+            paintLeaving(g2, fraction / HANDOVER);
+        } else {
+            paintArriving(g2, (fraction - HANDOVER) / (1f - HANDOVER));
         }
     }
 
@@ -191,14 +264,16 @@ public class MD3PageHost extends JPanel {
      * lingering half visible over the whole exit.
      */
     private void paintLeaving(Graphics2D g2, float progress) {
-        if (leaving == null || leaving.getWidth() != getWidth() || leaving.getHeight() != getHeight()) {
+        if (leaving == null) {
             return;
         }
 
         float alpha = 1f - MD3Motion.EMPHASIZED_ACCELERATE.interpolate(Math.min(1f, progress));
 
         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, Math.max(0f, alpha)));
-        g2.drawImage(leaving, 0, 0, null);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        // drawn back down to the layout's size, which is where it was captured from
+        g2.drawImage(leaving, 0, 0, getWidth(), getHeight(), null);
     }
 
     /**
@@ -221,7 +296,6 @@ public class MD3PageHost extends JPanel {
         g2.scale(scale, scale);
         g2.translate(-centreX, -centreY);
 
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        g2.drawImage(snapshot, 0, 0, null);
+        super.paintChildren(g2);
     }
 }

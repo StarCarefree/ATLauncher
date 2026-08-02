@@ -101,6 +101,8 @@ public class MD3TopAppBar extends JPanel {
         setBackground(MD3Color.surface());
         setBorder(MD3Spacing.border(0, MD3Spacing.XS));
 
+        raise.setListener(this::tintCompanions);
+
         titleLabel.setName("appBarTitle");
         titleLabel.setFont(MD3Type.font(MD3Type.TITLE_LARGE));
         titleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
@@ -252,6 +254,7 @@ public class MD3TopAppBar extends JPanel {
 
         if (pane == null) {
             setScrolled(false);
+            tintCompanions();
 
             return;
         }
@@ -261,6 +264,10 @@ public class MD3TopAppBar extends JPanel {
         tracked.getVerticalScrollBar().addAdjustmentListener(trackedListener);
 
         setScrolled(tracked.getVerticalScrollBar().getValue() > 0);
+
+        // a page that arrived at the tone the bar is already at moves nothing, so its toolbars have
+        // to be told the colour rather than waiting to be sent it by an animation that will not run
+        tintCompanions();
     }
 
     /**
@@ -300,22 +307,40 @@ public class MD3TopAppBar extends JPanel {
         return scroller;
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        // painted rather than set as the background, so the tone can be anywhere between the two
-        // ends while the change is travelling
-        Color surface = MD3Animated.lerp(MD3Color.surface(), MD3Elevation.surface(MD3Elevation.LEVEL2), raise.value());
+    /**
+     * The tone the header is at, which is anywhere between the two ends while the raise is
+     * travelling.
+     */
+    private Color surfaceTone() {
+        return MD3Animated.lerp(MD3Color.surface(), MD3Elevation.surface(MD3Elevation.LEVEL2), raise.value());
+    }
 
-        g.setColor(surface);
-        g.fillRect(0, 0, getWidth(), getHeight());
+    /**
+     * Carries the tone across to the page's own toolbars, which are ordinary opaque panels and so
+     * follow by having their background set.
+     *
+     * <p>
+     * Driven from the animation rather than from {@code paintComponent}. Setting another
+     * component's background during a repaint is the one thing Swing asks painting not to do, and it
+     * arrived a frame late as well - the toolbar was repainted after the bar that had just decided
+     * its colour, so the header went briefly two-tone every time the page was scrolled.
+     */
+    private void tintCompanions() {
+        Color surface = surfaceTone();
 
-        // the companions are ordinary opaque panels, so they follow by having their background set -
-        // which repaints them, and only when the colour has actually moved on
         for (JComponent companion : companions) {
             if (!surface.equals(companion.getBackground())) {
                 companion.setBackground(surface);
             }
         }
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        // painted rather than set as the background, so the tone can be anywhere between the two
+        // ends while the change is travelling
+        g.setColor(surfaceTone());
+        g.fillRect(0, 0, getWidth(), getHeight());
     }
 
     @Override

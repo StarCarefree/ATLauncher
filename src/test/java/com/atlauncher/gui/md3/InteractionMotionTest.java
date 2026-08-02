@@ -122,17 +122,41 @@ public class InteractionMotionTest {
         return covered;
     }
 
-    /** The pointer arriving, delivered to the listeners rather than through the event queue. */
+    /**
+     * The pointer arriving, delivered to the listeners rather than through the event queue.
+     *
+     * <p>
+     * An exit is reported at a point outside the component, which is what tells it apart from the
+     * exit Swing sends when the pointer has merely reached something <em>inside</em> - see
+     * {@link #exitAt(Component, int, int)}.
+     */
     private static void hover(Component c, boolean hovered) {
-        MouseEvent event = new MouseEvent(c, hovered ? MouseEvent.MOUSE_ENTERED : MouseEvent.MOUSE_EXITED,
-                0L, 0, 1, 1, 0, false);
+        if (hovered) {
+            MouseEvent event = new MouseEvent(c, MouseEvent.MOUSE_ENTERED, 0L, 0, 1, 1, 0, false);
+
+            for (MouseListener listener : c.getMouseListeners()) {
+                listener.mouseEntered(event);
+            }
+
+            return;
+        }
+
+        exitAt(c, -1, -1);
+    }
+
+    /**
+     * An exit reported at a given point in the component's own coordinates.
+     *
+     * <p>
+     * Swing sends one of these whenever the pointer reaches a descendant that takes mouse events of
+     * its own - a button on a card - and the point it carries is still on the component. That is the
+     * only thing telling it apart from the pointer having actually gone.
+     */
+    private static void exitAt(Component c, int x, int y) {
+        MouseEvent event = new MouseEvent(c, MouseEvent.MOUSE_EXITED, 0L, 0, x, y, 0, false);
 
         for (MouseListener listener : c.getMouseListeners()) {
-            if (hovered) {
-                listener.mouseEntered(event);
-            } else {
-                listener.mouseExited(event);
-            }
+            listener.mouseExited(event);
         }
     }
 
@@ -192,6 +216,33 @@ public class InteractionMotionTest {
 
         assertEquals(0, differingPixels(resting, paint(card)),
                 "a card stayed lifted after the pointer left it");
+    }
+
+    /**
+     * The pointer reaching a button on a card is still the pointer on the card.
+     *
+     * <p>
+     * Swing says otherwise: it reports the component as exited the moment anything inside it takes
+     * the mouse events, and reports nothing at all when the pointer then leaves for good. Taken at
+     * face value, every card in the launcher's grids dropped its hover as the pointer crossed the
+     * controls on it and took it back in the gaps between them - a flicker, on the pages the
+     * launcher spends most of its time showing.
+     */
+    @Test
+    public void testACardKeepsItsLiftWhileThePointerIsOnAControlInsideIt() {
+        MD3Card card = card(true);
+        card.add(MD3Button.filled("Play"));
+        layoutTree(card);
+
+        hover(card, true);
+        BufferedImage lifted = paint(card);
+
+        // the exit Swing sends when the pointer arrives on the button: reported by the card, at a
+        // point that is on the card
+        exitAt(card, card.getWidth() / 2, card.getHeight() / 2);
+
+        assertEquals(0, differingPixels(lifted, paint(card)),
+                "a card dropped its hover when the pointer reached a control inside it");
     }
 
     /**

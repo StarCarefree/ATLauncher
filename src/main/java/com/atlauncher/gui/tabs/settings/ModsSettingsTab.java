@@ -19,7 +19,6 @@ package com.atlauncher.gui.tabs.settings;
 
 import java.awt.event.ItemEvent;
 
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 
 import org.mini2Dx.gettext.GetText;
@@ -28,6 +27,7 @@ import com.atlauncher.App;
 import com.atlauncher.data.AddModRestriction;
 import com.atlauncher.data.InstanceExportFormat;
 import com.atlauncher.data.ModPlatform;
+import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.viewmodel.impl.settings.ModsSettingsViewModel;
 
@@ -109,7 +109,7 @@ public class ModsSettingsTab extends AbstractSettingsTab {
 
         // Enable added mods by default
 
-        JCheckBox enableAddedModsByDefault = new JCheckBox();
+        MD3Switch enableAddedModsByDefault = new MD3Switch();
         enableAddedModsByDefault.addItemListener(
                 itemEvent -> viewModel.setEnableAddedModsByDefault(itemEvent.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getEnableAddedModsByDefault().subscribe(enableAddedModsByDefault::setSelected));
@@ -120,7 +120,7 @@ public class ModsSettingsTab extends AbstractSettingsTab {
 
         // Show Fabric Mods When Sinytra Installed
 
-        JCheckBox showFabricModsWhenSinytraInstalled = new JCheckBox();
+        MD3Switch showFabricModsWhenSinytraInstalled = new MD3Switch();
         showFabricModsWhenSinytraInstalled.addItemListener(itemEvent -> viewModel
                 .setShowFabricModsWhenSinytraInstalled(itemEvent.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getShowFabricModsWhenSinytraInstalled()
@@ -132,7 +132,7 @@ public class ModsSettingsTab extends AbstractSettingsTab {
 
         // Allow CurseForge Alpha/Beta CurseForge files
 
-        JCheckBox allowCurseForgeAlphaBetaFiles = new JCheckBox();
+        MD3Switch allowCurseForgeAlphaBetaFiles = new MD3Switch();
         allowCurseForgeAlphaBetaFiles.setSelected(App.settings.allowCurseForgeAlphaBetaFiles);
         allowCurseForgeAlphaBetaFiles.addItemListener(itemEvent -> viewModel
                 .setAllowCurseForgeAlphaBetaFiles(itemEvent.getStateChange() == ItemEvent.SELECTED));
@@ -145,7 +145,7 @@ public class ModsSettingsTab extends AbstractSettingsTab {
 
         // Dont check mods on CurseForge
 
-        JCheckBox dontCheckModsOnCurseForge = new JCheckBox();
+        MD3Switch dontCheckModsOnCurseForge = new MD3Switch();
         dontCheckModsOnCurseForge.addItemListener(
                 itemEvent -> viewModel.setDoNotCheckModsOnCurseForge(itemEvent.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getDoNotCheckModsOnCurseForge().subscribe(dontCheckModsOnCurseForge::setSelected));
@@ -161,7 +161,7 @@ public class ModsSettingsTab extends AbstractSettingsTab {
 
         // Dont check mods on Modrinth
 
-        JCheckBox dontCheckModsOnModrinth = new JCheckBox();
+        MD3Switch dontCheckModsOnModrinth = new MD3Switch();
         dontCheckModsOnModrinth.addItemListener(
                 itemEvent -> viewModel.setDoNotCheckModsOnModrinth(itemEvent.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getDoNotCheckModsOnModrinth().subscribe(dontCheckModsOnModrinth::setSelected));
@@ -177,7 +177,7 @@ public class ModsSettingsTab extends AbstractSettingsTab {
 
         // Enable scanning mods on launch
 
-        JCheckBox scanModsOnLaunch = new JCheckBox();
+        MD3Switch scanModsOnLaunch = new MD3Switch();
         scanModsOnLaunch.setSelected(App.settings.scanModsOnLaunch);
         scanModsOnLaunch.addItemListener(e -> viewModel.setScanModsOnLaunch(e.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getScanModsOnLaunch().subscribe(scanModsOnLaunch::setSelected));

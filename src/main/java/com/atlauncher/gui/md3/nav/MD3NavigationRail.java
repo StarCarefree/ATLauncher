@@ -240,7 +240,10 @@ public class MD3NavigationRail extends JPanel {
             return;
         }
 
-        slideFrom = indicatorY(restingIndex);
+        // where the pill actually is, not where it was last sent: a second destination picked
+        // before the first had been reached would otherwise start the new journey from a place the
+        // pill had never got to, and it would jump there before setting off
+        slideFrom = currentIndicatorY();
         restingIndex = to;
 
         if (Float.isNaN(slideFrom) || from < 0) {
@@ -251,6 +254,20 @@ public class MD3NavigationRail extends JPanel {
 
         slide.set(0f);
         slide.setTarget(1f);
+    }
+
+    /**
+     * @return where the pill is being painted at this moment, which is between two destinations
+     *         while it is travelling
+     */
+    private float currentIndicatorY() {
+        float resting = indicatorY(restingIndex);
+
+        if (Float.isNaN(slideFrom) || Float.isNaN(resting)) {
+            return resting;
+        }
+
+        return MD3Animated.lerp(slideFrom, resting, slide.value());
     }
 
     /**
@@ -270,15 +287,14 @@ public class MD3NavigationRail extends JPanel {
         super.paintComponent(g);
 
         float alpha = presence.value();
-        float target = indicatorY(restingIndex);
-
-        if (alpha <= 0f || Float.isNaN(target)) {
-            return;
-        }
 
         // read from the live layout rather than from a remembered rectangle, so a resize mid-slide
         // lands the pill where the destination actually ended up
-        float y = Float.isNaN(slideFrom) ? target : MD3Animated.lerp(slideFrom, target, slide.value());
+        float y = currentIndicatorY();
+
+        if (alpha <= 0f || Float.isNaN(y)) {
+            return;
+        }
 
         int width = UIScale.scale(INDICATOR_WIDTH);
         int height = UIScale.scale(MD3Spacing.NAV_ITEM_INDICATOR_HEIGHT);

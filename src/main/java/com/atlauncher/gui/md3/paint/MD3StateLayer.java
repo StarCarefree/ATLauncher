@@ -29,6 +29,7 @@ import java.awt.event.MouseMotionListener;
 
 import javax.swing.ButtonModel;
 import javax.swing.JComponent;
+import javax.swing.Timer;
 
 import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.themes.md3.token.MD3State;
@@ -57,12 +58,20 @@ import com.atlauncher.themes.md3.token.MD3State;
  * what counts as pressed.
  */
 public final class MD3StateLayer {
+    /**
+     * How often to look for the pointer once it has gone somewhere inside the component that takes
+     * its own mouse events. Frequent enough that letting go of a card is not noticeably late, and
+     * only ever one of these is running - there is one pointer.
+     */
+    private static final int DEPARTURE_POLL = 60;
+
     private final JComponent component;
 
     private ButtonModel model;
     private MouseListener mouseListener;
     private MouseMotionListener mouseMotionListener;
     private FocusListener focusListener;
+    private Timer departureWatch;
 
     private boolean hovered;
     private boolean pressed;
@@ -110,13 +119,27 @@ public final class MD3StateLayer {
         MouseAdapter adapter = new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
+                stopWatchingForDeparture();
                 setHovered(true);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                setHovered(false);
                 setPressed(false);
+
+                // Swing reports the pointer as having left the moment it reaches anything inside
+                // that takes mouse events of its own - a button on a card, a label with a tooltip -
+                // and reports nothing at all when it then leaves for good. Taken at face value that
+                // made every card in the launcher's grids flicker its hover on and off as the
+                // pointer crossed what is on it. So an exit that lands inside the component is not
+                // an exit; it means watching for the real one instead.
+                if (component.contains(e.getPoint())) {
+                    watchForDeparture();
+
+                    return;
+                }
+
+                setHovered(false);
             }
 
             @Override
@@ -134,6 +157,48 @@ public final class MD3StateLayer {
         mouseMotionListener = adapter;
         component.addMouseListener(mouseListener);
         component.addMouseMotionListener(mouseMotionListener);
+    }
+
+    /**
+     * Watches for the pointer leaving a component it is still over but no longer sending events
+     * from.
+     *
+     * <p>
+     * Polled rather than driven by an event because there is no event to drive it: once the pointer
+     * is over a child, everything it does is reported to that child, and moving from there out of
+     * the window tells this component nothing. Only ever one timer is alive across the whole
+     * launcher, since the pointer can only be inside one thing at a time.
+     */
+    private void watchForDeparture() {
+        if (departureWatch == null) {
+            departureWatch = new Timer(DEPARTURE_POLL, e -> {
+                if (stillUnderPointer()) {
+                    return;
+                }
+
+                stopWatchingForDeparture();
+                setHovered(false);
+            });
+        }
+
+        departureWatch.start();
+    }
+
+    private void stopWatchingForDeparture() {
+        if (departureWatch != null) {
+            departureWatch.stop();
+        }
+    }
+
+    private boolean stillUnderPointer() {
+        try {
+            // allowing children, which is the whole point - the pointer being on a card's button is
+            // the pointer being on the card
+            return component.isShowing() && component.getMousePosition(true) != null;
+        } catch (RuntimeException e) {
+            // no pointer to ask about, on a headless display or a platform that will not say
+            return false;
+        }
     }
 
     private void installFocusListener() {
@@ -160,6 +225,11 @@ public final class MD3StateLayer {
         overlay.stop();
         hoverProgress.stop();
         pressProgress.stop();
+
+        if (departureWatch != null) {
+            departureWatch.stop();
+            departureWatch = null;
+        }
 
         if (mouseListener != null) {
             component.removeMouseListener(mouseListener);

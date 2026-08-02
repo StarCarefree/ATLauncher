@@ -94,6 +94,8 @@ public class MD3Tabs extends JPanel {
     /** Where the indicator is being painted right now, which is mid-slide during a change. */
     private Rectangle indicator;
     private Rectangle indicatorFrom;
+    /** Where it is heading. A field rather than a captured local, so a re-layout can re-aim it. */
+    private Rectangle indicatorTo;
     private Animator indicatorAnimator;
 
     public MD3Tabs() {
@@ -198,7 +200,13 @@ public class MD3Tabs extends JPanel {
         tabs.get(index).setLabel(label);
 
         if (index == selectedIndex) {
-            indicator = indicatorBounds(index);
+            // the indicator is as wide as the label, so a new one moves it - re-aimed rather than
+            // reset, for the same reason a re-layout is
+            if (isSliding()) {
+                indicatorTo = indicatorBounds(index);
+            } else {
+                indicator = indicatorBounds(index);
+            }
         }
 
         revalidate();
@@ -310,7 +318,20 @@ public class MD3Tabs extends JPanel {
             x += width;
         }
 
-        indicator = indicatorBounds(selectedIndex);
+        // a layout lands in the middle of a slide more often than not - selecting a tab is what
+        // rebuilds the view under it, and that revalidates the window. Dropping the indicator on
+        // its destination here would have the next frame pull it back to where it had got to, which
+        // is the stutter the slide was there to avoid. What a layout genuinely changes is where the
+        // tab ended up, so that is what it re-aims at.
+        if (isSliding()) {
+            indicatorTo = indicatorBounds(selectedIndex);
+        } else {
+            indicator = indicatorBounds(selectedIndex);
+        }
+    }
+
+    private boolean isSliding() {
+        return indicatorAnimator != null && indicatorAnimator.isRunning();
     }
 
     private Rectangle indicatorBounds(int index) {
@@ -325,19 +346,27 @@ public class MD3Tabs extends JPanel {
         return new Rectangle(tab.getX() + (tab.getWidth() - width) / 2, getHeight() - height, width, height);
     }
 
-    private void slideIndicatorTo(final Rectangle target) {
+    private void slideIndicatorTo(Rectangle target) {
+        // where it has actually got to. FlatLaf's animator delivers a final frame when it is
+        // stopped, which would put the indicator on the tab it was still travelling towards - so
+        // picking a third tab before the second had arrived jumped it there first
+        Rectangle current = indicator == null ? null : new Rectangle(indicator);
+
         if (indicatorAnimator != null) {
             indicatorAnimator.stop();
             indicatorAnimator = null;
         }
 
-        if (target == null || indicator == null || !Animator.useAnimation() || MD3Motion.isReduced()) {
+        indicator = current;
+        indicatorTo = target;
+
+        if (target == null || current == null || !Animator.useAnimation() || MD3Motion.isReduced()) {
             indicator = target;
 
             return;
         }
 
-        indicatorFrom = new Rectangle(indicator);
+        indicatorFrom = current;
 
         // the same curve and length the rail's pill travels on, so the two navigations in the window
         // move alike rather than each having its own idea of how far away a tab is
@@ -345,18 +374,22 @@ public class MD3Tabs extends JPanel {
                 new Animator.TimingTarget() {
             @Override
             public void timingEvent(float fraction) {
+                if (indicatorTo == null) {
+                    return;
+                }
+
                 indicator = new Rectangle(
-                        Math.round(indicatorFrom.x + (target.x - indicatorFrom.x) * fraction),
-                        target.y,
-                        Math.round(indicatorFrom.width + (target.width - indicatorFrom.width) * fraction),
-                        target.height);
+                        Math.round(indicatorFrom.x + (indicatorTo.x - indicatorFrom.x) * fraction),
+                        indicatorTo.y,
+                        Math.round(indicatorFrom.width + (indicatorTo.width - indicatorFrom.width) * fraction),
+                        indicatorTo.height);
 
                 repaint();
             }
 
             @Override
             public void end() {
-                indicator = target;
+                indicator = indicatorTo;
 
                 repaint();
             }

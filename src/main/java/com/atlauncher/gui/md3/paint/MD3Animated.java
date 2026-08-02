@@ -55,6 +55,9 @@ public final class MD3Animated {
     private float from;
     private float to;
     private Animator animator;
+    private Runnable listener;
+    /** Set while {@link #stop()} is tearing an animator down, so its last frame is not honoured. */
+    private boolean interrupting;
 
     /**
      * @param duration     one of the {@link MD3Motion} duration tokens
@@ -66,6 +69,20 @@ public final class MD3Animated {
         this.interpolator = interpolator;
         this.value = initial;
         this.to = initial;
+    }
+
+    /**
+     * Runs after every step, for a value that drives something other than this component's own
+     * painting.
+     *
+     * <p>
+     * The alternative is to read the value from a paint method and act on what it says there, which
+     * means changing another component's state during a repaint - Swing's one rule about painting.
+     * The change would also land a frame late, since the component it touched has to be repainted
+     * afterwards.
+     */
+    public void setListener(Runnable listener) {
+        this.listener = listener;
     }
 
     /**
@@ -110,16 +127,22 @@ public final class MD3Animated {
             public void timingEvent(float fraction) {
                 value = from + (to - from) * fraction;
 
-                component.repaint();
+                published();
             }
 
             @Override
             public void end() {
-                // an overshoot curve is only exactly on target at fraction 1, and a stopped
-                // animator never delivers that frame
+                if (interrupting) {
+                    // stopped rather than finished: the value has not arrived and must not be
+                    // told that it has
+                    return;
+                }
+
+                // an overshoot curve is only exactly on target at fraction 1, and the last frame
+                // an animator delivers is not reliably that one
                 value = to;
 
-                component.repaint();
+                published();
             }
         });
 
@@ -136,12 +159,38 @@ public final class MD3Animated {
         this.value = value;
         this.to = value;
 
+        published();
+    }
+
+    private void published() {
+        if (listener != null) {
+            listener.run();
+        }
+
         component.repaint();
     }
 
+    /**
+     * Abandons any animation in flight, leaving the value wherever it had reached.
+     *
+     * <p>
+     * FlatLaf's animator delivers its {@code end} callback when it is stopped as well as when it
+     * runs out, and the two mean opposite things. Taken as an arrival, a stop would put the value on
+     * the target it was still travelling towards - so a pointer leaving a card halfway through the
+     * lift snapped it to fully lifted before fading it back down, and a second click on the
+     * navigation teleported the indicator to the destination it had not reached yet and slid on from
+     * there. Every animation in the launcher goes through here, so every one of them did it.
+     */
     public void stop() {
         if (animator != null) {
-            animator.stop();
+            interrupting = true;
+
+            try {
+                animator.stop();
+            } finally {
+                interrupting = false;
+            }
+
             animator = null;
         }
     }

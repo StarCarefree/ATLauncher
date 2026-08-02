@@ -24,7 +24,6 @@ import java.util.Date;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JTextField;
@@ -37,6 +36,7 @@ import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.data.LauncherTheme;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -132,7 +132,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Disable custom fonts
 
-        JCheckBox disableCustomFonts = new JCheckBox();
+        MD3Switch disableCustomFonts = new MD3Switch();
         disableCustomFonts.addItemListener(itemEvent -> {
             viewModel.setDisableCustomFonts(itemEvent.getStateChange() == ItemEvent.SELECTED);
         });
@@ -144,7 +144,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Reduce animations
 
-        JCheckBox reduceAnimations = new JCheckBox();
+        MD3Switch reduceAnimations = new MD3Switch();
         reduceAnimations.addItemListener(itemEvent -> {
             viewModel.setReduceAnimations(itemEvent.getStateChange() == ItemEvent.SELECTED);
         });
@@ -194,7 +194,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Enable Console
 
-        JCheckBox enableConsole = new JCheckBox();
+        MD3Switch enableConsole = new MD3Switch();
         enableConsole.addItemListener(e -> viewModel.setEnableConsole(e.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getEnableConsole().subscribe(enableConsole::setSelected));
 
@@ -203,7 +203,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Enable Tray Icon
 
-        JCheckBox enableTrayIcon = new JCheckBox();
+        MD3Switch enableTrayIcon = new MD3Switch();
         enableTrayIcon.addItemListener(e -> viewModel.setEnableTrayMenuOpen(e.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getEnableTrayMenu().subscribe(enableTrayIcon::setSelected));
 
@@ -213,7 +213,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Remember gui sizes and positions
 
-        JCheckBox rememberWindowSizePosition = new JCheckBox();
+        MD3Switch rememberWindowSizePosition = new MD3Switch();
         rememberWindowSizePosition
                 .addItemListener(e -> viewModel.setRememberWindowStuff(e.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getRememberWindowSizePosition().subscribe(rememberWindowSizePosition::setSelected));
@@ -226,7 +226,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Keep Launcher Open
 
-        JCheckBox keepLauncherOpen = new JCheckBox();
+        MD3Switch keepLauncherOpen = new MD3Switch();
         keepLauncherOpen.addItemListener(e -> viewModel.setKeepLauncherOpen(e.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getKeepLauncherOpen().subscribe(keepLauncherOpen::setSelected));
 
@@ -239,7 +239,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
         if (viewModel.showFeralGameMode()) {
             boolean gameModeExistsInPath = viewModel.hasFeralGameMode();
 
-            JCheckBox enableFeralGamemode = new JCheckBox();
+            MD3Switch enableFeralGamemode = new MD3Switch();
             enableFeralGamemode
                     .addItemListener(e -> viewModel.setEnableFeralGameMode(e.getStateChange() == ItemEvent.SELECTED));
             addDisposable(viewModel.getEnableFeralGameMode().subscribe(enableFeralGamemode::setSelected));
@@ -260,7 +260,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
         if (viewModel.showArmSupport()) {
             // Enable ARM Support
 
-            JCheckBox enableArmSupport = new JCheckBox();
+            MD3Switch enableArmSupport = new MD3Switch();
 
             // this listened on, and was bound to, the recycle bin checkbox above - so the ARM
             // setting could not be changed and toggling the recycle bin changed it instead
@@ -318,7 +318,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
         // Use native file picker
 
         if (viewModel.getShowNativeFilePickerOption()) {
-            JCheckBox useNativeFilePicker = new JCheckBox();
+            MD3Switch useNativeFilePicker = new MD3Switch();
             useNativeFilePicker
                     .addItemListener(e -> viewModel.setUseNativeFilePicker(e.getStateChange() == ItemEvent.SELECTED));
             addDisposable(viewModel.getUseNativeFilePicker().subscribe(useNativeFilePicker::setSelected));
@@ -330,7 +330,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         // Use recycle bin
 
-        JCheckBox useRecycleBin = new JCheckBox();
+        MD3Switch useRecycleBin = new MD3Switch();
         useRecycleBin.addItemListener(e -> viewModel.setUseRecycleBin(e.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getUseRecycleBin().subscribe(useRecycleBin::setSelected));
 

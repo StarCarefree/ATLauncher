@@ -23,7 +23,6 @@ import java.io.File;
 
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
@@ -46,6 +45,7 @@ import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.data.ScreenResolution;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -174,7 +174,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         // Start Minecraft Maximised
 
-        JCheckBox startMinecraftMaximised = new JCheckBox();
+        MD3Switch startMinecraftMaximised = new MD3Switch();
         startMinecraftMaximised.addItemListener(
             itemEvent -> viewModel.setStartMinecraftMax(itemEvent.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getMaximizeMinecraft().subscribe(startMinecraftMaximised::setSelected));
@@ -343,7 +343,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         // Ignore Java checks On Launch
 
-        JCheckBox ignoreJavaOnInstanceLaunch = new JCheckBox();
+        MD3Switch ignoreJavaOnInstanceLaunch = new MD3Switch();
         ignoreJavaOnInstanceLaunch.addItemListener(
             itemEvent -> viewModel.setIgnoreJavaChecks(itemEvent.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getIgnoreJavaOnInstanceLaunch().subscribe(ignoreJavaOnInstanceLaunch::setSelected));
@@ -354,7 +354,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         // Use Java Provided By Minecraft
 
-        JCheckBox useJavaProvidedByMinecraft = new JCheckBox();
+        MD3Switch useJavaProvidedByMinecraft = new MD3Switch();
         addDisposable(viewModel.getUseJavaProvidedByMinecraft().subscribe(useJavaProvidedByMinecraft::setSelected));
         useJavaProvidedByMinecraft.setEnabled(viewModel.getUseJavaFromMinecraftEnabled());
         useJavaProvidedByMinecraft.addItemListener(e -> {
@@ -384,7 +384,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         // Disable Legacy Launching
 
-        JCheckBox disableLegacyLaunching = new JCheckBox();
+        MD3Switch disableLegacyLaunching = new MD3Switch();
         disableLegacyLaunching.addItemListener(
             itemEvent -> viewModel.setDisableLegacyLaunching(itemEvent.getStateChange() == ItemEvent.SELECTED));
         addDisposable(
@@ -396,7 +396,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         // Use System GLFW
 
-        JCheckBox useSystemGlfw = new JCheckBox();
+        MD3Switch useSystemGlfw = new MD3Switch();
         useSystemGlfw.addItemListener(
             itemEvent -> viewModel.setSystemGLFW(itemEvent.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getSystemGLFW().subscribe(useSystemGlfw::setSelected));
@@ -406,7 +406,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         // Use System OpenAL
 
-        JCheckBox useSystemOpenAl = new JCheckBox();
+        MD3Switch useSystemOpenAl = new MD3Switch();
         useSystemOpenAl.addItemListener(
             itemEvent -> viewModel.setSystemOpenAL(itemEvent.getStateChange() == ItemEvent.SELECTED));
         addDisposable(viewModel.getSystemOpenAL().subscribe(useSystemOpenAl::setSelected));
