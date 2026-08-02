@@ -67,6 +67,7 @@ public class MD3ComboBox<E> extends JComboBox<E> {
 
         // the superclass constructor already ran updateUI, before the field above existed
         updateUI();
+        useHeavyweightPopup();
     }
 
     public MD3ComboBox(E[] items) {
@@ -79,6 +80,7 @@ public class MD3ComboBox<E> extends JComboBox<E> {
         this.variant = variant;
 
         updateUI();
+        useHeavyweightPopup();
     }
 
     public MD3ComboBox(ComboBoxModel<E> model) {
@@ -87,6 +89,7 @@ public class MD3ComboBox<E> extends JComboBox<E> {
         this.variant = Variant.OUTLINED;
 
         updateUI();
+        useHeavyweightPopup();
     }
 
     public Variant getVariant() {
@@ -97,6 +100,19 @@ public class MD3ComboBox<E> extends JComboBox<E> {
         this.variant = variant;
 
         repaint();
+    }
+
+    /**
+     * The menu is a real window, so the window manager can round it.
+     *
+     * <p>
+     * <b>A combo box keeps its own flag for this</b>, separate from
+     * {@link javax.swing.JPopupMenu#setDefaultLightWeightPopupEnabled} - which is what the launcher
+     * sets for every other menu - and it defaults to true. Left alone, the dropdown is a panel
+     * inside the frame whenever it fits there, and a panel has no window corner to round.
+     */
+    private void useHeavyweightPopup() {
+        setLightWeightPopupEnabled(false);
     }
 
     @Override

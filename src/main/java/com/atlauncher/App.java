@@ -51,6 +51,7 @@ import java.util.concurrent.Executors;
 
 import javax.swing.BorderFactory;
 import javax.swing.InputMap;
+import javax.swing.JPopupMenu;
 import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
@@ -66,7 +67,6 @@ import com.atlauncher.data.Language;
 import com.atlauncher.data.Pack;
 import com.atlauncher.data.Server;
 import com.atlauncher.data.Settings;
-import com.atlauncher.gui.HoverLineBorder;
 import com.atlauncher.gui.LauncherConsole;
 import com.atlauncher.gui.LauncherFrame;
 import com.atlauncher.gui.SplashScreen;
@@ -960,7 +960,14 @@ public class App {
         UIManager.put("FileChooser.readOnly", Boolean.TRUE);
         UIManager.put("ScrollBar.minimumThumbSize", new Dimension(50, 50));
         UIManager.put("ScrollPane.border", BorderFactory.createEmptyBorder());
-        UIManager.put("ToolTip.border", new HoverLineBorder());
+
+        // Menus and tooltips are rounded by the window manager, and only a real window can be:
+        // Swing puts a popup inside the frame's layered pane whenever it fits, and a panel has no
+        // window corner to round. FlatLaf asks Windows 11's DWM for the corner and needs a native
+        // window to ask about, so every popup is made one. The cost is a window per menu, which is
+        // what the platform's own menus are anyway.
+        JPopupMenu.setDefaultLightWeightPopupEnabled(false);
+        ToolTipManager.sharedInstance().setLightWeightPopupEnabled(false);
 
         // for Mac we setup correct copy/cut/paste shortcuts otherwise it just uses Ctrl
         if (OS.isMac()) {

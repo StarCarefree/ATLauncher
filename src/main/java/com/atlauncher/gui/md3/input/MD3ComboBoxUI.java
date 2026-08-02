@@ -366,7 +366,10 @@ public class MD3ComboBoxUI extends BasicComboBoxUI {
         MD3ComboPopup(javax.swing.JComboBox<Object> combo) {
             super(combo);
 
-            setBorder(MD3Spacing.border(MD3Spacing.S, 0));
+            // deliberately no setBorder: FlatLaf's popup border is what draws the rounded corner
+            // the window manager gives the popup, and replacing it with padding of our own leaves
+            // a square menu under a rounded dialog. The padding comes from PopupMenu.borderInsets,
+            // which the theme already sets.
             setBackground(MD3Color.surfaceContainer());
 
             list.setBackground(MD3Color.surfaceContainer());
