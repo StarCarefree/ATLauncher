@@ -50,6 +50,7 @@ import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3SettingsList;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3Spinner;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
@@ -61,8 +62,8 @@ import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
 public class JavaInstanceSettingsTab extends MD3SettingsList {
     private final Instance instance;
 
-    private JSpinner maximumMemory;
-    private JSpinner permGen;
+    private MD3Spinner maximumMemory;
+    private MD3Spinner permGen;
     private MD3TextField javaPath;
     private JTextArea javaParameters;
     private MD3ComboBox<ComboItem<String>> javaRuntimeOverride;
@@ -99,7 +100,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
             getIfNotNull(this.instance.launcher.maximumMemory, App.settings.maximumMemory), null, null, 512);
         maximumMemoryModel.setMinimum(512);
         maximumMemoryModel.setMaximum((systemRam == 0 ? null : systemRam));
-        maximumMemory = new JSpinner(maximumMemoryModel);
+        maximumMemory = new MD3Spinner(maximumMemoryModel);
         ((JSpinner.DefaultEditor) maximumMemory.getEditor()).getTextField().setColumns(5);
 
         addRow(GetText.tr("Maximum Memory/Ram"),
@@ -110,7 +111,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
             getIfNotNull(this.instance.launcher.permGen, App.settings.metaspace), null, null, 32);
         permGenModel.setMinimum(32);
         permGenModel.setMaximum((systemRam == 0 ? null : systemRam));
-        permGen = new JSpinner(permGenModel);
+        permGen = new MD3Spinner(permGenModel);
         ((JSpinner.DefaultEditor) permGen.getEditor()).getTextField().setColumns(3);
         permGen.addChangeListener(e -> {
             JSpinner s = (JSpinner) e.getSource();

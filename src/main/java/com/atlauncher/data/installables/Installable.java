@@ -31,7 +31,6 @@ import java.util.concurrent.ExecutionException;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -49,6 +48,7 @@ import com.atlauncher.data.modrinth.ModrinthVersion;
 import com.atlauncher.data.modrinth.pack.ModrinthModpackManifest;
 import com.atlauncher.data.multimc.MultiMCManifest;
 import com.atlauncher.data.technic.TechnicModpack;
+import com.atlauncher.gui.md3.feedback.MD3LinearProgress;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.InstanceManager;
 import com.atlauncher.managers.LogManager;
@@ -148,11 +148,11 @@ public abstract class Installable {
         JPanel bottomPanel = new JPanel();
         bottomPanel.setLayout(new BorderLayout());
 
-        JProgressBar progressBar = new JProgressBar(0, 10000);
+        MD3LinearProgress progressBar = new MD3LinearProgress(0, 10000);
         bottomPanel.add(progressBar, BorderLayout.NORTH);
         progressBar.setIndeterminate(true);
 
-        JProgressBar subProgressBar = new JProgressBar(0, 10000);
+        MD3LinearProgress subProgressBar = new MD3LinearProgress(0, 10000);
         bottomPanel.add(subProgressBar, BorderLayout.SOUTH);
         subProgressBar.setValue(0);
         subProgressBar.setVisible(false);

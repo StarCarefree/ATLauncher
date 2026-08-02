@@ -26,7 +26,6 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
@@ -34,6 +33,7 @@ import javax.swing.table.DefaultTableModel;
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Table;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.viewmodel.impl.settings.EnvironmentVariablesViewModel;
 import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
@@ -43,7 +43,7 @@ public class EnvironmentVariablesTab extends AbstractSettingsTab {
     private static final int TABLE_HEIGHT = 400;
 
     private final EnvironmentVariablesViewModel viewModel;
-    private JTable table;
+    private MD3Table table;
     private DefaultTableModel tableModel;
     private MD3Button addButton, deleteButton, clearButton;
 
@@ -59,9 +59,8 @@ public class EnvironmentVariablesTab extends AbstractSettingsTab {
                 return true;
             }
         };
-        table = new JTable(tableModel);
+        table = new MD3Table(tableModel);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        table.setRowHeight(24);
         table.getTableHeader().setReorderingAllowed(false);
 
         table.addMouseListener(new MouseAdapter() {

@@ -68,7 +68,6 @@ import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -138,6 +137,7 @@ import com.atlauncher.graphql.type.PackLogAction;
 import com.atlauncher.gui.dialogs.InstanceInstallerDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.dialogs.RenameInstanceDialog;
+import com.atlauncher.gui.md3.feedback.MD3LinearProgress;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.ConfigManager;
@@ -2269,7 +2269,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
 
         JPanel bottomPanel = new JPanel();
         bottomPanel.setLayout(new BorderLayout());
-        JProgressBar progressBar = new JProgressBar();
+        MD3LinearProgress progressBar = new MD3LinearProgress();
         bottomPanel.add(progressBar, BorderLayout.NORTH);
         progressBar.setIndeterminate(true);
 

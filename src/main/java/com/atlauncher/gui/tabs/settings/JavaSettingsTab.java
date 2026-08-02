@@ -44,6 +44,7 @@ import com.atlauncher.data.ScreenResolution;
 import com.atlauncher.gui.components.JLabelWithHover;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3Spinner;
 import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.listener.DelayedSavingKeyListener;
@@ -79,7 +80,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
         SpinnerNumberModel maximumMemoryModel = new SpinnerNumberModel(App.settings.maximumMemory, null, null, 512);
         maximumMemoryModel.setMinimum(512);
         maximumMemoryModel.setMaximum(maximumSystemRamForSpinnerModels);
-        JSpinner maximumMemory = new JSpinner(maximumMemoryModel);
+        MD3Spinner maximumMemory = new MD3Spinner(maximumMemoryModel);
         ((JSpinner.DefaultEditor) maximumMemory.getEditor()).getTextField().setColumns(5);
         maximumMemory.addChangeListener(e -> {
             viewModel.setMaxRam((Integer) maximumMemory.getValue());
@@ -101,7 +102,7 @@ public class JavaSettingsTab extends AbstractSettingsTab {
         SpinnerNumberModel permGenModel = new SpinnerNumberModel(App.settings.metaspace, null, null, 32);
         permGenModel.setMinimum(32);
         permGenModel.setMaximum(maximumSystemRamForSpinnerModels);
-        JSpinner permGen = new JSpinner(permGenModel);
+        MD3Spinner permGen = new MD3Spinner(permGenModel);
         ((JSpinner.DefaultEditor) permGen.getEditor()).getTextField().setColumns(3);
         permGen.addChangeListener(e -> {
             boolean result = viewModel.setPermGen((Integer) permGen.getValue());
@@ -130,14 +131,14 @@ public class JavaSettingsTab extends AbstractSettingsTab {
         // Window Size
         SpinnerNumberModel widthModel = new SpinnerNumberModel(App.settings.windowWidth, 1, OS.getMaximumWindowWidth(),
             1);
-        JSpinner widthField = new JSpinner(widthModel);
+        MD3Spinner widthField = new MD3Spinner(widthModel);
         widthField.setEditor(new JSpinner.NumberEditor(widthField, "#"));
         widthField.addChangeListener(e -> viewModel.setWidth((Integer) widthModel.getValue()));
         addDisposable(viewModel.getWidth().subscribe(widthModel::setValue));
 
         SpinnerNumberModel heightModel = new SpinnerNumberModel(App.settings.windowHeight, 1,
             OS.getMaximumWindowHeight(), 1);
-        JSpinner heightField = new JSpinner(heightModel);
+        MD3Spinner heightField = new MD3Spinner(heightModel);
         heightField.setEditor(new JSpinner.NumberEditor(heightField, "#"));
         heightField.addChangeListener(e -> viewModel.setHeight((Integer) heightField.getValue()));
         addDisposable(viewModel.getHeight().subscribe(heightField::setValue));

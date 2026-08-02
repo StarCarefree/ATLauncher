@@ -30,6 +30,7 @@ import com.atlauncher.data.CheckState;
 import com.atlauncher.data.ProxyType;
 import com.atlauncher.gui.components.JLabelWithHover;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3Spinner;
 import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.listener.StatefulTextKeyAdapter;
@@ -42,7 +43,7 @@ public class NetworkSettingsTab extends AbstractSettingsTab {
     private final NetworkSettingsViewModel viewModel;
     private JLabelWithHover proxyCheckIndicator;
     private MD3TextField proxyHost;
-    private JSpinner proxyPort;
+    private MD3Spinner proxyPort;
     private MD3ComboBox<ComboItem<ProxyType>> proxyType;
 
     public NetworkSettingsTab(NetworkSettingsViewModel viewModel) {
@@ -59,7 +60,7 @@ public class NetworkSettingsTab extends AbstractSettingsTab {
         concurrentConnectionsModel.addChangeListener(changeEvent ->
             viewModel.setConcurrentConnections((Integer) concurrentConnectionsModel.getValue()));
         addDisposable(viewModel.getConcurrentConnections().subscribe(concurrentConnectionsModel::setValue));
-        JSpinner concurrentConnections = new JSpinner(concurrentConnectionsModel);
+        MD3Spinner concurrentConnections = new MD3Spinner(concurrentConnectionsModel);
 
         addRow(GetText.tr("Concurrent Connections"),
             GetText.tr("This determines how many connections will be made when downloading files."),
@@ -73,7 +74,7 @@ public class NetworkSettingsTab extends AbstractSettingsTab {
         connectionTimeoutModel.addChangeListener(changeEvent ->
             viewModel.setConnectionTimeout((Integer) connectionTimeoutModel.getValue()));
         addDisposable(viewModel.getConnectionTimeout().subscribe(connectionTimeoutModel::setValue));
-        JSpinner connectionTimeout = new JSpinner(connectionTimeoutModel);
+        MD3Spinner connectionTimeout = new MD3Spinner(connectionTimeoutModel);
 
         addRow(GetText.tr("Connection Timeout"),
             GetText.tr("This determines how long connections will wait before timing out."), connectionTimeout);
@@ -129,7 +130,7 @@ public class NetworkSettingsTab extends AbstractSettingsTab {
         proxyPortModel.addChangeListener(changeEvent ->
             viewModel.setProxyPort((Integer) proxyPortModel.getValue()));
         addDisposable(viewModel.getProxyPort().subscribe(proxyPortModel::setValue));
-        proxyPort = new JSpinner(proxyPortModel);
+        proxyPort = new MD3Spinner(proxyPortModel);
         proxyPort.setEditor(new JSpinner.NumberEditor(proxyPort, "#"));
         if (!enableProxy.isSelected()) {
             proxyPort.setEnabled(false);

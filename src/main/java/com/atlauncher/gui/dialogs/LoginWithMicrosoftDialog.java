@@ -37,7 +37,6 @@ import javax.swing.JDialog;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JSeparator;
 import javax.swing.SwingUtilities;
 import javax.swing.event.HyperlinkEvent;
 
@@ -57,6 +56,7 @@ import com.atlauncher.data.microsoft.Profile;
 import com.atlauncher.data.microsoft.XboxLiveAuthErrorResponse;
 import com.atlauncher.data.microsoft.XboxLiveAuthResponse;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.panels.LoadingPanel;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.DialogManager;
@@ -125,8 +125,8 @@ public final class LoginWithMicrosoftDialog extends JDialog {
         JPanel linePanel = new JPanel(new BorderLayout(0, 0));
         JLabel orLabel = new JLabel(GetText.tr("OR"));
         orLabel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 10));
-        JSeparator leftLine = new JSeparator();
-        JSeparator rightLine = new JSeparator();
+        MD3Divider leftLine = new MD3Divider();
+        MD3Divider rightLine = new MD3Divider();
         leftLine.setPreferredSize(UIScale.scale(new Dimension(200, 1)));
         rightLine.setPreferredSize(UIScale.scale(new Dimension(200, 1)));
 

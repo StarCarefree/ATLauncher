@@ -32,7 +32,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
@@ -50,6 +49,7 @@ import com.atlauncher.gui.components.LockingPreservingCaretTextSetter;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.container.MD3Table;
 import com.atlauncher.gui.md3.input.MD3Chip;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3TextField;
@@ -100,7 +100,7 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
      */
     private long loaderVersionLastChange = System.currentTimeMillis();
     @Nullable
-    private JTable minecraftVersionTable = null;
+    private MD3Table minecraftVersionTable = null;
     @Nullable
     private DefaultTableModel minecraftVersionTableModel = null;
     private boolean hasScrolledToSelection = false;
@@ -496,7 +496,7 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
             }
         };
 
-        minecraftVersionTable = new JTable(minecraftVersionTableModel);
+        minecraftVersionTable = new MD3Table(minecraftVersionTableModel);
         minecraftVersionTable.getTableHeader().setReorderingAllowed(false);
         ListSelectionModel sm = minecraftVersionTable.getSelectionModel();
         sm.addListSelectionListener((e) -> {
@@ -579,7 +579,6 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
         cm.getColumn(2).setResizable(false);
         cm.getColumn(2).setMaxWidth(200);
         minecraftVersionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        minecraftVersionTable.setShowVerticalLines(false);
     }
 
     private void setupBottomPanel() {
