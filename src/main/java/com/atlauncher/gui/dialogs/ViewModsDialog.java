@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.swing.JDialog;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
@@ -39,14 +38,17 @@ import com.atlauncher.App;
 import com.atlauncher.data.Pack;
 import com.atlauncher.data.json.Mod;
 import com.atlauncher.gui.card.ModCard;
+import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.network.Analytics;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 
 import com.formdev.flatlaf.util.UIScale;
 
 public final class ViewModsDialog extends JDialog {
     private final JPanel contentPanel = new JPanel(new GridBagLayout());
-    private final MD3TextField searchField = new MD3TextField(16);
+    private final MD3TextField searchField;
     private final List<ModCard> cards = new ArrayList<>();
 
     public ViewModsDialog(Pack pack) {
@@ -60,23 +62,30 @@ public final class ViewModsDialog extends JDialog {
         this.setResizable(true);
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        topPanel.add(new JLabel(GetText.tr("Search") + ": "));
+        getContentPane().setBackground(MD3Color.surface());
+
+        // the label is the placeholder: it says what is being searched until typing replaces it
+        searchField = MD3TextField.search(GetText.tr("Search"));
+        searchField.setLeadingIcon(MD3Icons.SEARCH);
+        searchField.setColumns(20);
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        topPanel.setOpaque(false);
+        topPanel.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
         topPanel.add(this.searchField);
 
-        this.add(topPanel, BorderLayout.NORTH);
-        this.add(new JScrollPane(this.contentPanel) {
-            {
-                this.getVerticalScrollBar().setUnitIncrement(16);
-            }
-        }, BorderLayout.CENTER);
+        contentPanel.setOpaque(false);
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.weightx = 1.0;
-        gbc.fill = GridBagConstraints.BOTH;
-        gbc.insets.set(2, 2, 2, 2);
+        JScrollPane scroller = new JScrollPane(this.contentPanel);
+        scroller.setBorder(null);
+        scroller.setOpaque(false);
+        scroller.getViewport().setOpaque(false);
+        scroller.getVerticalScrollBar().setUnitIncrement(16);
+
+        this.add(topPanel, BorderLayout.NORTH);
+        this.add(scroller, BorderLayout.CENTER);
+
+        GridBagConstraints gbc = cardConstraints();
 
         this.searchField.addKeyListener(new KeyAdapter() {
             @Override
@@ -99,13 +108,23 @@ public final class ViewModsDialog extends JDialog {
         this.setLocationRelativeTo(App.launcher.getParent());
     }
 
-    private void reload() {
+    /**
+     * One card per row, on the 4dp grid rather than the two unscaled pixels the cards used to be
+     * packed with - which HiDPI displays never saw at all.
+     */
+    private static GridBagConstraints cardConstraints() {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.BOTH;
-        gbc.insets.set(2, 2, 2, 2);
+        gbc.insets = MD3Spacing.insets(MD3Spacing.XS, MD3Spacing.S, 0, MD3Spacing.S);
+
+        return gbc;
+    }
+
+    private void reload() {
+        GridBagConstraints gbc = cardConstraints();
 
         this.contentPanel.removeAll();
         for (ModCard card : this.cards) {

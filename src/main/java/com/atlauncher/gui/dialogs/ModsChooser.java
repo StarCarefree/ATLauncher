@@ -33,7 +33,6 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -41,6 +40,7 @@ import com.atlauncher.App;
 import com.atlauncher.data.json.Mod;
 import com.atlauncher.gui.components.ModsJCheckBox;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3ListContainer;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Analytics;
@@ -318,12 +318,15 @@ public class ModsChooser extends JDialog {
      * A list of mods, stacked. The rows used to be positioned by hand at a hardcoded 20 pixels
      * apart on a panel with no layout manager at all, which pinned every checkbox to a height it
      * has not been since they became Material ones - and was never scaled for the display either.
+     *
+     * <p>
+     * Transparent: the {@link MD3ListContainer} the column puts around the list draws the surface,
+     * so the list itself has nothing to paint but its rows.
      */
     private static JPanel modList() {
         JPanel list = new JPanel();
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
-        list.setOpaque(true);
-        list.setBackground(MD3Color.surfaceContainerLow());
+        list.setOpaque(false);
         list.setBorder(MD3Spacing.border(MD3Spacing.S, 0));
 
         return list;
@@ -339,15 +342,10 @@ public class ModsChooser extends JDialog {
         label.setForeground(MD3Color.primary());
         label.setBorder(MD3Spacing.border(0, 0, MD3Spacing.S, 0));
 
-        JScrollPane scroller = new JScrollPane(mods, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroller.getVerticalScrollBar().setUnitIncrement(MD3Spacing.scale(MD3Spacing.XL));
-        scroller.getViewport().setBackground(MD3Color.surfaceContainerLow());
-
         JPanel column = new JPanel(new BorderLayout());
         column.setOpaque(false);
         column.add(label, BorderLayout.NORTH);
-        column.add(scroller, BorderLayout.CENTER);
+        column.add(MD3ListContainer.wrapping(mods), BorderLayout.CENTER);
 
         return column;
     }

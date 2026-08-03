@@ -31,7 +31,11 @@ import javax.swing.JPanel;
 
 import com.atlauncher.App;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 
 import com.formdev.flatlaf.util.UIScale;
 
@@ -49,12 +53,23 @@ public class FileTypeDialog extends JDialog {
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(false);
 
+        getContentPane().setBackground(MD3Color.surface());
+
         // Top Panel Stuff
-        JPanel top = new JPanel();
-        top.add(new JLabel(labelName));
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        top.setBorder(MD3Spacing.border(MD3Spacing.XL, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+
+        JLabel prompt = new JLabel(labelName);
+        prompt.setFont(MD3Type.font(MD3Type.TITLE_MEDIUM, labelName));
+        prompt.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_MEDIUM);
+        prompt.setForeground(MD3Color.onSurface());
+        top.add(prompt, BorderLayout.CENTER);
 
         // Middle Panel Stuff
         JPanel middle = new JPanel();
+        middle.setOpaque(false);
+        middle.setBorder(MD3Spacing.border(MD3Spacing.L));
         middle.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -62,6 +77,9 @@ public class FileTypeDialog extends JDialog {
         gbc.gridy = 0;
         gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
         JLabel selectorLabel = new JLabel(selectorText + ": ");
+        selectorLabel.setFont(MD3Type.font(MD3Type.BODY_MEDIUM, selectorText));
+        selectorLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
+        selectorLabel.setForeground(MD3Color.onSurface());
         middle.add(selectorLabel, gbc);
 
         gbc.gridx++;
@@ -73,11 +91,18 @@ public class FileTypeDialog extends JDialog {
         middle.add(selector, gbc);
 
         // Bottom Panel Stuff
-        JPanel bottom = new JPanel();
-        bottom.setLayout(new FlowLayout());
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        buttons.setOpaque(false);
+        buttons.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
+
         MD3Button bottomButton = MD3Button.filled(bottomText);
         bottomButton.addActionListener(e -> close());
-        bottom.add(bottomButton);
+        buttons.add(bottomButton);
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bottom.add(buttons, BorderLayout.CENTER);
 
         add(top, BorderLayout.NORTH);
         add(middle, BorderLayout.CENTER);

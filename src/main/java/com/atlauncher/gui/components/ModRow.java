@@ -20,6 +20,9 @@ package com.atlauncher.gui.components;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Shape;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -32,7 +35,10 @@ import com.atlauncher.data.Type;
 import com.atlauncher.gui.md3.container.MD3Badge;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.paint.MD3Paint;
+import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
 
@@ -61,6 +67,7 @@ public final class ModRow extends JPanel {
     private static final int GLYPH_SIZE = 18;
 
     private final ModsJCheckBox checkBox;
+    private final MD3StateLayer stateLayer;
 
     public ModRow(ModsJCheckBox checkBox, boolean hasUpdate) {
         super(new BorderLayout(UIScale.scale(MD3Spacing.S), 0));
@@ -70,6 +77,10 @@ public final class ModRow extends JPanel {
         setOpaque(false);
         setBorder(MD3Spacing.border(0, MD3Spacing.XS, 0, MD3Spacing.S));
 
+        // the row answers the pointer the way a Material list item does - the whole line warms,
+        // not just the tick - without saying anything about what clicking it would do
+        stateLayer = MD3StateLayer.install(this);
+
         add(buildGlyph(checkBox.getDisableableMod()), BorderLayout.WEST);
         add(checkBox, BorderLayout.CENTER);
         add(buildTrailing(checkBox.getDisableableMod(), hasUpdate), BorderLayout.EAST);
@@ -77,6 +88,21 @@ public final class ModRow extends JPanel {
 
     public ModsJCheckBox getCheckBox() {
         return checkBox;
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        Graphics2D g2 = MD3Paint.setup(g);
+
+        try {
+            Shape shape = MD3Paint.shapeOf(this, MD3Shape.SMALL);
+
+            stateLayer.paint(g2, shape, MD3Color.onSurface());
+        } finally {
+            g2.dispose();
+        }
+
+        super.paintComponent(g);
     }
 
     /**

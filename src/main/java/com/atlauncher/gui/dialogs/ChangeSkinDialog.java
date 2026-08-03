@@ -45,11 +45,15 @@ import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.MicrosoftAccount;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Analytics;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.MojangAPIUtils;
 import com.atlauncher.utils.Utils;
@@ -93,12 +97,24 @@ public class ChangeSkinDialog extends JDialog {
     }
 
     private void setupComponents() {
+        getContentPane().setBackground(MD3Color.surface());
+
         // Top Panel Stuff
-        JPanel top = new JPanel();
-        top.add(new JLabel(GetText.tr("Changing Skin")));
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        top.setBorder(MD3Spacing.border(MD3Spacing.XL, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+
+        String headlineText = GetText.tr("Changing Skin");
+        JLabel headline = new JLabel(headlineText);
+        headline.setFont(MD3Type.font(MD3Type.TITLE_LARGE, headlineText));
+        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
+        headline.setForeground(MD3Color.onSurface());
+        top.add(headline, BorderLayout.CENTER);
 
         // Middle Panel Stuff
         JPanel middle = new JPanel();
+        middle.setOpaque(false);
+        middle.setBorder(MD3Spacing.border(MD3Spacing.L));
         middle.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -108,12 +124,16 @@ public class ChangeSkinDialog extends JDialog {
         gbc.insets = UIConstants.LABEL_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
         JLabel skinFilePath = new JLabel(GetText.tr("Skin File") + ": ");
+        skinFilePath.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
+        skinFilePath.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
+        skinFilePath.setForeground(MD3Color.onSurface());
         middle.add(skinFilePath, gbc);
 
         gbc.gridx++;
         gbc.insets = UIConstants.LABEL_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
         JPanel skinPathPanel = new JPanel();
+        skinPathPanel.setOpaque(false);
         skinPathPanel.setLayout(new BoxLayout(skinPathPanel, BoxLayout.X_AXIS));
 
         skinPath = new MD3TextField(16);
@@ -174,6 +194,9 @@ public class ChangeSkinDialog extends JDialog {
         gbc.insets = UIConstants.LABEL_INSETS;
         gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
         JLabel skinTypeLabel = new JLabel(GetText.tr("Skin Type") + ": ");
+        skinTypeLabel.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
+        skinTypeLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
+        skinTypeLabel.setForeground(MD3Color.onSurface());
         middle.add(skinTypeLabel, gbc);
 
         gbc.gridx++;
@@ -185,8 +208,9 @@ public class ChangeSkinDialog extends JDialog {
         middle.add(skinType, gbc);
 
         // Bottom Panel Stuff
-        JPanel bottom = new JPanel();
-        bottom.setLayout(new FlowLayout());
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        buttons.setOpaque(false);
+        buttons.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
 
         uploadButton = MD3Button.filled(GetText.tr("Upload"));
         uploadButton.addActionListener(e -> {
@@ -216,11 +240,18 @@ public class ChangeSkinDialog extends JDialog {
             close();
         });
         uploadButton.setEnabled(false);
-        bottom.add(uploadButton);
 
         MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
         cancelButton.addActionListener(e -> close());
-        bottom.add(cancelButton);
+
+        // confirm goes rightmost: it is the end of the dialog's story, not the beginning
+        buttons.add(cancelButton);
+        buttons.add(uploadButton);
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bottom.add(buttons, BorderLayout.CENTER);
 
         add(top, BorderLayout.NORTH);
         add(middle, BorderLayout.CENTER);

@@ -26,3 +26,6 @@ This changelog only contains the changes that are unreleased. For changes for in
 
 - The mod fingerprinting code existed in four copies; it is now one
 - The mod compatibility rules existed in three copies that had drifted apart; they are now one
+- The mod lists in Edit Mods and the mods chooser sit in rounded Material containers, and rows answer the pointer
+- The last old-style dialogs - export, file and directory picking, skin changing, viewing a pack's mods - use Material surfaces, spacing and button bars
+- Cloning an instance, editing an instance or server description, and picking a loader version no longer use system dialogs

@@ -39,11 +39,8 @@ import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
-import javax.swing.JLayer;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.Timer;
-import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -56,13 +53,13 @@ import com.atlauncher.data.Instance;
 import com.atlauncher.data.ModManagement;
 import com.atlauncher.data.ModUpdate;
 import com.atlauncher.data.Server;
-import com.atlauncher.gui.WheelScrollLayerUI;
 import com.atlauncher.gui.components.ModRow;
 import com.atlauncher.gui.components.ModsJCheckBox;
 import com.atlauncher.gui.handlers.ModsJCheckBoxTransferHandler;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.container.MD3ListContainer;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3Checkbox;
 import com.atlauncher.gui.md3.input.MD3FilterChip;
@@ -172,12 +169,13 @@ public class EditModsDialog extends JDialog {
         // what that was drawing, so that is what this is
         disabledModsPanel = new JPanel();
         disabledModsPanel.setLayout(new BoxLayout(disabledModsPanel, BoxLayout.Y_AXIS));
-        disabledModsPanel.setBackground(UIManager.getColor("Mods.modSelectionColor"));
+        // transparent: the container around the list draws the surface now
+        disabledModsPanel.setOpaque(false);
         disabledModsPanel.setTransferHandler(new ModsJCheckBoxTransferHandler(this, true));
 
         enabledModsPanel = new JPanel();
         enabledModsPanel.setLayout(new BoxLayout(enabledModsPanel, BoxLayout.Y_AXIS));
-        enabledModsPanel.setBackground(UIManager.getColor("Mods.modSelectionColor"));
+        enabledModsPanel.setOpaque(false);
         enabledModsPanel.setTransferHandler(new ModsJCheckBoxTransferHandler(this, true));
 
         selectAllEnabledModsCheckbox = new MD3Checkbox(GetText.tr("Select All"));
@@ -529,6 +527,11 @@ public class EditModsDialog extends JDialog {
      * <p>
      * The select-all box used to be an unlabelled tick beside the heading, which said nothing about
      * what ticking it would do.
+     *
+     * <p>
+     * The wheel-forwarding {@code JLayer} the scroller was once wrapped in is gone: it existed to
+     * pass wheel events from a nested scroll pane to an outer one, and a list of {@code ModRow}s
+     * has no nested scroll pane to forward from.
      */
     private JComponent buildColumn(String title, MD3Checkbox selectAll, JPanel mods) {
         JLabel label = new JLabel(title);
@@ -542,14 +545,10 @@ public class EditModsDialog extends JDialog {
         header.add(label, BorderLayout.WEST);
         header.add(selectAll, BorderLayout.EAST);
 
-        JScrollPane scroller = new JScrollPane(mods, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroller.getVerticalScrollBar().setUnitIncrement(16);
-
         JPanel column = new JPanel(new BorderLayout());
         column.setOpaque(false);
         column.add(header, BorderLayout.NORTH);
-        column.add(new JLayer<>(scroller, new WheelScrollLayerUI()), BorderLayout.CENTER);
+        column.add(MD3ListContainer.wrapping(mods), BorderLayout.CENTER);
 
         return column;
     }

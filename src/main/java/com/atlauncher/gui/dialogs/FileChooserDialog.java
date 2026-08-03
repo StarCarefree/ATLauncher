@@ -47,8 +47,12 @@ import com.atlauncher.FileSystem;
 import com.atlauncher.constants.UIConstants;
 import com.atlauncher.dbus.DBusUtils;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3TextField;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 
@@ -113,12 +117,23 @@ public class FileChooserDialog extends JDialog {
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         setResizable(false);
 
+        getContentPane().setBackground(MD3Color.surface());
+
         // Top Panel Stuff
-        JPanel top = new JPanel();
-        top.add(new JLabel(title));
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        top.setBorder(MD3Spacing.border(MD3Spacing.XL, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+
+        JLabel headline = new JLabel(title);
+        headline.setFont(MD3Type.font(MD3Type.TITLE_LARGE, title));
+        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
+        headline.setForeground(MD3Color.onSurface());
+        top.add(headline, BorderLayout.CENTER);
 
         // Middle Panel Stuff
         JPanel middle = new JPanel();
+        middle.setOpaque(false);
+        middle.setBorder(MD3Spacing.border(MD3Spacing.L));
         middle.setLayout(new GridBagLayout());
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -127,6 +142,9 @@ public class FileChooserDialog extends JDialog {
         gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
         gbc.insets = UIConstants.LABEL_INSETS;
         JLabel nameLabel = new JLabel(labelName + ": ");
+        nameLabel.setFont(MD3Type.font(MD3Type.BODY_MEDIUM, labelName));
+        nameLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
+        nameLabel.setForeground(MD3Color.onSurface());
         middle.add(nameLabel, gbc);
 
         gbc.gridx++;
@@ -134,6 +152,7 @@ public class FileChooserDialog extends JDialog {
         gbc.insets = UIConstants.FIELD_INSETS;
 
         JPanel filePathPanel = new JPanel();
+        filePathPanel.setOpaque(false);
         filePathPanel.setLayout(new BoxLayout(filePathPanel, BoxLayout.X_AXIS));
 
         textField = new MD3TextField(16);
@@ -170,6 +189,9 @@ public class FileChooserDialog extends JDialog {
             gbc.insets = UIConstants.LABEL_INSETS;
 
             JLabel selectorLabel = new JLabel(selectorText + ": ");
+            selectorLabel.setFont(MD3Type.font(MD3Type.BODY_MEDIUM, selectorText));
+            selectorLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
+            selectorLabel.setForeground(MD3Color.onSurface());
             middle.add(selectorLabel, gbc);
 
             gbc.gridx++;
@@ -185,11 +207,18 @@ public class FileChooserDialog extends JDialog {
         }
 
         // Bottom Panel Stuff
-        JPanel bottom = new JPanel();
-        bottom.setLayout(new FlowLayout());
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        buttons.setOpaque(false);
+        buttons.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
+
         MD3Button bottomButton = MD3Button.filled(bottomText);
         bottomButton.addActionListener(e -> close());
-        bottom.add(bottomButton);
+        buttons.add(bottomButton);
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bottom.add(buttons, BorderLayout.CENTER);
 
         add(top, BorderLayout.NORTH);
         add(middle, BorderLayout.CENTER);

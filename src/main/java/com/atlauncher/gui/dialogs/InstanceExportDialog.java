@@ -31,13 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -48,12 +46,16 @@ import com.atlauncher.data.InstanceExportFormat;
 import com.atlauncher.data.MicrosoftAccount;
 import com.atlauncher.gui.components.JLabelWithHover;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.container.MD3ListContainer;
 import com.atlauncher.gui.md3.input.MD3Checkbox;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.NotificationManager;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Pair;
@@ -96,6 +98,10 @@ public class InstanceExportDialog extends JDialog {
         setResizable(true);
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
+        getContentPane().setBackground(MD3Color.surface());
+
+        topPanel.setOpaque(false);
+        topPanel.setBorder(MD3Spacing.border(MD3Spacing.XL, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
         topPanel.setLayout(new GridBagLayout());
 
         // Name
@@ -195,6 +201,7 @@ public class InstanceExportDialog extends JDialog {
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
 
         JPanel saveToPanel = new JPanel();
+        saveToPanel.setOpaque(false);
         saveToPanel.setLayout(new BoxLayout(saveToPanel, BoxLayout.X_AXIS));
 
         final MD3TextField saveTo = new MD3TextField(25);
@@ -249,8 +256,8 @@ public class InstanceExportDialog extends JDialog {
         gbc.anchor = GridBagConstraints.BASELINE_LEADING;
 
         JPanel overridesPanel = new JPanel();
+        overridesPanel.setOpaque(false);
         overridesPanel.setLayout(new BoxLayout(overridesPanel, BoxLayout.Y_AXIS));
-        overridesPanel.setBorder(BorderFactory.createEmptyBorder(0, -3, 0, 0));
 
         // get all files ignoring ATLauncher specific things as well as naughtys
         File[] files = Optional.ofNullable(instance.getRoot().toFile()
@@ -288,18 +295,15 @@ public class InstanceExportDialog extends JDialog {
             overridesPanel.add(checkBox);
         }
 
-        JScrollPane overridesScrollPanel = new JScrollPane(overridesPanel, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-            JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED) {
-            {
-                this.getVerticalScrollBar().setUnitIncrement(8);
-            }
-        };
-        overridesScrollPanel.setPreferredSize(UIScale.scale(new Dimension(350, 200)));
+        MD3ListContainer overridesContainer = MD3ListContainer.wrapping(overridesPanel);
+        overridesContainer.setPreferredSize(UIScale.scale(new Dimension(350, 200)));
 
-        topPanel.add(overridesScrollPanel, gbc);
+        topPanel.add(overridesContainer, gbc);
 
         // bottom panel
-        bottomPanel.setLayout(new FlowLayout());
+        bottomPanel.setOpaque(false);
+        bottomPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        bottomPanel.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
 
         MD3Button exportButton = MD3Button.filled(GetText.tr("Export"));
         exportButton.addActionListener(arg0 -> {
@@ -348,14 +352,20 @@ public class InstanceExportDialog extends JDialog {
 
             dialog.start();
         });
-        bottomPanel.add(exportButton);
-
         MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
         cancelButton.addActionListener(arg0 -> close());
+
+        // confirm goes rightmost: cancel first, export last
         bottomPanel.add(cancelButton);
+        bottomPanel.add(exportButton);
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bottom.add(bottomPanel, BorderLayout.CENTER);
 
         add(topPanel, BorderLayout.CENTER);
-        add(bottomPanel, BorderLayout.SOUTH);
+        add(bottom, BorderLayout.SOUTH);
     }
 
     private void close() {

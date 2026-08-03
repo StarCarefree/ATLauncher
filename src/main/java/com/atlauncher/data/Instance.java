@@ -66,9 +66,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -137,6 +135,7 @@ import com.atlauncher.graphql.type.PackLogAction;
 import com.atlauncher.gui.dialogs.InstanceInstallerDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.dialogs.RenameInstanceDialog;
+import com.atlauncher.gui.md3.container.MD3ListContainer;
 import com.atlauncher.gui.md3.feedback.MD3LinearProgress;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.managers.AccountManager;
@@ -2323,9 +2322,8 @@ public class Instance extends MinecraftVersion implements ModManagement {
     }
 
     public void startClone() {
-        String clonedName = JOptionPane.showInputDialog(App.launcher.getParent(),
-            GetText.tr("Enter a new name for this cloned instance."),
-            GetText.tr("Cloning Instance"), JOptionPane.INFORMATION_MESSAGE);
+        String clonedName = DialogManager.okDialog().setTitle(GetText.tr("Cloning Instance"))
+            .setContent(GetText.tr("Enter a new name for this cloned instance.")).showInput();
 
         if (clonedName != null && !clonedName.isEmpty()
             && InstanceManager.getInstanceByName(clonedName) == null
@@ -2384,10 +2382,11 @@ public class Instance extends MinecraftVersion implements ModManagement {
         textArea.setRows(10);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
-        textArea.setSize(300, 150);
+        // transparent: the container around it draws the field's surface
+        textArea.setOpaque(false);
 
-        int ret = JOptionPane.showConfirmDialog(App.launcher.getParent(), new JScrollPane(textArea),
-            GetText.tr("Changing Description"), JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+        int ret = DialogManager.okCancelDialog().setTitle(GetText.tr("Changing Description"))
+            .setContent(MD3ListContainer.wrapping(textArea)).setType(DialogManager.INFO).show();
 
         if (ret == 0) {
             Analytics.trackEvent(AnalyticsEvent.forInstanceEvent("instance_description_change", this));
@@ -2592,6 +2591,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
         loaderVersionsDropDown.setPreferredSize(new Dimension(loaderVersionLength, 23));
 
         JPanel panel = new JPanel();
+        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
         Box box = Box.createHorizontalBox();
@@ -2604,12 +2604,12 @@ public class Instance extends MinecraftVersion implements ModManagement {
         panel.add(loaderVersionsDropDown);
         panel.add(Box.createVerticalStrut(20));
 
-        int ret = JOptionPane.showConfirmDialog(App.launcher.getParent(), panel,
+        int ret = DialogManager.okCancelDialog()
             // #. {0} is the loader (Forge/Fabric/Quilt)
-            launcher.loaderVersion == null ? GetText.tr("Installing {0}", loaderType)
+            .setTitle(launcher.loaderVersion == null ? GetText.tr("Installing {0}", loaderType)
                 // #. {0} is the loader (Forge/Fabric/Quilt)
-                : GetText.tr("Changing {0} Version", loaderType),
-            JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+                : GetText.tr("Changing {0} Version", loaderType))
+            .setContent(panel).setType(DialogManager.INFO).show();
 
         if (ret != 0) {
             return null;

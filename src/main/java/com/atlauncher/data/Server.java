@@ -48,8 +48,6 @@ import javax.annotation.Nullable;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
-import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -83,6 +81,7 @@ import com.atlauncher.data.modrinth.pack.ModrinthModpackManifest;
 import com.atlauncher.exceptions.InvalidMinecraftVersion;
 import com.atlauncher.exceptions.InvalidPack;
 import com.atlauncher.gui.dialogs.ProgressDialog;
+import com.atlauncher.gui.md3.container.MD3ListContainer;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.managers.MinecraftManager;
@@ -551,10 +550,11 @@ public class Server implements ModManagement {
         textArea.setRows(10);
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
-        textArea.setSize(300, 150);
+        // transparent: the container around it draws the field's surface
+        textArea.setOpaque(false);
 
-        int ret = JOptionPane.showConfirmDialog(App.launcher.getParent(), new JScrollPane(textArea),
-            GetText.tr("Changing Description"), JOptionPane.OK_CANCEL_OPTION, JOptionPane.INFORMATION_MESSAGE);
+        int ret = DialogManager.okCancelDialog().setTitle(GetText.tr("Changing Description"))
+            .setContent(MD3ListContainer.wrapping(textArea)).setType(DialogManager.INFO).show();
 
         if (ret == 0) {
             Analytics.trackEvent(AnalyticsEvent.forServerEvent("server_description_change", this));
