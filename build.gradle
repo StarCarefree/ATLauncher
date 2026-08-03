@@ -400,6 +400,73 @@ task copyArtifacts(type: Copy) {
     into "${projectDir}/dist"
 }
 
+/**
+ * Inno Setup's command line compiler, or null when it is not installed.
+ *
+ * Checked rather than assumed because it installs to the user's profile as readily as to Program
+ * Files, and because this is the one build step a Linux or macOS checkout cannot run at all.
+ */
+def innoSetupCompiler() {
+    if (project.hasProperty('innoSetupCompiler')) {
+        // checked like the rest: a typo in the override should say what is wrong, not fail later
+        // with "Cannot run program"
+        def override = file(project.property('innoSetupCompiler'))
+
+        return override.isFile() ? override : null
+    }
+
+    return [System.getenv('LOCALAPPDATA'), System.getenv('ProgramFiles(x86)'), System.getenv('ProgramFiles')]
+        .findAll { it != null }
+        .collectMany { root -> ["${root}/Programs/Inno Setup 6/ISCC.exe", "${root}/Inno Setup 6/ISCC.exe"] }
+        .collect { file(it) }
+        .find { it.isFile() }
+}
+
+/**
+ * Builds a Windows installer around the exe this build just produced.
+ *
+ * Not wired into `build`, and not a replacement for `packaging/windows-setup/installer.iss`. That
+ * one is a web installer - it downloads the released launcher from the CDN at install time - which
+ * is right for shipping and useless for trying out a local change, since the launcher it installs
+ * is not the one that was just built. This compiles the local exe into the installer instead.
+ *
+ * The JRE is still fetched at install time, exactly as the official installer does it: it comes
+ * from Adoptium and is the same whichever launcher build runs on it.
+ */
+tasks.register('windowsSetup', Exec) {
+    group = 'distribution'
+    description = 'Builds a Windows installer carrying the locally built launcher (needs Inno Setup)'
+
+    dependsOn copyArtifacts
+
+    def packaging = file("${projectDir}/packaging/windows-setup")
+    def script = file("${packaging}/installer-local.iss")
+
+    workingDir packaging
+
+    inputs.file script
+    inputs.file file("${projectDir}/dist/${project.name}-${project.version}.exe")
+    outputs.file file("${packaging}/Output/${project.name}-setup-${project.version}.exe")
+
+    doFirst {
+        def compiler = innoSetupCompiler()
+
+        if (compiler == null) {
+            throw new GradleException("Inno Setup was not found.\n\n"
+                + "  Install it:      winget install JRSoftware.InnoSetup\n"
+                + "  Or point at it:  ./gradlew windowsSetup -PinnoSetupCompiler=<path to ISCC.exe>\n\n"
+                + "Its compiler only runs on Windows. Elsewhere, packaging/windows-setup/build.sh\n"
+                + "builds the official web installer through Docker - note that the launcher that\n"
+                + "installer downloads is the released one, not this build.")
+        }
+
+        executable compiler
+        // the version reaches the script this way rather than being written into it, so it cannot
+        // drift from src/main/resources/version
+        args "/DMyAppVersion=${project.version}", script.name
+    }
+}
+
 task downloadNewerUniversalJavaApplicationStub(type: Download) {
     description 'Downloads newer universalJavaApplicationStub'
     src 'https://raw.githubusercontent.com/tofi86/universalJavaApplicationStub/404f5c1b008d6296065de7a93406b387c9f3dce1/src/universalJavaApplicationStub'

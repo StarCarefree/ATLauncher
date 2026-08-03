@@ -1,0 +1,217 @@
+; Windows installer for a locally built launcher.
+;
+; installer.iss - the one beside this - is a web installer: it downloads ATLauncher.exe from the
+; project's CDN, so an installer built from it carries the official launcher no matter what is in
+; the working tree. This one packages the exe that ./gradlew build just produced, which is the point
+; of building it yourself.
+;
+; The JRE is still downloaded, exactly as the official installer does it: it comes from Adoptium and
+; has nothing to do with which launcher build it runs, and bundling ~45MB of it into every setup
+; would be waste.
+;
+; Build with:
+;   "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" installer-local.iss
+; or, to package a version other than the default:
+;   ISCC.exe /DMyAppVersion=3.4.41.2 installer-local.iss
+
+#define MyAppName "ATLauncher"
+#define MyAppURL "https://atlauncher.com"
+
+; Overridable with ISCC /D. The default matches src/main/resources/version with the stream suffix
+; dropped - Inno needs a plain four-part number for VersionInfoVersion.
+#ifndef MyAppVersion
+  #define MyAppVersion "3.4.41.2"
+#endif
+
+; What gradle's copyArtifacts task leaves in dist/
+#ifndef LauncherExe
+  #define LauncherExe "..\..\dist\" + MyAppName + "-" + MyAppVersion + ".exe"
+#endif
+
+[Setup]
+; Same AppId as the official installer on purpose: this is the same application, built from source,
+; and it should upgrade an existing install rather than sit beside it. Change it if you want the two
+; to coexist.
+AppId={{2F5FDA11-45A5-4CC3-8E51-5E11E2481697}
+AppName={#MyAppName}
+AppVerName={#MyAppName}
+AppPublisher={#MyAppName}
+AppVersion={#MyAppVersion}
+VersionInfoVersion={#MyAppVersion}
+AppPublisherURL={#MyAppURL}
+AppSupportURL={#MyAppURL}
+AppUpdatesURL={#MyAppURL}
+AlwaysShowComponentsList=no
+DefaultDirName={userappdata}\{#MyAppName}
+DisableDirPage=auto
+DisableWelcomePage=no
+DefaultGroupName={#MyAppName}
+DisableProgramGroupPage=yes
+LicenseFile=..\..\LICENSE
+PrivilegesRequired=lowest
+SetupIconFile=..\..\src\main\resources\assets\image\icon.ico
+WizardImageFile=wizardimage.bmp
+Compression=lzma
+SolidCompression=yes
+OutputBaseFilename={#MyAppName}-setup-{#MyAppVersion}
+UninstallDisplayIcon={app}\{#MyAppName}.exe
+UninstallDisplayName={#MyAppName} Setup
+WizardStyle=modern
+ChangesAssociations=yes
+
+[Run]
+Filename: {tmp}\7za.exe; Parameters: "x ""{tmp}\jre.zip"" -o""{app}\"" * -r -aoa"; Flags: runhidden runascurrentuser
+Filename: {app}\{#MyAppName}.exe; Description: {cm:LaunchProgram,{#MyAppName}}; Flags: nowait postinstall skipifsilent
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
+
+[Files]
+Source: "7za.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+; the local build, compiled into the setup - this is the whole difference from installer.iss, where
+; the same line carries `external` and is fetched from the CDN at install time
+Source: "{#LauncherExe}"; DestDir: "{app}"; DestName: "{#MyAppName}.exe"; Flags: ignoreversion
+Source: "{tmp}\jre.zip"; DestDir: "{tmp}"; Flags: external deleteafterinstall skipifsourcedoesntexist
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Icons]
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppName}.exe"
+Name: "{userdesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppName}.exe"; Tasks: desktopicon
+Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
+
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\jre"
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{app}\jre"
+
+[Code]
+#include "lib/JsonHelpers.pas"
+const
+CONFIGURL = 'https://download.nodecdn.net/containers/atl/launcher/json/config.json';
+FALLBACKx86 = 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9.1/OpenJDK17U-jre_x86-32_windows_hotspot_17.0.9_9.zip';
+FALLBACKx64 = 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.9%2B9.1/OpenJDK17U-jre_x64_windows_hotspot_17.0.9_9.zip';
+
+var
+  DownloadPage: TDownloadWizardPage;
+  FallbackUrl, FallbackHash, Url, Hash, Folder: WideString;
+
+procedure GetJreInfo;
+  var
+    WinHttpReq: Variant;
+    Json, OS: string;
+    JsonParser: TJsonParser;
+    JsonRoot, BundledJreObject, OSObject: TJsonObject;
+begin
+  if IsWin64 then
+    begin
+      OS := 'windowsx64'
+      FallbackUrl := FALLBACKx64
+      FallbackHash := '6c491d6f8c28c6f451f08110a30348696a04b009f8c58592191046e0fab1477b'
+    end
+  else
+    begin
+      OS := 'windowsx86'
+      FallbackUrl := FALLBACKx86
+      FallbackHash := '2f9fe8b587400e89cd3ef33b71e0517ab99a12a5ee623382cbe9f5078bf2b435'
+    end;
+  Try
+    WinHttpReq := CreateOleObject('WinHttp.WinHttpRequest.5.1');
+    WinHttpReq.Open('GET', CONFIGURL, False);
+    WinHttpReq.Send('');
+    if WinHttpReq.Status = 200 then
+     begin
+        Json := WinHttpReq.ResponseText
+        if ParseJsonAndLogErrors(JsonParser, Json) then
+          begin
+            JsonRoot := GetJsonRoot(JsonParser.Output);
+            if not FindJsonObject(JsonParser.Output, JsonRoot, 'bundledJre', BundledJreObject) or
+            not FindJsonObject(JsonParser.Output, BundledJreObject, OS, OSObject) or
+            not FindJsonString(JsonParser.Output, OSObject, 'url', Url) or
+            not FindJsonString(JsonParser.Output, OSObject, 'hash', Hash) or
+            not FindJsonString(JsonParser.Output, OSObject, 'folder',Folder) then
+            begin
+              RaiseException('Failed to read from ' + CONFIGURL + ', falling back to defaults')
+            end;
+        end;
+      ClearJsonParser(JsonParser)
+      end
+      else
+        begin
+          RaiseException('Failed to read from ' + CONFIGURL + ', falling back to defaults')
+      end;
+  Except
+    MsgBox(GetExceptionMessage,mbError,MB_OK)
+    Url := FallbackUrl
+    Hash := FallbackHash
+    Folder := 'jdk-17.0.9+9-jre'
+ end;
+end;
+
+procedure InitializeWizard;
+begin
+  DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing), SetupMessage(msgPreparingDesc), nil);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if (CurStep = ssPostInstall) and (Folder <> '') then begin
+    // only when the JRE actually arrived: the download is optional, and the official installer
+    // reports "failed to rename jre directory" and closes the wizard when it was skipped
+    if DirExists(ExpandConstant('{app}') + '\' + Folder) then begin
+      if not RenameFile(ExpandConstant('{app}') + '\' + Folder, ExpandConstant('{app}/jre')) then begin
+        MsgBox('Failed to rename jre directory. Please try again', mbError, MB_OK);
+        WizardForm.Close;
+      end
+    end
+  end
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+var
+  Retry: Boolean;
+  Answer: Integer;
+begin
+  if CurPageID = wpReady then begin
+    try
+      // No launcher download - the exe is compiled into this installer. Only the JRE is fetched,
+      // and it stays optional: without it the launcher falls back to JAVA_HOME and then PATH, which
+      // is what launch4j's bundledJrePath says.
+      repeat
+        DownloadPage.Clear;
+        GetJreInfo;
+        DownloadPage.Add(Url, 'jre.zip', Hash);
+        DownloadPage.Show;
+        try
+          DownloadPage.Download;
+          Result := True;
+          Retry := False;
+        except
+          Answer := SuppressibleMsgBox(AddPeriod(GetExceptionMessage), mbCriticalError, MB_ABORTRETRYIGNORE, IDIGNORE);
+          Retry := (Answer = IDRETRY);
+          Result := (Answer <> IDABORT);
+        end;
+      until not Retry;
+    finally
+      DownloadPage.Hide;
+    end;
+  end else
+    Result := True;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usPostUninstall then
+  begin
+    if MsgBox('Do you want to delete all the launchers data (instances, downloads, saves, etc)?', mbConfirmation, MB_YESNO) = IDYES then begin
+        if DelTree(ExpandConstant('{app}/'), True, True, True) then
+        begin
+        end else
+        begin
+            MsgBox('Error deleting user data. Please delete it manually.', mbError, MB_OK);
+        end;
+    end;
+  end;
+end;
