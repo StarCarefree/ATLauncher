@@ -1113,3 +1113,1378 @@ msgstr "正在安装依赖"
 #. {0} is the mod being installed, {1} is which one it is, {2} is how many there are
 msgid "Installing {0} ({1} of {2})"
 msgstr "正在安装 {0}（第 {1} 个，共 {2} 个）"
+
+#. {0} is the version of the pack currently installed
+msgid " (Current Version: {0})"
+msgstr " （当前版本：{0}）"
+
+msgid "A pack with that id/slug was not found. Please check the id/slug/url and try again."
+msgstr "未找到该 id/slug 对应的整合包。请检查 id/slug/url 后重试。"
+
+msgid "A server already exists with that name.<br/><br/>Rename it and try again."
+msgstr "已存在同名服务器。<br/><br/>请改名后重试。"
+
+msgid "ATLauncher cannot write files"
+msgstr "ATLauncher 无法写入文件"
+
+msgid "ATLauncher installed within OneDrive"
+msgstr "ATLauncher 安装在 OneDrive 中"
+
+msgid "ATLauncher installed within Program Files"
+msgstr "ATLauncher 安装在 Program Files 中"
+
+msgid "About Your Crash"
+msgstr "关于本次崩溃"
+
+msgid "Account Added"
+msgstr "账户已添加"
+
+msgid "Account Override"
+msgstr "账户覆盖"
+
+msgid "Account added successfully. Switch to it now?"
+msgstr "账户添加成功。现在切换到该账户吗？"
+
+msgid "Account doesn't have an Xbox account.<br/><br/>Please create one by logging into minecraft.net before trying to login again."
+msgstr "该账户没有 Xbox 账户。<br/><br/>请先登录 minecraft.net 创建一个，然后再尝试登录。"
+
+msgid "Account is from a country where Xbox Live is banned/not available."
+msgstr "该账户来自 Xbox Live 被封禁或不可用的国家或地区。"
+
+msgid "Add As Mod?"
+msgstr "作为模组添加？"
+
+msgid "Add Mod"
+msgstr "添加模组"
+
+msgid "Add Mods"
+msgstr "添加模组"
+
+msgid "Add Plugins"
+msgstr "添加插件"
+
+msgid "Adding Mods"
+msgstr "正在添加模组"
+
+#. {0} is the instance or server the mods are being added to
+msgid "Adding Mods For {0}"
+msgstr "正在为 {0} 添加模组"
+
+msgid "Adding as Inside Minecraft.jar is usually not what you want and will likely cause issues.<br/><br/>If you're adding mods this is usually not correct. Do you want to add this as a mod instead?"
+msgstr "添加到 Minecraft.jar 内部通常不是你想要的，并且很可能导致问题。<br/><br/>如果你是在添加模组，这通常不正确。要改为作为模组添加吗？"
+
+#. {0} is the loader type (Forge/Fabric/Quilt), {1} is its version
+msgid "Adding {0} {1}"
+msgstr "正在添加 {0} {1}"
+
+msgid "An error occured when trying to import an instance.<br/><br/>Check the console for more information."
+msgstr "导入实例时出错。<br/><br/>请查看控制台了解更多信息。"
+
+msgid "An error occurred creating your profile.<br/><br/>Please check the console and try again."
+msgstr "创建档案时出错。<br/><br/>请查看控制台后重试。"
+
+msgid "An error occurred renaming the instance.<br/><br/>Please check the console and try again."
+msgstr "重命名实例时出错。<br/><br/>请查看控制台后重试。"
+
+msgid "An error occurred while cloning the instance.<br/><br/>Please check the console and try again."
+msgstr "克隆实例时出错。<br/><br/>请查看控制台后重试。"
+
+msgid "An instance already exists with that name.<br/><br/>Rename it and try again."
+msgstr "已存在同名实例。<br/><br/>请改名后重试。"
+
+msgid "An update is available for this instance.<br/><br/>Do you want to update now?"
+msgstr "该实例有可用更新。<br/><br/>现在更新吗？"
+
+msgid "An update to the launcher is available. Please update via your package manager or manually by visiting https://atlauncher.com/downloads to get the latest features and bug fixes."
+msgstr "启动器有可用更新。请通过包管理器更新，或访问 https://atlauncher.com/downloads 手动下载，以获取最新功能和修复。"
+
+msgid "Are You Sure?"
+msgstr "确定吗？"
+
+#. {0} is the name of the instance about to be deleted
+msgid "Are you sure you want to delete the instance \"{0}\"?"
+msgstr "确定要删除实例“{0}”吗？"
+
+msgid "Are you sure you want to delete this server?"
+msgstr "确定要删除这个服务器吗？"
+
+msgid "Are you sure you want to kill the Minecraft process?<br/>Doing so can cause corruption of your saves"
+msgstr "确定要终止 Minecraft 进程吗？<br/>这样做可能导致存档损坏"
+
+msgid "Author"
+msgstr "作者"
+
+#. {0} is what is being backed up
+msgid "Backing Up {0}"
+msgstr "正在备份 {0}"
+
+msgid "Backup is complete"
+msgstr "备份完成"
+
+#. {0} is how many mods will be installed, {1} is the mod they need first
+msgid "Before installing {0} mods, you should install {1} first!"
+msgstr "在安装 {0} 个模组之前，建议先安装 {1}！"
+
+msgid "Browse Mods"
+msgstr "浏览模组"
+
+msgid "Browser Download Mods"
+msgstr "浏览器下载模组"
+
+#. {0} is the file the browser was opened to download
+msgid "Browser opened to download file {0}"
+msgstr "已打开浏览器下载文件 {0}"
+
+msgid "By Last Played"
+msgstr "按最近游玩"
+
+msgid "By Name"
+msgstr "按名称"
+
+msgid "By Number of Plays"
+msgstr "按游玩次数"
+
+msgid "Calculating Files To Download"
+msgstr "正在计算需要下载的文件"
+
+msgid "Cancel Install"
+msgstr "取消安装"
+
+#. {0} is the platform the pack was being looked up on (CurseForge/Modrinth)
+msgid "Cancelling Looking Up Pack On {0}"
+msgstr "正在取消在 {0} 上查找整合包"
+
+msgid "Cannot Launch Server"
+msgstr "无法启动服务器"
+
+msgid "Cannot create instance as you have no account selected."
+msgstr "未选择账户，无法创建实例。"
+
+msgid "Cannot create server as you have no account selected."
+msgstr "未选择账户，无法创建服务器。"
+
+msgid "Cannot launch instance due to your Java version"
+msgstr "由于 Java 版本问题，无法启动实例"
+
+msgid "Cannot play instance as you have no account selected."
+msgstr "未选择账户，无法游玩实例。"
+
+msgid "Cannot update pack as you have no account selected."
+msgstr "未选择账户，无法更新整合包。"
+
+msgid "Change Description"
+msgstr "修改描述"
+
+msgid "Change Image"
+msgstr "修改图片"
+
+msgid "Change Skin"
+msgstr "修改皮肤"
+
+#. {0} is the loader (Forge/Fabric/Quilt)
+msgid "Change {0} Version"
+msgstr "修改 {0} 版本"
+
+msgid "Changing Description"
+msgstr "正在修改描述"
+
+msgid "Changing Skin"
+msgstr "正在修改皮肤"
+
+#. {0} is the loader (Forge/Fabric/Quilt)
+msgid "Changing {0} Version"
+msgstr "正在修改 {0} 版本"
+
+msgid "Check the console for details"
+msgstr "请查看控制台了解详情"
+
+#. {0} is what is being checked for an update
+msgid "Checking For Update On {0}"
+msgstr "正在检查 {0} 的更新"
+
+msgid "Checking For Username Change"
+msgstr "正在检查用户名变更"
+
+#. {0} is what versions are being checked for
+msgid "Checking For {0} Versions"
+msgstr "正在检查 {0} 的版本"
+
+#. {0} is the platform the mods are being checked on (CurseForge/Modrinth)
+msgid "Checking Mods On {0}"
+msgstr "正在检查 {0} 上的模组"
+
+#. {0} is the account being checked
+msgid "Checking Username Change For {0}"
+msgstr "正在检查 {0} 的用户名变更"
+
+msgid "Child accounts cannot login without being part of a family."
+msgstr "儿童账户必须加入家庭组才能登录。"
+
+msgid "Choose location to save support pack"
+msgstr "选择支持包的保存位置"
+
+msgid "Choose your offline player name:"
+msgstr "请选择你的离线玩家名："
+
+msgid "Clear All"
+msgstr "清空全部"
+
+msgid "Clone"
+msgstr "克隆"
+
+msgid "Cloned Instance Successfully"
+msgstr "实例克隆成功"
+
+msgid "Cloning Instance"
+msgstr "正在克隆实例"
+
+msgid "Cloning Instance. Please wait..."
+msgstr "正在克隆实例，请稍候…"
+
+msgid "Code is missing"
+msgstr "缺少代码"
+
+msgid "Copy Code"
+msgstr "复制代码"
+
+msgid "Copy Link"
+msgstr "复制链接"
+
+msgid "Copying Image"
+msgstr "正在复制图片"
+
+msgid "Copying Mods"
+msgstr "正在复制模组"
+
+msgid "Copying Overrides"
+msgstr "正在复制覆盖文件"
+
+msgid "Copying minecraft folder"
+msgstr "正在复制 minecraft 文件夹"
+
+msgid "Copying modpack.zip files"
+msgstr "正在复制 modpack.zip 文件"
+
+msgid "Corrupted"
+msgstr "已损坏"
+
+msgid "Couldn't login with Microsoft account"
+msgstr "无法使用微软账户登录"
+
+msgid "Create"
+msgstr "创建"
+
+msgid "Create Minecraft Profile"
+msgstr "创建 Minecraft 档案"
+
+msgid "Create Support Pack"
+msgstr "创建支持包"
+
+msgid "Creating Config Directories"
+msgstr "正在创建配置目录"
+
+msgid "Creating Minecraft Profile"
+msgstr "正在创建 Minecraft 档案"
+
+msgid "Creating custom minecraft.jar"
+msgstr "正在创建自定义 minecraft.jar"
+
+msgid "Debug"
+msgstr "调试"
+
+msgid "Delete Instance"
+msgstr "删除实例"
+
+msgid "Delete Selected Mods?"
+msgstr "删除选中的模组？"
+
+msgid "Delete Server"
+msgstr "删除服务器"
+
+msgid "Deleted Instance Successfully"
+msgstr "实例删除成功"
+
+msgid "Deleted Server Successfully"
+msgstr "服务器删除成功"
+
+msgid "Deleting Instance"
+msgstr "正在删除实例"
+
+msgid "Deleting Instance. Please wait..."
+msgstr "正在删除实例，请稍候…"
+
+msgid "Deleting Server"
+msgstr "正在删除服务器"
+
+msgid "Deleting Server. Please wait..."
+msgstr "正在删除服务器，请稍候…"
+
+msgid "Directory"
+msgstr "目录"
+
+msgid "Disable Selected"
+msgstr "禁用选中项"
+
+msgid "Disabled"
+msgstr "已禁用"
+
+msgid "Disabled Mods"
+msgstr "已禁用的模组"
+
+msgid "Disabled as the loader you selected only supports servers"
+msgstr "已禁用，因为你选择的加载器仅支持服务器"
+
+msgid "Discord"
+msgstr "Discord"
+
+msgid "Don't Remind Me Again"
+msgstr "不再提醒"
+
+msgid "Don't remind me again"
+msgstr "不再提醒"
+
+msgid "Download Complete"
+msgstr "下载完成"
+
+msgid "Download Java 8"
+msgstr "下载 Java 8"
+
+msgid "Download Pack"
+msgstr "下载整合包"
+
+msgid "Download Server"
+msgstr "下载服务器"
+
+msgid "Downloading Browser Mods"
+msgstr "正在下载浏览器模组"
+
+msgid "Downloading Configs"
+msgstr "正在下载配置"
+
+msgid "Downloading Image"
+msgstr "正在下载图片"
+
+#. {0} is the Java runtime version being downloaded
+msgid "Downloading Java Runtime {0}"
+msgstr "正在下载 Java 运行时 {0}"
+
+msgid "Downloading Java Update"
+msgstr "正在下载 Java 更新"
+
+msgid "Downloading Launcher Update"
+msgstr "正在下载启动器更新"
+
+msgid "Downloading Libraries"
+msgstr "正在下载依赖库"
+
+msgid "Downloading Loader"
+msgstr "正在下载加载器"
+
+msgid "Downloading Logging Client"
+msgstr "正在下载日志客户端"
+
+#. {0} is where the manifest is being downloaded from
+msgid "Downloading Manifest From {0}"
+msgstr "正在从 {0} 下载清单"
+
+msgid "Downloading Minecraft"
+msgstr "正在下载 Minecraft"
+
+msgid "Downloading Minecraft Definition"
+msgstr "正在下载 Minecraft 定义"
+
+msgid "Downloading Mods"
+msgstr "正在下载模组"
+
+msgid "Downloading Pack Manifest"
+msgstr "正在下载整合包清单"
+
+msgid "Downloading Resources"
+msgstr "正在下载资源"
+
+#. {0} is where the server pack is being downloaded from
+msgid "Downloading Server Pack From {0}"
+msgstr "正在从 {0} 下载服务端整合包"
+
+msgid "Downloading Skin"
+msgstr "正在下载皮肤"
+
+#. {0} is the account the skin is for
+msgid "Downloading Skin For {0}"
+msgstr "正在为 {0} 下载皮肤"
+
+msgid "Downloading Updates"
+msgstr "正在下载更新"
+
+msgid "Downloading modpack.zip"
+msgstr "正在下载 modpack.zip"
+
+msgid "Downloads"
+msgstr "下载"
+
+msgid "Edit Instance"
+msgstr "编辑实例"
+
+msgid "Edit Mods"
+msgstr "编辑模组"
+
+msgid "Edit Plugins"
+msgstr "编辑插件"
+
+#. {0} is the instance or server whose mods are being edited
+msgid "Editing Mods For {0}"
+msgstr "正在编辑 {0} 的模组"
+
+msgid "Enable Selected"
+msgstr "启用选中项"
+
+msgid "Enabled Mods"
+msgstr "已启用的模组"
+
+msgid "Enter a new name for this cloned instance."
+msgstr "为这个克隆的实例输入新名称。"
+
+msgid "Error Getting Mod Information"
+msgstr "获取模组信息出错"
+
+msgid "Error Getting Versions"
+msgstr "获取版本出错"
+
+#. {0} is what information was being fetched (eg a mod or loader API)
+msgid "Error Getting {0} Information"
+msgstr "获取 {0} 信息出错"
+
+msgid "Error Logging In"
+msgstr "登录出错"
+
+msgid "Error checking for username change. Check the error logs and try again later."
+msgstr "检查用户名变更时出错。请查看错误日志并稍后重试。"
+
+msgid "Error downloading skin. Please try again later!"
+msgstr "下载皮肤出错。请稍后重试！"
+
+msgid "Error executing command"
+msgstr "执行命令出错"
+
+msgid "Error logging in. Check console for more information"
+msgstr "登录出错。请查看控制台了解更多信息"
+
+msgid "Error logging into Xbox Live"
+msgstr "登录 Xbox Live 出错"
+
+msgid "Error making backup"
+msgstr "备份出错"
+
+msgid "Export"
+msgstr "导出"
+
+msgid "Export Failed"
+msgstr "导出失败"
+
+#. {0} is the name of the instance being exported
+msgid "Export {0}"
+msgstr "导出 {0}"
+
+msgid "Exported Instance Successfully"
+msgstr "实例导出成功"
+
+msgid "Exporting Instance"
+msgstr "正在导出实例"
+
+msgid "Exporting Instance. Please wait..."
+msgstr "正在导出实例，请稍候…"
+
+msgid "Extracting Configs"
+msgstr "正在解压配置"
+
+msgid "Extracting Legacy LWJGL"
+msgstr "正在解压旧版 LWJGL"
+
+msgid "Extracting Manifest"
+msgstr "正在解压清单"
+
+msgid "Extracting Server Pack"
+msgstr "正在解压服务端整合包"
+
+msgid "Failed To Import Instance"
+msgstr "导入实例失败"
+
+msgid "Failed To Launch Server"
+msgstr "启动服务器失败"
+
+msgid "Failed To Update Bundled JRE"
+msgstr "更新内置 JRE 失败"
+
+msgid "Failed to export instance. Check the console for details"
+msgstr "导出实例失败。请查看控制台了解详情"
+
+msgid "Failed to fetch login code from Microsoft. Please use the button above to login with your browser."
+msgstr "无法从微软获取登录代码。请使用上方按钮通过浏览器登录。"
+
+msgid "Failed to get information for modpack from Technic."
+msgstr "无法从 Technic 获取整合包信息。"
+
+msgid "Failed to get modpack builds from Technic."
+msgstr "无法从 Technic 获取整合包构建。"
+
+msgid "Failed to get project files from CurseForge."
+msgstr "无法从 CurseForge 获取项目文件。"
+
+msgid "Failed to get slug for modpack from Technic."
+msgstr "无法从 Technic 获取整合包标识。"
+
+msgid "Featured"
+msgstr "精选"
+
+msgid "Fetching Login Code..."
+msgstr "正在获取登录代码…"
+
+msgid "File"
+msgstr "文件"
+
+msgid "File To Install"
+msgstr "要安装的文件"
+
+msgid "Folders To Export"
+msgstr "要导出的文件夹"
+
+msgid "Follows"
+msgstr "关注数"
+
+msgid "Force quit"
+msgstr "强制退出"
+
+msgid "Format"
+msgstr "格式"
+
+msgid "Full Backup"
+msgstr "完整备份"
+
+#. {0} is what the pack version is being generated from
+msgid "Generating Pack Version From {0}"
+msgstr "正在从 {0} 生成整合包版本"
+
+msgid "Get Help"
+msgstr "获取帮助"
+
+#. {0} is where the files are being fetched from
+msgid "Getting Files From {0}"
+msgstr "正在从 {0} 获取文件"
+
+msgid "Getting Login Code From Microsoft"
+msgstr "正在从微软获取登录代码"
+
+msgid "Getting Mod Information"
+msgstr "正在获取模组信息"
+
+msgid "Getting Modpack Builds"
+msgstr "正在获取整合包构建"
+
+msgid "Getting Modpack Details"
+msgstr "正在获取整合包详情"
+
+msgid "Getting Modpack Versions"
+msgstr "正在获取整合包版本"
+
+msgid "Getting Versions"
+msgstr "正在获取版本"
+
+msgid "I've Downloaded This File"
+msgstr "我已下载此文件"
+
+msgid "Ignore This Update"
+msgstr "忽略此更新"
+
+msgid "Import Instance"
+msgstr "导入实例"
+
+#. {0} is the folder the files must be saved to for the launcher to find them
+msgid "In order to continue downloading this modpack, you must manually download the following mods.<br/>Simply click the Open button to open them in your browser, or alternatively you can copy the url to your clipboard to open in another browser.<br/><br/>Please download all files to <b>{0}</b> in order for the launcher to detect them."
+msgstr "要继续下载这个整合包，你必须手动下载以下模组。<br/>点击“打开”按钮在浏览器中打开它们，或者复制链接到剪贴板后在其他浏览器中打开。<br/><br/>请将所有文件下载到 <b>{0}</b>，以便启动器检测到它们。"
+
+msgid "Incorrect account"
+msgstr "账户不正确"
+
+msgid "Info"
+msgstr "信息"
+
+#. {0} is what is being installed
+msgid "Install {0}"
+msgstr "安装 {0}"
+
+msgid "Installing"
+msgstr "正在安装"
+
+msgid "Installing Loader (May Take Some Time)"
+msgstr "正在安装加载器（可能需要一些时间）"
+
+msgid "Installing Mods"
+msgstr "正在安装模组"
+
+#. {0} is the name of the pack the server is created from
+msgid "Installing {0} Server"
+msgstr "正在安装 {0} 服务器"
+
+#. {0} is the loader type (Forge/Fabric/Quilt), {1} is its version
+msgid "Installing {0} {1}"
+msgstr "正在安装 {0} {1}"
+
+msgid "Instance Corrupt"
+msgstr "实例已损坏"
+
+msgid "Instance name is invalid. It must contain at least 1 letter or number."
+msgstr "实例名称无效。它必须包含至少 1 个字母或数字。"
+
+#. {0} is the instance name, {1} is the version it was updated to
+msgid "Instance {0} has been updated to version {1}."
+msgstr "实例 {0} 已更新到版本 {1}。"
+
+msgid "Insufficent Permgen"
+msgstr "Permgen 不足"
+
+msgid "Insufficient Ram"
+msgstr "内存不足"
+
+msgid "Invalid File"
+msgstr "文件无效"
+
+msgid "Invalid Input"
+msgstr "输入无效"
+
+msgid "Invalid profile name, it must contain only alphanumeric characters and underscore, and be 3 to 16 characters long."
+msgstr "档案名无效，只能包含字母、数字和下划线，且长度须为 3 到 16 个字符。"
+
+msgid "Kill Open Dialogs"
+msgstr "关闭打开的对话框"
+
+msgid "Last Updated"
+msgstr "最近更新"
+
+msgid "Launch & Close"
+msgstr "启动并关闭"
+
+msgid "Launch With GUI"
+msgstr "带 GUI 启动"
+
+msgid "Launch With GUI & Close"
+msgstr "带 GUI 启动并关闭"
+
+msgid "Let Launcher Manage Java"
+msgstr "由启动器管理 Java"
+
+msgid "Lines shown of lines logged"
+msgstr "已显示行数 / 已记录行数"
+
+msgid "Loading"
+msgstr "正在加载"
+
+#. {0} is the pack platform being loaded
+msgid "Loading {0} Packs..."
+msgstr "正在加载 {0} 整合包…"
+
+msgid "Logged into incorrect account. Please login again on the Accounts tab."
+msgstr "登录了错误的账户。请在账户标签页重新登录。"
+
+msgid "Logging Into Minecraft"
+msgstr "正在登录 Minecraft"
+
+#. {0} is the application to return to (ATLauncher)
+msgid "Login complete. You can now close this window and go back to {0}"
+msgstr "登录完成。你现在可以关闭此窗口并返回 {0}"
+
+msgid "Login required"
+msgstr "需要登录"
+
+msgid "Login with Browser"
+msgstr "使用浏览器登录"
+
+msgid "Login with Microsoft"
+msgstr "使用微软登录"
+
+#. {0} is the platform the pack is being looked up on (CurseForge/Modrinth)
+msgid "Looking Up Pack On {0}"
+msgstr "正在 {0} 上查找整合包"
+
+msgid "Minecraft Has Not Been Purchased"
+msgstr "尚未购买 Minecraft"
+
+msgid "Minecraft Realm"
+msgstr "Minecraft 领域服"
+
+msgid "Minecraft has crashed due to an incompatability with Forge and your version of Java.<br/><br/>Please reinstall the instance to automatically fix the problem, and then try launching the instance again."
+msgstr "Minecraft 因 Forge 与你的 Java 版本不兼容而崩溃。<br/><br/>请重新安装该实例以自动修复此问题，然后再次尝试启动实例。"
+
+msgid "Minecraft has crashed due to insufficent memory being allocated.<br/><br/>Please go to the settings tab and increase the maximum memory option and then try launching the instance again."
+msgstr "Minecraft 因分配的内存不足而崩溃。<br/><br/>请前往设置标签页增大最大内存选项，然后再次尝试启动实例。"
+
+msgid "Minecraft has crashed due to not being compatible with your Java version.<br/><br/>Most modded Minecraft is only compatible with Java 8, so you must install Java 8 on your computer."
+msgstr "Minecraft 因与你的 Java 版本不兼容而崩溃。<br/><br/>大多数模组版 Minecraft 只兼容 Java 8，所以你必须在电脑上安装 Java 8。"
+
+#. {0} is the Java version needed, appearing three times
+msgid "Minecraft has crashed due to not being compatible with your Java version.<br/><br/>This version of Minecraft requires Java {0} or newer.<br/><br/>Make sure you've selected the correct Java version in this instances<br/>settings or not disabled the \"Use Java Provided By Minecraft\" setting.<br/><br/>If it's still not working, you may be using a mod that requires Java {0},<br/>but Minecraft only requires Java 8, so you can go into the instances<br/>settings and in the \"Java\" tab, change the \"Runtime Overide\"<br/>option to one that is Java {0} or newer."
+msgstr "Minecraft 因与你的 Java 版本不兼容而崩溃。<br/><br/>这个版本的 Minecraft 需要 Java {0} 或更高版本。<br/><br/>请确保你在该实例的<br/>设置中选择了正确的 Java 版本，且没有禁用“使用 Minecraft 提供的 Java”设置。<br/><br/>如果仍然无法运行，可能是某个模组需要 Java {0}，<br/>而 Minecraft 本身只需要 Java 8，你可以进入实例的<br/>设置，在“Java”标签页中将“运行时覆盖”<br/>选项改为 Java {0} 或更高的版本。"
+
+msgid "Missing Libraries Found"
+msgstr "发现缺失的依赖库"
+
+msgid "Mod"
+msgstr "模组"
+
+msgid "Mod Not Available"
+msgstr "模组不可用"
+
+msgid "Mods Not Available"
+msgstr "模组不可用"
+
+#. {0} is the pack name
+msgid "Mods in {0}"
+msgstr "{0} 的模组"
+
+msgid "Most Installed"
+msgstr "安装最多"
+
+msgid "Most Popular"
+msgstr "最受欢迎"
+
+msgid "Multiplayer"
+msgstr "多人游戏"
+
+msgid "Newest"
+msgstr "最新"
+
+msgid "Next page"
+msgstr "下一页"
+
+msgid "No Changes"
+msgstr "没有变更"
+
+msgid "No Description"
+msgstr "无描述"
+
+msgid "No Files Available"
+msgstr "没有可用文件"
+
+msgid "No Server Files Available"
+msgstr "没有可用服务端文件"
+
+#. {0} is what no versions are available for
+msgid "No Versions Available For {0}"
+msgstr "{0} 没有可用版本"
+
+msgid "No Versions Found"
+msgstr "未找到版本"
+
+msgid "No files are available for this pack, so it cannot be installed.<br/>CurseForge may be down or having issues. Please wait and try again in a few minutes."
+msgstr "此整合包没有可用文件，无法安装。<br/>CurseForge 可能宕机或出现问题。请稍等几分钟后重试。"
+
+msgid "No files found"
+msgstr "未找到文件"
+
+msgid "No files found for this mod. CurseForge may be down or having issues.<br/>Please wait and try again in a few minutes."
+msgstr "未找到此模组的文件。CurseForge 可能宕机或出现问题。<br/>请稍等几分钟后重试。"
+
+msgid "No lines match the filter"
+msgstr "没有匹配过滤条件的行"
+
+msgid "No mods found."
+msgstr "未找到模组。"
+
+msgid "No mods found. Remove your search query and try again."
+msgstr "未找到模组。请清除搜索内容后重试。"
+
+msgid "No server files are available for this pack, so a server cannot be created."
+msgstr "此整合包没有可用服务端文件，无法创建服务器。"
+
+msgid "Normal + Mods Backup"
+msgstr "常规 + 模组备份"
+
+msgid "Normal Backup"
+msgstr "常规备份"
+
+msgid "Nothing To Show"
+msgstr "没有可显示的内容"
+
+msgid "OR"
+msgstr "或"
+
+msgid "Offline Player Name"
+msgstr "离线玩家名"
+
+msgid "Open"
+msgstr "打开"
+
+msgid "Open All In Browser"
+msgstr "在浏览器中打开全部"
+
+msgid "Open Launcher Folder"
+msgstr "打开启动器文件夹"
+
+msgid "Open Link & Copy Code"
+msgstr "打开链接并复制代码"
+
+msgid "Open Privacy Policy"
+msgstr "打开隐私政策"
+
+msgid "Open Resources"
+msgstr "打开资源目录"
+
+msgid "Open instance.json"
+msgstr "打开 instance.json"
+
+msgid "Optional Mods"
+msgstr "可选模组"
+
+msgid "Organising Libraries"
+msgstr "正在整理依赖库"
+
+msgid "Organising Resources"
+msgstr "正在整理资源"
+
+msgid "Overrides Included"
+msgstr "包含的覆盖文件"
+
+msgid "Pack Not Found"
+msgstr "未找到整合包"
+
+msgid "Play"
+msgstr "游玩"
+
+msgid "Play Offline"
+msgstr "离线游玩"
+
+msgid "Play Online"
+msgstr "在线游玩"
+
+msgid "Please save this file to the following location"
+msgstr "请将此文件保存到以下位置"
+
+msgid "Popularity"
+msgstr "人气"
+
+msgid "Preparing For Launch"
+msgstr "正在准备启动"
+
+msgid "Previous page"
+msgstr "上一页"
+
+msgid "Quick Play Type"
+msgstr "快速游玩类型"
+
+msgid "Quit"
+msgstr "退出"
+
+msgid "Recently Updated"
+msgstr "最近更新"
+
+msgid "Refresh Access Token"
+msgstr "刷新访问令牌"
+
+msgid "Refresh Metadata"
+msgstr "刷新元数据"
+
+msgid "Refreshing Metadata"
+msgstr "正在刷新元数据"
+
+msgid "Reinstalling"
+msgstr "正在重新安装"
+
+#. {0} is the pack or instance being reinstalled
+msgid "Reinstalling {0}"
+msgstr "正在重新安装 {0}"
+
+#. {0} is the name of the pack the server is created from
+msgid "Reinstalling {0} Server"
+msgstr "正在重新安装 {0} 服务器"
+
+msgid "Relevance"
+msgstr "相关度"
+
+msgid "Reload Skin"
+msgstr "重新加载皮肤"
+
+msgid "Reminder"
+msgstr "提醒"
+
+msgid "Remove Selected"
+msgstr "移除选中项"
+
+#. {0} is the loader type (Forge/Fabric/Quilt), {1} is its version
+msgid "Removing {0} {1}"
+msgstr "正在移除 {0} {1}"
+
+msgid "Rename"
+msgstr "重命名"
+
+msgid "Renaming Instance"
+msgstr "正在重命名实例"
+
+msgid "Required Mods"
+msgstr "必需模组"
+
+msgid "Running 32 Bit Java on 64 Bit Windows"
+msgstr "在 64 位 Windows 上运行 32 位 Java"
+
+msgid "Runtime Override"
+msgstr "运行时覆盖"
+
+msgid "Save Mods"
+msgstr "保留模组"
+
+msgid "Save Mods?"
+msgstr "保留模组吗？"
+
+msgid "Save To"
+msgstr "保存到"
+
+#. {0} is the login code to enter on Microsoft's page
+msgid "Scan the above QR code or visit <a href=\"https://www.microsoft.com/link\">https://www.microsoft.com/link</a> in a web browser and enter the code <b>{0}</b>."
+msgstr "扫描上方二维码，或在浏览器中访问 <a href=\"https://www.microsoft.com/link\">https://www.microsoft.com/link</a> 并输入代码 <b>{0}</b>。"
+
+msgid "Scanning New Mods"
+msgstr "正在扫描新模组"
+
+msgid "Scanning mods for Fractureiser"
+msgstr "正在扫描模组中的 Fractureiser"
+
+msgid "Searching For Packs..."
+msgstr "正在搜索整合包…"
+
+msgid "Select Mods To Install"
+msgstr "选择要安装的模组"
+
+msgid "Select Recommended"
+msgstr "选择推荐项"
+
+msgid "Select a zip/mrpack file to import it.<br/>We currently support CurseForge, Modrinth and MultiMC exported files/urls, as well as CurseForge.com links."
+msgstr "选择一个 zip/mrpack 文件进行导入。<br/>我们目前支持 CurseForge、Modrinth 和 MultiMC 导出的文件/链接，以及 CurseForge.com 链接。"
+
+msgid "Select export directory"
+msgstr "选择导出目录"
+
+msgid "Select file/s"
+msgstr "选择文件"
+
+msgid "Select path to Java install"
+msgstr "选择 Java 安装路径"
+
+msgid "Select skin file"
+msgstr "选择皮肤文件"
+
+msgid "Select the folder you wish to export the instance to"
+msgstr "选择要将实例导出到的文件夹"
+
+msgid "Select the folders you wish to include for this export"
+msgstr "选择本次导出要包含的文件夹"
+
+msgid "Select the single player world to load after launching the game."
+msgstr "选择启动游戏后要加载的单人世界。"
+
+msgid "Select the type of the Quick Play feature, default to disabled."
+msgstr "选择快速游玩功能的类型，默认为禁用。"
+
+#. {0} is the loader (Forge/Fabric/Quilt)
+msgid "Select {0} Version To Install"
+msgstr "选择要安装的 {0} 版本"
+
+msgid "Server Is Vulnerable"
+msgstr "服务器存在漏洞"
+
+msgid "Server address"
+msgstr "服务器地址"
+
+msgid "Server name is invalid. It must contain at least 1 letter or number."
+msgstr "服务器名称无效。它必须包含至少 1 个字母或数字。"
+
+#. {0} is what is being set up
+msgid "Setting up {0}"
+msgstr "正在设置 {0}"
+
+msgid "Show All"
+msgstr "显示全部"
+
+msgid "Since this update changes the Minecraft version, your custom mods may no longer work.<br/><br/>Checking this box will keep your custom mods, otherwise they'll be removed."
+msgstr "由于本次更新会改变 Minecraft 版本，你的自定义模组可能无法再使用。<br/><br/>勾选此框将保留你的自定义模组，否则它们会被移除。"
+
+msgid "Since this update changes the Minecraft version, your custom mods may no longer work.<br/><br/>The mods installed will be removed since you've not checked the \"Save Mods\" checkbox.<br/><br/>Do you want to save your mods?"
+msgstr "由于本次更新会改变 Minecraft 版本，你的自定义模组可能无法再使用。<br/><br/>由于你没有勾选“保留模组”复选框，已安装的模组将被移除。<br/><br/>要保留你的模组吗？"
+
+msgid "Single Player"
+msgstr "单人游戏"
+
+msgid "Single Player World"
+msgstr "单人游戏世界"
+
+msgid "Skin File"
+msgstr "皮肤文件"
+
+msgid "Skin Type"
+msgstr "皮肤类型"
+
+msgid "Skip Mod (Pack May Break)"
+msgstr "跳过模组（整合包可能损坏）"
+
+msgid "Skip Remaining"
+msgstr "跳过剩余项"
+
+msgid "Skipping the remaining downloads may cause issues launching the modpack.<br/><br/>Are you sure you want to do this?"
+msgstr "跳过剩余的下载可能导致整合包无法启动。<br/><br/>确定要这样做吗？"
+
+msgid "Some of the mods for this pack are not available to download.<br/><br/>At this time you can only install this pack via FTB launcher."
+msgstr "此整合包的部分模组无法下载。<br/><br/>目前你只能通过 FTB 启动器安装此整合包。"
+
+msgid "Starting Install Process"
+msgstr "正在开始安装流程"
+
+msgid "Starting Reinstall Process"
+msgstr "正在开始重装流程"
+
+msgid "Starting Update Process"
+msgstr "正在开始更新流程"
+
+msgid "Support pack created"
+msgstr "支持包已创建"
+
+msgid "Tasks Done"
+msgstr "任务完成"
+
+msgid "The below mods need to be installed"
+msgstr "需要安装以下模组"
+
+msgid "The entered server address is invalid."
+msgstr "输入的服务器地址无效。"
+
+#. {0} is the name that was rejected
+msgid "The name {0} is invalid. It must contain at least 1 letter or number."
+msgstr "名称 {0} 无效。它必须包含至少 1 个字母或数字。"
+
+msgid "The realm id is empty."
+msgstr "领域服 id 为空。"
+
+msgid "The server address is empty."
+msgstr "服务器地址为空。"
+
+msgid "The server address that is used to connect to Minecraft server in multiplayer after launching the game."
+msgstr "用于在启动游戏后连接多人游戏 Minecraft 服务器的地址。"
+
+#. {0} is the file that starts the server
+msgid "The server couldn't be launched as we don't know how to launch it.<br/><br/>Please open the server folder and run the {0} file manually."
+msgstr "无法启动该服务器，因为我们不知道如何启动它。<br/><br/>请打开服务器文件夹并手动运行 {0} 文件。"
+
+msgid "The server has been launched."
+msgstr "服务器已启动。"
+
+msgid "The skin you chose is invalid. Please make sure you selected the right file and try again.<br/><br/>All skins must be 64x64 or 64x32 pixels."
+msgstr "你选择的皮肤无效。请确保选择了正确的文件后重试。<br/><br/>所有皮肤必须为 64x64 或 64x32 像素。"
+
+#. {0} is the version name currently installed
+msgid "The version currently installed is {0}"
+msgstr "当前安装的版本是 {0}"
+
+msgid "The version of this instance"
+msgstr "该实例的版本"
+
+#. {0} is the instance name that is taken
+msgid "There is already an instance called {0}.<br/><br/>Rename it and try again."
+msgstr "已存在名为 {0} 的实例。<br/><br/>请改名后重试。"
+
+msgid "There was an error getting mod information from Modrinth. Please try again later."
+msgstr "从 Modrinth 获取模组信息时出错。请稍后重试。"
+
+#. {0} is what information was being fetched, {1} is the platform it came from (CurseForge/Modrinth)
+msgid "There was an error getting {0} information from {1}. Please try again later."
+msgstr "从 {1} 获取 {0} 信息时出错。请稍后重试。"
+
+msgid "There was an error updating your skin.<br/><br/>Please check the logs and try again."
+msgstr "更新皮肤时出错。<br/><br/>请查看日志后重试。"
+
+#. {0} is the Java version needed
+msgid "There was an issue launching this instance.<br/><br/>This version of the pack requires a Java version which you are not using.<br/><br/>Please install that version of Java and try again.<br/><br/>Java version needed: {0}"
+msgstr "启动该实例时出现问题。<br/><br/>这个版本的整合包需要的 Java 版本你并未使用。<br/><br/>请安装该版本的 Java 后重试。<br/><br/>所需的 Java 版本：{0}"
+
+msgid "There was an issue updating the bundled JRE. Please try again later and if the issue persists, please contact ATLauncher support via Discord."
+msgstr "更新内置 JRE 时出现问题。请稍后重试；如果问题仍然存在，请通过 Discord 联系 ATLauncher 支持。"
+
+msgid "This account doesn't have a valid purchase of Minecraft.<br/><br/>Please make sure you've bought the Java edition of Minecraft and then try again.<br/><br/>If you have Xbox Game Pass, you need to login through the Minecraft launcher<br/>at least once and launch the game once in order to create your username."
+msgstr "此账户没有有效购买的 Minecraft。<br/><br/>请确保你已购买 Minecraft Java 版，然后重试。<br/><br/>如果你有 Xbox Game Pass，需要至少通过 Minecraft 官方启动器<br/>登录一次并启动一次游戏，才能创建你的用户名。"
+
+msgid "This allows you to override which runtime is used to launch this instance.<br/><br/>Runtimes are provided by Mojang and used to launch the game and generally correspond to a particular Java version.<br/><br/>Changing this is usually not required or recommended."
+msgstr "这允许你覆盖用于启动该实例的运行时。<br/><br/>运行时由 Mojang 提供，用于启动游戏，通常对应特定的 Java 版本。<br/><br/>通常不需要也不建议更改此项。"
+
+msgid "This instance cannot be started due to missing libraries that cannot be downloaded.<br/><br/>Please reinstall the instance to create those libraries and be able to start this instance again."
+msgstr "由于缺失无法下载的依赖库，该实例无法启动。<br/><br/>请重新安装该实例以创建这些依赖库，然后才能再次启动。"
+
+#. {0} is the minimum permgen in MB
+msgid "This pack has set a minimum amount of permgen to <b>{0}</b> MB.<br/><br/>Do you want to continue loading the instance anyway?"
+msgstr "此整合包设置了最小 Permgen 为 <b>{0}</b> MB。<br/><br/>仍要继续加载该实例吗？"
+
+#. {0} is the minimum ram in MB
+msgid "This pack has set a minimum amount of ram needed to <b>{0}</b> MB.<br/><br/>Do you want to continue loading the instance anyway?"
+msgstr "此整合包设置了最小内存需求为 <b>{0}</b> MB。<br/><br/>仍要继续加载该实例吗？"
+
+msgid "This server is currently vulnerable to the Log4Shell exploit.<br/><br/>For your safety, and of those on your server, please delete and recreate this server.<br/><br/>Do you still want to launch the server (not recommended)?"
+msgstr "此服务器当前易受 Log4Shell 漏洞攻击。<br/><br/>为了你以及服务器上其他玩家的安全，请删除并重新创建此服务器。<br/><br/>仍要启动此服务器吗（不推荐）？"
+
+msgid "This setting allows you to specify where your Java Path is.<br/><br/>This should be left as default, but if you know what you're doing, just set<br/>this to the path where the bin folder is for the version of Java you want to use.<br/><br/>If you mess up, click the Reset button to go back to the default"
+msgstr "此设置允许你指定 Java 路径的位置。<br/><br/>一般应保持默认，但如果你清楚自己在做什么，可以将其设置为<br/>你想使用的 Java 版本的 bin 文件夹所在路径。<br/><br/>如果设置出错，点击“重置”按钮即可恢复默认。"
+
+msgid "This version of Minecraft provides a specific version of Java to be used with it, so you cannot set a custom Java path.<br/><br/>In order to manually set a path, you must disable this option (highly not recommended)."
+msgstr "此版本的 Minecraft 提供了与其配套使用的特定 Java 版本，因此无法设置自定义 Java 路径。<br/><br/>如需手动设置路径，必须禁用此选项（强烈不建议）。"
+
+msgid "This will delete the selected mods from the instance.<br/><br/>Are you sure you want to do this?"
+msgstr "这将从实例中删除选中的模组。<br/><br/>确定要这样做吗？"
+
+msgid "Toggle Console"
+msgstr "切换控制台"
+
+msgid "Total Downloads"
+msgstr "总下载量"
+
+msgid "Type of Mod"
+msgstr "模组类型"
+
+msgid "Type the id of the realm to join after launching the game."
+msgstr "输入启动游戏后要加入的领域服 id。"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "Update Username"
+msgstr "更新用户名"
+
+msgid "Update available"
+msgstr "有可用更新"
+
+msgid "Update failed. Please click Ok to close the launcher and open up the downloads page.<br/><br/>Download the update and replace the old exe/jar file."
+msgstr "更新失败。请点击“确定”关闭启动器并打开下载页面。<br/><br/>下载更新并替换旧的 exe/jar 文件。"
+
+msgid "Updated"
+msgstr "已更新"
+
+msgid "Updating"
+msgstr "正在更新"
+
+msgid "Updating Launcher. Please Wait"
+msgstr "正在更新启动器，请稍候"
+
+msgid "Updating Skin"
+msgstr "正在更新皮肤"
+
+#. {0} is what is being updated
+msgid "Updating {0}"
+msgstr "正在更新 {0}"
+
+msgid "Upload"
+msgstr "上传"
+
+msgid "Use Default (Recommended)"
+msgstr "使用默认（推荐）"
+
+msgid "Use System Java"
+msgstr "使用系统 Java"
+
+msgid "Username"
+msgstr "用户名"
+
+msgid "Username Updated"
+msgstr "用户名已更新"
+
+msgid "Username is not available, please try another one."
+msgstr "该用户名不可用，请换一个试试。"
+
+msgid "Using Out Of Date Java"
+msgstr "正在使用过时的 Java"
+
+msgid "Version To Install"
+msgstr "要安装的版本"
+
+msgid "View File"
+msgstr "查看文件"
+
+msgid "View Mod"
+msgstr "查看模组"
+
+msgid "View Mods"
+msgstr "查看模组"
+
+msgid "View Plugin"
+msgstr "查看插件"
+
+msgid "Visit Downloads Page"
+msgstr "访问下载页面"
+
+msgid "Warn"
+msgstr "警告"
+
+msgid "We cannot launch this server for you. Please use \"Open Folder\" and run the server manually.<br/><br/>If unsure how to do so, please contact the packs support pages for more further help."
+msgstr "我们无法为你启动此服务器。请使用“打开文件夹”并手动运行服务器。<br/><br/>如果不确定如何操作，请联系整合包的支持页面获取更多帮助。"
+
+msgid "We have detected that ATLauncher cannot write files in it's current location.<br/><br/>We cannot continue to run, you must move this folder somewhere else with write access.<br/><br/>Try moving to a folder in your Desktop or another drive.<br/><br/>You can also try running ATLauncher as administrator, but this is not recommended."
+msgstr "我们检测到 ATLauncher 无法在当前位置写入文件。<br/><br/>无法继续运行，你必须将此文件夹移动到其他有写入权限的位置。<br/><br/>可以尝试移动到桌面上的文件夹或其他盘符。<br/><br/>你也可以尝试以管理员身份运行 ATLauncher，但不建议这样做。"
+
+msgid "We have detected that you're running 64 bit Windows but not 64 bit Java.<br/><br/>This will cause severe issues playing all packs if not fixed.<br/><br/>Do you want to close the launcher and learn how to fix this issue now?"
+msgstr "我们检测到你在 64 位 Windows 上运行的不是 64 位 Java。<br/><br/>如不修复，游玩所有整合包都会出现严重问题。<br/><br/>现在要关闭启动器并了解如何修复此问题吗？"
+
+msgid "We have detected that you're running ATLauncher from within OneDrive.<br/><br/>This can cause serious issues and you should move the folder outside of OneDrive.<br/><br/>Do you want to close the launcher and do this now?"
+msgstr "我们检测到你在 OneDrive 中运行 ATLauncher。<br/><br/>这可能导致严重问题，你应该将此文件夹移出 OneDrive。<br/><br/>现在要关闭启动器并执行此操作吗？"
+
+msgid "We have detected that you're running ATLauncher from within Program Files.<br/><br/>This can cause serious issues and you should move the folder outside of Program Files.<br/><br/>Do you want to close the launcher and do this now?"
+msgstr "我们检测到你在 Program Files 中运行 ATLauncher。<br/><br/>这可能导致严重问题，你应该将此文件夹移出 Program Files。<br/><br/>现在要关闭启动器并执行此操作吗？"
+
+msgid "We were unable to download some of the mods from this pack.<br/>This is likely due to the author of that mod disabling third party clients from downloading it.<br/><br/>You'll be prompted shortly to start downloading these mods manually through your browser to your downloads folder.<br/>Once you've downloaded the file that was opened in your browser to your downloads folder, you can continue through all the mods that have disabled this toggle.<br/><br/>This process is unfortunate, but we don't have any choice in this matter and has to be done this way."
+msgstr "我们无法下载此整合包中的部分模组。<br/>这很可能是因为该模组的作者禁用了第三方客户端下载。<br/><br/>稍后会提示你通过浏览器手动下载这些模组到你的下载文件夹。<br/>当你把浏览器中打开的文件下载到下载文件夹后，就可以继续处理所有禁用了此开关的模组。<br/><br/>这个过程实属无奈，但我们对此别无选择，只能这样做。"
+
+msgid "We were unable to download this mod.<br/>This is likely due to the author of the mod disabling third party clients from downloading it.<br/><br/>You'll be prompted shortly to download the mod manually through your browser to your downloads folder.<br/>Once you've downloaded the file that was opened in your browser to your downloads folder, we can continue with installing the mod.<br/><br/>This process is unfortunate, but we don't have any choice in this matter and has to be done this way."
+msgstr "我们无法下载此模组。<br/>这很可能是因为该模组的作者禁用了第三方客户端下载。<br/><br/>稍后会提示你通过浏览器手动下载该模组到你的下载文件夹。<br/>当你把浏览器中打开的文件下载到下载文件夹后，我们就可以继续安装该模组。<br/><br/>这个过程实属无奈，但我们对此别无选择，只能这样做。"
+
+msgid "We were unable to download this modpack.<br/>This is likely due to the author of the modpack disabling third party clients from downloading it.<br/><br/>You'll be prompted shortly to download the modpack manually through your browser to your downloads folder.<br/>Once you've downloaded the file that was opened in your browser to your downloads folder, we can continue with installing the modpack.<br/><br/>This process is unfortunate, but we don't have any choice in this matter and has to be done this way."
+msgstr "我们无法下载此整合包。<br/>这很可能是因为该整合包的作者禁用了第三方客户端下载。<br/><br/>稍后会提示你通过浏览器手动下载该整合包到你的下载文件夹。<br/>当你把浏览器中打开的文件下载到下载文件夹后，我们就可以继续安装该整合包。<br/><br/>这个过程实属无奈，但我们对此别无选择，只能这样做。"
+
+msgid "Which account to use when launching this instance. Use Launcher Default will use whichever account is selected in the launcher."
+msgstr "启动该实例时使用的账户。“使用启动器默认”将使用启动器中当前选中的账户。"
+
+msgid "Which format to export this instance as"
+msgstr "将此实例导出为哪种格式"
+
+msgid "Wiki"
+msgstr "Wiki"
+
+msgid "Worlds"
+msgstr "世界"
+
+msgid "You Must Login Again"
+msgstr "你必须重新登录"
+
+msgid "You don't have any single player worlds yet on this instance."
+msgstr "该实例上还没有任何单人游戏世界。"
+
+msgid "You may not distribute ANY resources."
+msgstr "你不得分发任何资源。"
+
+msgid "You must login again in order to continue."
+msgstr "你必须重新登录才能继续。"
+
+msgid "You're currently using a version of Java not managed by the launcher.<br/><br/>Letting the launcher manage it's own version of Java is better for support and ease of use.<br/><br/>This process is automatic and doesn't affect any Java installs outside of the launcher.<br/><br/>Do you want to let the launcher manage it's own version of Java?"
+msgstr "你当前使用的 Java 版本不是由启动器管理的。<br/><br/>让启动器管理自己的 Java 版本更便于获得支持和使用。<br/><br/>此过程是自动的，不会影响启动器之外的任何 Java 安装。<br/><br/>要让启动器管理自己的 Java 版本吗？"
+
+#. {0} is the minimum Java version required
+msgid "You're running an out of date version of Java and the launcher will no longer open.<br/><br/>If you see this message after updating Java, please make sure you updated to<br/>at least Java {0} and uninstalled any older versions of Java from your system.<br/><br/>The launcher will now exit."
+msgstr "你运行的 Java 版本已过时，启动器将无法再打开。<br/><br/>如果你在更新 Java 后看到此消息，请确保你至少更新到了<br/>Java {0}，并从系统中卸载了所有旧版本的 Java。<br/><br/>启动器现在将退出。"
+
+#. {0} is the minimum Java version required
+msgid "You're running an out of date version of Java.<br/><br/><font color=\"red\"><b>Soon the launcher will no longer open without updating Java.</b></font><br/><br/>If you see this message after updating Java, please make sure you updated to<br/>at least Java {0} and uninstalled any older versions of Java from your system.<br/><br/>Do you want to update Java now?"
+msgstr "你运行的 Java 版本已过时。<br/><br/><font color=\"red\"><b>很快，不更新 Java 启动器将无法再打开。</b></font><br/><br/>如果你在更新 Java 后看到此消息，请确保你至少更新到了<br/>Java {0}，并从系统中卸载了所有旧版本的 Java。<br/><br/>现在要更新 Java 吗？"
+
+msgid "You're running an out of date version of Java.<br/><br/>In the future the launcher will no longer work without updating this.<br/><br/>This process is automatic and doesn't affect any Java installs outside of the launcher.<br/><br/>Do you want to do it now?"
+msgstr "你运行的 Java 版本已过时。<br/><br/>今后不更新 Java 启动器将无法工作。<br/><br/>此过程是自动的，不会影响启动器之外的任何 Java 安装。<br/><br/>现在要更新吗？"
+
+#. {0} is the minimum Java version required
+msgid "You're running an out of date version of Java.<br/><br/>The launcher requires at least Java {0} to run.<br/><br/>The launcher can install this automatically for you, otherwise the launcher will exit.<br/><br/>Do you want to install it now?"
+msgstr "你运行的 Java 版本已过时。<br/><br/>启动器至少需要 Java {0} 才能运行。<br/><br/>启动器可以为你自动安装，否则启动器将退出。<br/><br/>现在要安装吗？"
+
+msgid "Your exported instance contains mods not on Modrinth and were included in the overrides folder. If you're uploading this to Modrinth, you will need to make sure you have permissions to distribute the below mods, else your modpack will get denied on Modrinth."
+msgstr "你导出的实例包含不在 Modrinth 上的模组，它们已包含在 overrides 文件夹中。如果你要上传到 Modrinth，需要确保你拥有分发下列模组的权限，否则你的整合包将被 Modrinth 拒绝。"
+
+msgid "Your name"
+msgstr "你的名字"
+
+msgid "Your username has been updated."
+msgstr "你的用户名已更新。"
+
+msgid "Your username hasn't changed."
+msgstr "你的用户名没有变化。"
+
+#. {0} is how many mods are not available
+msgid "{0} Mods Not Available"
+msgstr "{0} 个模组不可用"
+
+#. {0} is what was not installed
+msgid "{0} Not Installed"
+msgstr "{0} 未安装"
+
+#. {0} is what was not removed
+msgid "{0} Not Removed"
+msgstr "{0} 未移除"
+
+#. {0} is what was removed
+msgid "{0} Removed"
+msgstr "{0} 已移除"
+
+#. {0} is what the settings are for
+msgid "{0} Settings"
+msgstr "{0} 设置"
+
+#. {0} is what is being set up
+msgid "{0} Setup"
+msgstr "{0} 初始设置"
+
+#. {0} is what was updated
+msgid "{0} Updated"
+msgstr "{0} 已更新"
+
+#. {0} is what was removed
+msgid "{0} has been removed from this instance."
+msgstr "{0} 已从该实例中移除。"
+
+#. {0} is what was not installed
+msgid "{0} has not been installed. Check the console for more information."
+msgstr "{0} 尚未安装。请查看控制台了解更多信息。"
+
+#. {0} is what was not installed or updated
+msgid "{0} has not been installed/updated as there are no versions available."
+msgstr "{0} 尚未安装/更新，因为没有可用版本。"
+
+#. {0} is what was not removed
+msgid "{0} has not been removed. Check the console for more information."
+msgstr "{0} 尚未移除。请查看控制台了解更多信息。"
+
+#. {0} is a number of mods
+msgid "{0} mods"
+msgstr "{0} 个模组"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} Installed"
+msgstr "{0} {1} 已安装"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} Not Installed"
+msgstr "{0} {1} 未安装"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} Not Reinstalled"
+msgstr "{0} {1} 未重新安装"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} Not Updated"
+msgstr "{0} {1} 未更新"
+
+#. {0} is the loader type or pack name, {1} is its version
+msgid "{0} {1} has been installed."
+msgstr "{0} {1} 已安装。"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} has been installed.<br/><br/>Find it in the instances tab."
+msgstr "{0} {1} 已安装。<br/><br/>可在实例标签页找到它。"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} has been reinstalled."
+msgstr "{0} {1} 已重新安装。"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} server has been installed.<br/><br/>Find it in the servers tab."
+msgstr "{0} {1} 服务器已安装。<br/><br/>可在服务器标签页找到它。"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} wasn't installed.<br/><br/>Check error logs for more information."
+msgstr "{0} {1} 安装失败。<br/><br/>请查看错误日志了解更多信息。"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} wasn't reinstalled.<br/><br/>Check error logs for more information."
+msgstr "{0} {1} 重新安装失败。<br/><br/>请查看错误日志了解更多信息。"
+
+#. {0} is the pack name, {1} is its version
+msgid "{0} {1} wasn't updated.<br/><br/>Check error logs for more information."
+msgstr "{0} {1} 更新失败。<br/><br/>请查看错误日志了解更多信息。"
+
+#. {0} is the mod about to be enabled
+msgid "{0}<br/><br/>Are you sure that you want to enable this mod?"
+msgstr "{0}<br/><br/>确定要启用这个模组吗？"

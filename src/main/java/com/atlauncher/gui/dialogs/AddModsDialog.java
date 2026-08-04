@@ -64,6 +64,7 @@ import com.atlauncher.gui.card.packbrowser.MD3PackCard;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.button.MD3IconButton;
+import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
@@ -274,6 +275,8 @@ public final class AddModsDialog extends JDialog {
         // warning would have landed beside the first one's button
         this.warningPanel.setLayout(new BoxLayout(this.warningPanel, BoxLayout.Y_AXIS));
         this.warningPanel.setOpaque(false);
+        // the banners stretch to the panel, so the panel is where their margin lives
+        this.warningPanel.setBorder(MD3Spacing.border(0, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
         this.warningPanel.setAlignmentX(LEFT_ALIGNMENT);
 
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S), 0));
@@ -821,9 +824,9 @@ public final class AddModsDialog extends JDialog {
         label.setForeground(MD3Color.onSurface());
         label.setIconTextGap(MD3Spacing.scale(MD3Spacing.S));
 
-        JPanel banner = new JPanel(new BorderLayout(MD3Spacing.scale(MD3Spacing.L), 0));
-        banner.setOpaque(true);
-        banner.setBackground(MD3Color.get(MD3Color.SURFACE_CONTAINER_HIGH));
+        // a filled card rather than a flat panel, so the banner rounds off the way everything
+        // around it does
+        MD3Card banner = new MD3Card(MD3Card.Variant.FILLED, new BorderLayout(MD3Spacing.scale(MD3Spacing.L), 0));
         banner.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
         banner.setAlignmentX(LEFT_ALIGNMENT);
         banner.add(label, BorderLayout.CENTER);

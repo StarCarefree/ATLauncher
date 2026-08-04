@@ -29,11 +29,9 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.swing.BorderFactory;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -48,10 +46,15 @@ import com.atlauncher.data.curseforge.CurseForgeProject;
 import com.atlauncher.data.minecraft.loaders.LoaderVersion;
 import com.atlauncher.gui.card.CurseForgeFileDependencyCard;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.container.MD3ListContainer;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Analytics;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.CurseForgeApi;
 import com.atlauncher.utils.ModCompatibility;
 import com.atlauncher.utils.ModDependencyResolver;
@@ -72,7 +75,9 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
     private List<CurseForgeFileDependency> lastDependenciesNeeded;
 
     private MD3Button installAllDependencies;
-    private JScrollPane scrollPane;
+    private MD3ListContainer dependenciesContainer;
+    /** The whole dependency block - heading, list and button - shown only when there is one. */
+    private JPanel dependenciesSection;
     private MD3Button addButton;
     private MD3Button viewModButton;
     private MD3Button viewFileButton;
@@ -137,26 +142,48 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
         viewFileButton = MD3Button.outlined(GetText.tr("View File"));
         viewFileButton.setEnabled(false);
 
-        dependenciesPanel.setVisible(false);
-        dependenciesPanel
-            .setBorder(BorderFactory.createTitledBorder(GetText.tr("The below mods need to be installed")));
+        getContentPane().setBackground(MD3Color.surface());
+
+        dependenciesPanel.setOpaque(false);
+
+        // the whole block appears and disappears as one: there is nothing to say about
+        // dependencies until a file that has some is picked
+        dependenciesSection = new JPanel(new BorderLayout(0, MD3Spacing.scale(MD3Spacing.S)));
+        dependenciesSection.setOpaque(false);
+        dependenciesSection.setVisible(false);
 
         // Top Panel Stuff
         JPanel top = new JPanel(new BorderLayout());
-        // #. {0} is the name of the mod we're installing
-        top.add(new JLabel(GetText.tr("Installing {0}", mod.name), JLabel.CENTER), BorderLayout.NORTH);
+        top.setOpaque(false);
+        top.setBorder(MD3Spacing.border(MD3Spacing.XL, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
 
-        installedJLabel = new JLabel("", JLabel.CENTER);
+        // #. {0} is the name of the mod we're installing
+        String headlineText = GetText.tr("Installing {0}", mod.name);
+        JLabel headline = new JLabel(headlineText);
+        headline.setFont(MD3Type.font(MD3Type.TITLE_LARGE, headlineText));
+        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
+        headline.setForeground(MD3Color.onSurface());
+        top.add(headline, BorderLayout.NORTH);
+
+        installedJLabel = new JLabel("");
+        installedJLabel.setFont(MD3Type.font(MD3Type.LABEL_MEDIUM));
+        installedJLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.LABEL_MEDIUM);
+        installedJLabel.setForeground(MD3Color.onSurfaceVariant());
         top.add(installedJLabel, BorderLayout.SOUTH);
 
         // Middle Panel Stuff
         JPanel middle = new JPanel(new BorderLayout());
+        middle.setOpaque(false);
+        middle.setBorder(MD3Spacing.border(0, MD3Spacing.L, 0, MD3Spacing.L));
 
-        // Middle Panel Stuff
-        JPanel filesPanel = new JPanel(new FlowLayout());
-        filesPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
+        JPanel filesPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S), 0));
+        filesPanel.setOpaque(false);
+        filesPanel.setBorder(MD3Spacing.border(MD3Spacing.S, 0, MD3Spacing.M, 0));
 
         versionsLabel = new JLabel(GetText.tr("Version To Install") + ": ");
+        versionsLabel.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
+        versionsLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
+        versionsLabel.setForeground(MD3Color.onSurface());
         filesPanel.add(versionsLabel);
 
         filesDropdown = new MD3ComboBox<>();
@@ -166,32 +193,38 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
         filesDropdown.setEnabled(false);
         filesPanel.add(filesDropdown);
 
-        scrollPane = new JScrollPane(dependenciesPanel);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.setPreferredSize(UIScale.scale(new Dimension(550, 250)));
-
         // one click for the lot, and it follows the chain - a dependency's own dependencies were
         // never mentioned, since this panel is built from this mod's list and nothing else
         installAllDependencies = MD3Button.outlined(GetText.tr("Install All Required"));
         installAllDependencies.setVisible(false);
         installAllDependencies.addActionListener(e -> installAllDependencies());
 
-        JPanel dependencyActions = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        dependencyActions.add(installAllDependencies);
+        String dependenciesTitle = GetText.tr("The below mods need to be installed");
+        JLabel dependenciesLabel = new JLabel(dependenciesTitle);
+        dependenciesLabel.setFont(MD3Type.font(MD3Type.TITLE_SMALL, dependenciesTitle));
+        dependenciesLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
+        dependenciesLabel.setForeground(MD3Color.primary());
 
-        JPanel dependencies = new JPanel(new BorderLayout());
-        dependencies.add(dependencyActions, BorderLayout.NORTH);
-        dependencies.add(scrollPane, BorderLayout.CENTER);
+        JPanel dependencyHeader = new JPanel(new BorderLayout());
+        dependencyHeader.setOpaque(false);
+        dependencyHeader.add(dependenciesLabel, BorderLayout.WEST);
+        dependencyHeader.add(installAllDependencies, BorderLayout.EAST);
+
+        dependenciesContainer = MD3ListContainer.wrapping(dependenciesPanel);
+        dependenciesContainer.setPreferredSize(UIScale.scale(new Dimension(550, 250)));
+
+        dependenciesSection.add(dependencyHeader, BorderLayout.NORTH);
+        dependenciesSection.add(dependenciesContainer, BorderLayout.CENTER);
 
         middle.add(filesPanel, BorderLayout.NORTH);
-        middle.add(dependencies, BorderLayout.SOUTH);
+        middle.add(dependenciesSection, BorderLayout.SOUTH);
 
         this.getFiles();
 
         // Bottom Panel Stuff
-        JPanel bottom = new JPanel();
-        bottom.setLayout(new FlowLayout());
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        buttons.setOpaque(false);
+        buttons.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
 
         addButton.addActionListener(e -> {
             CurseForgeFile file = (CurseForgeFile) filesDropdown.getSelectedItem();
@@ -221,10 +254,17 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
 
         MD3Button cancel = MD3Button.text(GetText.tr("Cancel"));
         cancel.addActionListener(e -> dispose());
-        bottom.add(addButton);
-        bottom.add(viewModButton);
-        bottom.add(viewFileButton);
-        bottom.add(cancel);
+
+        // confirm goes rightmost: cancel first, Add last
+        buttons.add(cancel);
+        buttons.add(viewFileButton);
+        buttons.add(viewModButton);
+        buttons.add(addButton);
+
+        JPanel bottom = new JPanel(new BorderLayout());
+        bottom.setOpaque(false);
+        bottom.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bottom.add(buttons, BorderLayout.CENTER);
 
         add(top, BorderLayout.NORTH);
         add(middle, BorderLayout.CENTER);
@@ -308,10 +348,10 @@ public class CurseForgeProjectFileSelectorDialog extends JDialog {
                 setSize(UIScale.scale(550), UIScale.scale(450));
                 setLocationRelativeTo(App.launcher.getParent());
 
-                dependenciesPanel.setVisible(true);
+                dependenciesSection.setVisible(true);
 
-                scrollPane.repaint();
-                scrollPane.validate();
+                dependenciesContainer.repaint();
+                dependenciesContainer.validate();
             } else {
                 installAllDependencies.setVisible(false);
                 setSize(UIScale.scale(550), UIScale.scale(200));
