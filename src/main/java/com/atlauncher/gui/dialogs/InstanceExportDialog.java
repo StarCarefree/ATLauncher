@@ -186,6 +186,34 @@ public class InstanceExportDialog extends JDialog {
             }
         }
 
+        // Joint Packaging
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.insets = UIConstants.LABEL_INSETS;
+        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
+
+        JLabelWithHover jointPackagingLabel = new JLabelWithHover(GetText.tr("Joint Packaging") + ":", HELP_ICON,
+            GetText.tr(
+                "Also include mods that are only published on the other platform. For Modrinth exports they are added as external download entries, for CurseForge exports they are kept in overrides and listed in modlist.html. You may need distribution permission from the mod authors to publish the exported pack."));
+        topPanel.add(jointPackagingLabel, gbc);
+
+        gbc.gridx++;
+        gbc.insets = UIConstants.LABEL_INSETS;
+        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
+        final MD3Checkbox jointPackaging = new MD3Checkbox(GetText.tr("Include single-platform mods"));
+        topPanel.add(jointPackaging, gbc);
+
+        Runnable updateJointPackagingState = () -> {
+            boolean supported = ((ComboItem<InstanceExportFormat>) format.getSelectedItem())
+                .getValue() != InstanceExportFormat.MULTIMC;
+            jointPackaging.setEnabled(supported);
+            if (!supported) {
+                jointPackaging.setSelected(false);
+            }
+        };
+        format.addActionListener(e -> updateJointPackagingState.run());
+        updateJointPackagingState.run();
+
         // Export File
         gbc.gridx = 0;
         gbc.gridy++;
@@ -318,7 +346,7 @@ public class InstanceExportDialog extends JDialog {
 
                 Pair<Path, String> exportResult = instance.export(name.getText(), version.getText(),
                     author.getText(),
-                    exportFormat, saveTo.getText(), overrides);
+                    exportFormat, saveTo.getText(), overrides, jointPackaging.isSelected());
 
                 if (exportResult.left() != null) {
                     instance.launcher.lastExportName = name.getText();

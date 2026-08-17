@@ -1240,7 +1240,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
     }
 
     public Pair<Path, String> export(String name, String version, String author, InstanceExportFormat format,
-        String saveTo, List<String> overrides) {
+        String saveTo, List<String> overrides, boolean jointPackaging) {
         try {
             Path saveToPath = Paths.get(saveTo);
             if (!Files.isDirectory(saveToPath)) {
@@ -1252,15 +1252,15 @@ public class Instance extends MinecraftVersion implements ModManagement {
         }
 
         if (format == InstanceExportFormat.CURSEFORGE) {
-            return exportAsCurseForgeZip(name, version, author, saveTo, overrides);
+            return exportAsCurseForgeZip(name, version, author, saveTo, overrides, jointPackaging);
         } else if (format == InstanceExportFormat.MODRINTH) {
-            return exportAsModrinthZip(name, version, author, saveTo, overrides);
+            return exportAsModrinthZip(name, version, author, saveTo, overrides, jointPackaging);
         } else if (format == InstanceExportFormat.CURSEFORGE_AND_MODRINTH) {
-            if (exportAsCurseForgeZip(name, version, author, saveTo, overrides).left() == null) {
+            if (exportAsCurseForgeZip(name, version, author, saveTo, overrides, jointPackaging).left() == null) {
                 return new Pair<>(null, null);
             }
 
-            return exportAsModrinthZip(name, version, author, saveTo, overrides);
+            return exportAsModrinthZip(name, version, author, saveTo, overrides, jointPackaging);
         } else if (format == InstanceExportFormat.MULTIMC) {
             return exportAsMultiMcZip(name, version, author, saveTo, overrides);
         }
@@ -1581,7 +1581,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
     }
 
     public Pair<Path, String> exportAsCurseForgeZip(String name, String version, String author, String saveTo,
-        List<String> overrides) {
+        List<String> overrides, boolean jointPackaging) {
         String safePathName = name.replaceAll("[\\\"?:*<>|]", "");
         Path to = Paths.get(saveTo).resolve(String.format("%s %s.zip", safePathName, version));
         CurseForgeManifest manifest = new CurseForgeManifest();
@@ -1718,6 +1718,26 @@ public class Instance extends MinecraftVersion implements ModManagement {
                     sb.append("<li>").append(mod.name).append("</li>");
                 }
             });
+
+        // when joint packaging, also list mods only available on Modrinth (kept in overrides)
+        if (jointPackaging) {
+            List<DisableableMod> modrinthOnlyMods = this.launcher.mods.stream()
+                .filter(m -> !m.disabled && !(m.isFromCurseForge() && m.hasFullCurseForgeInformation())
+                    && m.modrinthProject != null && m.type != com.atlauncher.data.Type.worlds)
+                .filter(mod -> overrides.stream()
+                    .anyMatch(path -> getRoot().relativize(mod.getPath(this)).startsWith(path)))
+                .collect(Collectors.toList());
+
+            modrinthOnlyMods.forEach(mod -> sb.append("<li><a href=\"https://modrinth.com/mod/")
+                .append(mod.modrinthProject.slug).append("\">").append(mod.name).append("</a></li>"));
+
+            if (!modrinthOnlyMods.isEmpty()) {
+                LogManager.debug(String.format(
+                    "Joint packaging: %d mods only available on Modrinth were kept in overrides and listed in modlist.html",
+                    modrinthOnlyMods.size()));
+            }
+        }
+
         sb.append("</ul>");
 
         try (OutputStreamWriter fileWriter = new OutputStreamWriter(
@@ -1800,7 +1820,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
     }
 
     public Pair<Path, String> exportAsModrinthZip(String name, String version, String author, String saveTo,
-        List<String> overrides) {
+        List<String> overrides, boolean jointPackaging) {
         String safePathName = name.replaceAll("[\\\"?:*<>|]", "");
         Path to = Paths.get(saveTo).resolve(String.format("%s %s.mrpack", safePathName, version));
         ModrinthModpackManifest manifest = new ModrinthModpackManifest();
@@ -1835,6 +1855,50 @@ public class Instance extends MinecraftVersion implements ModManagement {
                 }
             });
             this.save();
+        }
+
+        // when joint packaging, declare mods only available on CurseForge as external downloads
+        Set<DisableableMod> jointPackagedMods = new HashSet<>();
+        List<ModrinthModpackFile> jointPackagedFiles = new ArrayList<>();
+
+        if (jointPackaging) {
+            Set<Integer> seenCurseForgeFileIds = new HashSet<>();
+
+            this.launcher.mods.stream()
+                .filter(m -> !m.disabled && m.modrinthVersion == null && m.getFile(this).exists()
+                    && m.isFromCurseForge() && m.hasFullCurseForgeInformation()
+                    && m.curseForgeFile.isAvailable && m.curseForgeFile.downloadUrl != null
+                    && m.type != com.atlauncher.data.Type.worlds)
+                .filter(mod -> overrides.stream()
+                    .anyMatch(path -> getRoot().relativize(mod.getPath(this)).startsWith(path)))
+                .filter(mod -> seenCurseForgeFileIds.add(mod.curseForgeFileId))
+                .forEach(mod -> {
+                    Path modPath = mod.getFile(this).toPath();
+
+                    ModrinthModpackFile file = new ModrinthModpackFile();
+                    file.path = this.ROOT.relativize(modPath).toString().replace("\\", "/");
+
+                    file.hashes = new HashMap<>();
+                    file.hashes.put("sha1", Hashing.sha1(modPath).toString());
+                    file.hashes.put("sha512", Hashing.sha512(modPath).toString());
+
+                    file.env = new HashMap<>();
+                    file.env.put("client", "required");
+                    file.env.put("server", "required");
+
+                    file.fileSize = modPath.toFile().length();
+                    file.downloads = new ArrayList<>();
+                    file.downloads.add(mod.curseForgeFile.downloadUrl);
+
+                    jointPackagedFiles.add(file);
+                    jointPackagedMods.add(mod);
+                });
+
+            if (!jointPackagedFiles.isEmpty()) {
+                LogManager.debug(String.format(
+                    "Joint packaging: %d mods only available on CurseForge were added as external download entries",
+                    jointPackagedFiles.size()));
+            }
         }
 
         manifest.formatVersion = 1;
@@ -1884,6 +1948,9 @@ public class Instance extends MinecraftVersion implements ModManagement {
                         })
                         .collect(Collectors.toList());
                 }));
+
+        manifest.files.addAll(jointPackagedFiles);
+
         manifest.dependencies = new HashMap<>();
 
         manifest.dependencies.put("minecraft", this.id);
@@ -1936,7 +2003,9 @@ public class Instance extends MinecraftVersion implements ModManagement {
         }
 
         // remove files that come from Modrinth or aren't disabled
-        launcher.mods.stream().filter(m -> !m.disabled && m.modrinthVersion != null).forEach(mod -> {
+        launcher.mods.stream()
+            .filter(m -> !m.disabled && (m.modrinthVersion != null || jointPackagedMods.contains(m)))
+            .forEach(mod -> {
             File file = mod.getFile(this, overridesPath);
 
             if (file.exists()) {
