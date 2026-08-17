@@ -35,6 +35,7 @@ import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.SwingConstants;
 import javax.swing.border.AbstractBorder;
+import javax.swing.event.ChangeListener;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicButtonUI;
 
@@ -43,6 +44,7 @@ import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3State;
@@ -55,7 +57,7 @@ import com.formdev.flatlaf.util.UIScale;
  *
  * <p>
  * Never shared between components - each instance owns a {@link MD3StateLayer} holding that
- * button's own animation state.
+ * button's own animation state, and a {@link MD3Animated} for how far into being selected it is.
  *
  * <p>
  * Elevated buttons carry no drop shadow. Swing clips a component's painting to its own bounds, so a
@@ -68,10 +70,17 @@ import com.formdev.flatlaf.util.UIScale;
  * the size, so nothing around the button shifts and the whole thing costs one interpolated number.
  */
 public class MD3ButtonUI extends BasicButtonUI {
-    /** Icons sit at 18dp inside a button, smaller than the 24dp standalone size. */
-    private static final int ICON_SIZE = 18;
-
     private MD3StateLayer stateLayer;
+
+    /**
+     * How far into being selected the button is, so a toggle can fade its container in rather than
+     * swapping colours on a click.
+     */
+    protected MD3Animated selection;
+    private ChangeListener selectionListener;
+
+    /** The button this UI is installed on, for the no-argument metrics ChipUI still overrides. */
+    protected JComponent host;
 
     public static ComponentUI createUI(JComponent c) {
         return new MD3ButtonUI();
@@ -80,6 +89,8 @@ public class MD3ButtonUI extends BasicButtonUI {
     @Override
     public void installUI(JComponent c) {
         super.installUI(c);
+
+        host = c;
 
         AbstractButton b = (AbstractButton) c;
         b.setOpaque(false);
@@ -92,26 +103,50 @@ public class MD3ButtonUI extends BasicButtonUI {
         b.setIconTextGap(UIScale.scale(MD3Spacing.S));
         b.setHorizontalAlignment(SwingConstants.CENTER);
         b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        b.setFont(MD3Type.font(typeRole()));
-        b.putClientProperty(MD3Type.TYPE_ROLE_KEY, typeRole());
+
+        MD3Type.Role role = typeRole(b);
+        b.setFont(MD3Type.font(role));
+        b.putClientProperty(MD3Type.TYPE_ROLE_KEY, role);
 
         stateLayer = MD3StateLayer.attach(b, b.getModel());
+        selection = new MD3Animated(c, isSelected(b) ? 1f : 0f, MD3Motion.SHORT4, MD3Motion.STANDARD);
+        selectionListener = e -> selection.setTarget(isSelected(b) ? 1f : 0f);
+        b.getModel().addChangeListener(selectionListener);
     }
 
     @Override
     public void uninstallUI(JComponent c) {
+        if (selectionListener != null) {
+            ((AbstractButton) c).getModel().removeChangeListener(selectionListener);
+            selectionListener = null;
+        }
+
+        if (selection != null) {
+            selection.stop();
+            selection = null;
+        }
+
         if (stateLayer != null) {
             stateLayer.uninstall();
             stateLayer = null;
         }
 
         c.setBorder(null);
+        host = null;
 
         super.uninstallUI(c);
     }
 
     protected MD3Type.Role typeRole() {
         return MD3Type.LABEL_LARGE;
+    }
+
+    protected MD3Type.Role typeRole(AbstractButton b) {
+        if (buttonSizeOf(b) == MD3Button.Size.SMALL) {
+            return MD3Type.LABEL_MEDIUM;
+        }
+
+        return typeRole();
     }
 
     protected int shapeRadius() {
@@ -123,11 +158,27 @@ public class MD3ButtonUI extends BasicButtonUI {
      * whole gesture; going further makes a 40dp control look like it changed into a different one.
      */
     protected int pressedRadius() {
-        return MD3Shape.MEDIUM;
+        switch (buttonSizeOf(host)) {
+            case SMALL:
+                return MD3Shape.EXTRA_SMALL;
+            case LARGE:
+                return MD3Shape.LARGE;
+            case MEDIUM:
+            default:
+                return MD3Shape.MEDIUM;
+        }
     }
 
     protected int minimumHeight() {
-        return MD3Spacing.BUTTON_HEIGHT;
+        switch (buttonSizeOf(host)) {
+            case SMALL:
+                return MD3Spacing.BUTTON_HEIGHT_SMALL;
+            case LARGE:
+                return MD3Spacing.BUTTON_HEIGHT_LARGE;
+            case MEDIUM:
+            default:
+                return MD3Spacing.BUTTON_HEIGHT;
+        }
     }
 
     /**
@@ -135,6 +186,18 @@ public class MD3ButtonUI extends BasicButtonUI {
      */
     protected float pressProgress() {
         return stateLayer == null ? 0f : stateLayer.pressProgress();
+    }
+
+    /**
+     * @return how far into being selected the button is, falling back to the model for a paint that
+     *         arrives before the UI has finished installing
+     */
+    protected float selectedProgress(AbstractButton b) {
+        return selection != null ? selection.value() : (isSelected(b) ? 1f : 0f);
+    }
+
+    protected static boolean isSelected(AbstractButton b) {
+        return b.getModel().isSelected();
     }
 
     /**
@@ -147,43 +210,97 @@ public class MD3ButtonUI extends BasicButtonUI {
     protected Shape shapeOf(JComponent c, float inset) {
         float width = c.getWidth() - inset * 2f;
         float height = c.getHeight() - inset * 2f;
+        float rest = MD3Shape.resolve(shapeRadius(), width, height);
+        float pressed = MD3Shape.resolve(pressedRadius(), width, height);
+        float outer = MD3Animated.lerp(rest, pressed, pressProgress());
+        MD3Button.Segment segment = segmentOf(c);
 
-        float radius = MD3Animated.lerp(MD3Shape.resolve(shapeRadius(), width, height),
-                MD3Shape.resolve(pressedRadius(), width, height), pressProgress());
+        if (segment == MD3Button.Segment.SOLO) {
+            return new RoundRectangle2D.Float(inset, inset, width, height, outer * 2f, outer * 2f);
+        }
 
-        return new RoundRectangle2D.Float(inset, inset, width, height, radius * 2f, radius * 2f);
+        float innerRest = MD3Shape.resolve(MD3Shape.BUTTON_GROUP_INNER, width, height);
+        float innerPress = MD3Shape.resolve(MD3Shape.NONE, width, height);
+        float inner = MD3Animated.lerp(innerRest, innerPress, pressProgress());
+
+        float leading = segment == MD3Button.Segment.START ? outer : inner;
+        float trailing = segment == MD3Button.Segment.END ? outer : inner;
+
+        return MD3Shape.roundedRadii(inset, inset, width, height, leading, trailing, trailing, leading);
     }
 
     static MD3Button.Variant variantOf(Component c) {
         return c instanceof MD3Button ? ((MD3Button) c).getVariant() : MD3Button.Variant.TONAL;
     }
 
+    static MD3Button.Size buttonSizeOf(Component c) {
+        return c instanceof MD3Button ? ((MD3Button) c).getButtonSize() : MD3Button.Size.MEDIUM;
+    }
+
+    static MD3Button.Tone toneOf(Component c) {
+        return c instanceof MD3Button ? ((MD3Button) c).getTone() : MD3Button.Tone.DEFAULT;
+    }
+
+    static MD3Button.Segment segmentOf(Component c) {
+        return c instanceof MD3Button ? ((MD3Button) c).getSegment() : MD3Button.Segment.SOLO;
+    }
+
+    static Icon trailingOf(Component c) {
+        return c instanceof MD3Button ? ((MD3Button) c).getTrailingIcon() : null;
+    }
+
+    static boolean isError(Component c) {
+        return toneOf(c) == MD3Button.Tone.ERROR;
+    }
+
     /**
      * The colour the button fills itself with, or null for the variants that draw no container.
      */
     protected Color containerColor(AbstractButton b) {
+        float selected = selectedProgress(b);
+        boolean error = isError(b);
+
         if (!b.isEnabled()) {
             switch (variantOf(b)) {
                 case FILLED:
                 case TONAL:
                 case ELEVATED:
                     return MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
+                case OUTLINED:
+                case TEXT:
                 default:
-                    return null;
+                    return selected > 0f
+                            ? MD3Color.withAlpha(
+                                    MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface()), selected)
+                            : null;
             }
         }
 
         switch (variantOf(b)) {
             case FILLED:
-                return MD3Color.primary();
+                return error ? MD3Color.error() : MD3Color.primary();
             case TONAL:
-                return MD3Color.secondaryContainer();
+                if (error) {
+                    return MD3Color.errorContainer();
+                }
+
+                return MD3Animated.lerp(MD3Color.secondaryContainer(), MD3Color.primaryContainer(), selected);
             case ELEVATED:
-                return MD3Color.surfaceContainerLow();
+                if (error) {
+                    return MD3Color.errorContainer();
+                }
+
+                return MD3Animated.lerp(MD3Color.surfaceContainerLow(), MD3Color.surfaceContainerHigh(), selected);
             case OUTLINED:
             case TEXT:
             default:
-                return null;
+                if (selected <= 0f) {
+                    return null;
+                }
+
+                Color fill = error ? MD3Color.errorContainer() : MD3Color.secondaryContainer();
+
+                return MD3Color.withAlpha(fill, selected);
         }
     }
 
@@ -196,16 +313,27 @@ public class MD3ButtonUI extends BasicButtonUI {
             return MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface());
         }
 
+        float selected = selectedProgress(b);
+        boolean error = isError(b);
+
         switch (variantOf(b)) {
             case FILLED:
-                return MD3Color.get(MD3Color.ON_PRIMARY);
+                return error ? MD3Color.onError() : MD3Color.get(MD3Color.ON_PRIMARY);
             case TONAL:
-                return MD3Color.onSecondaryContainer();
+                if (error) {
+                    return MD3Color.onErrorContainer();
+                }
+
+                return MD3Animated.lerp(MD3Color.onSecondaryContainer(), MD3Color.onPrimaryContainer(), selected);
             case ELEVATED:
             case OUTLINED:
             case TEXT:
             default:
-                return MD3Color.primary();
+                if (error) {
+                    return MD3Animated.lerp(MD3Color.error(), MD3Color.onErrorContainer(), selected);
+                }
+
+                return MD3Animated.lerp(MD3Color.primary(), MD3Color.onSecondaryContainer(), selected);
         }
     }
 
@@ -214,13 +342,20 @@ public class MD3ButtonUI extends BasicButtonUI {
             return null;
         }
 
-        if (!b.isEnabled()) {
-            return MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
+        float remaining = 1f - selectedProgress(b);
+
+        if (remaining <= 0f) {
+            return null;
         }
 
-        // the outline takes the accent while focused, so focus is legible even for users who
-        // cannot pick out the state layer
-        return b.isFocusOwner() ? MD3Color.primary() : MD3Color.outline();
+        if (!b.isEnabled()) {
+            return MD3Color.withAlpha(MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface()),
+                    remaining);
+        }
+
+        Color line = isError(b) ? MD3Color.error() : (b.isFocusOwner() ? MD3Color.primary() : MD3Color.outline());
+
+        return MD3Color.withAlpha(line, remaining);
     }
 
     @Override
@@ -255,9 +390,17 @@ public class MD3ButtonUI extends BasicButtonUI {
     protected void paintFocusIndicator(Graphics2D g, JComponent c) {
         float width = UIScale.scale(2f);
 
-        g.setColor(MD3Color.get(MD3Color.SECONDARY));
+        g.setColor(isError(c) ? MD3Color.error() : MD3Color.get(MD3Color.SECONDARY));
         g.setStroke(new BasicStroke(width));
         g.draw(shapeOf(c, width / 2f));
+    }
+
+    @Override
+    public void paint(Graphics g, JComponent c) {
+        super.paint(g, c);
+
+        paintTrailingIcon(g, c);
+        paintSplitDivider(g, c);
     }
 
     @Override
@@ -287,8 +430,90 @@ public class MD3ButtonUI extends BasicButtonUI {
         icon.paintIcon(c, g, iconRect.x, iconRect.y);
     }
 
+    protected void paintTrailingIcon(Graphics g, JComponent c) {
+        Icon icon = trailingOf(c);
+
+        if (icon == null) {
+            return;
+        }
+
+        AbstractButton b = (AbstractButton) c;
+
+        if (icon instanceof MD3Icon) {
+            icon = ((MD3Icon) icon).withSize(iconSize()).withColor(contentColor(b));
+        }
+
+        int size = icon.getIconWidth();
+        int pad = UIScale.scale(trailingIconPad(c));
+
+        icon.paintIcon(c, g, c.getWidth() - pad - size, (c.getHeight() - icon.getIconHeight()) / 2);
+    }
+
+    /**
+     * The hairline that splits a menu button into a primary action and a chevron. Only drawn when
+     * the button has said it is split - a menu-only button has no primary half to mark off.
+     */
+    protected void paintSplitDivider(Graphics g, JComponent c) {
+        if (!(c instanceof MD3MenuButton) || !((MD3MenuButton) c).isSplit() || !c.isEnabled()) {
+            return;
+        }
+
+        AbstractButton b = (AbstractButton) c;
+        int x = c.getWidth() - UIScale.scale(trailingZone(c));
+        int inset = UIScale.scale(MD3Spacing.S);
+        Graphics2D g2 = MD3Paint.setup(g);
+
+        try {
+            g2.setColor(MD3Color.withAlpha(contentColor(b), 0.24f));
+            g2.drawLine(x, inset, x, c.getHeight() - inset);
+        } finally {
+            g2.dispose();
+        }
+    }
+
     protected int iconSize() {
-        return ICON_SIZE;
+        switch (buttonSizeOf(host)) {
+            case SMALL:
+                return MD3Spacing.BUTTON_ICON_SIZE_SMALL;
+            case LARGE:
+                return MD3Spacing.BUTTON_ICON_SIZE_LARGE;
+            case MEDIUM:
+            default:
+                return MD3Spacing.BUTTON_ICON_SIZE;
+        }
+    }
+
+    static int trailingIconPad(Component c) {
+        return buttonSizeOf(c) == MD3Button.Size.SMALL ? MD3Spacing.M : MD3Spacing.L;
+    }
+
+    static int trailingZone(Component c) {
+        return trailingIconPad(c) + iconSizeFor(c) + MD3Spacing.XS;
+    }
+
+    static int iconSizeFor(Component c) {
+        switch (buttonSizeOf(c)) {
+            case SMALL:
+                return MD3Spacing.BUTTON_ICON_SIZE_SMALL;
+            case LARGE:
+                return MD3Spacing.BUTTON_ICON_SIZE_LARGE;
+            case MEDIUM:
+            default:
+                return MD3Spacing.BUTTON_ICON_SIZE;
+        }
+    }
+
+    static int horizontalPadding(Component c) {
+        return buttonSizeOf(c) == MD3Button.Size.SMALL ? MD3Spacing.BUTTON_PADDING_H_SMALL
+                : MD3Spacing.BUTTON_PADDING_H;
+    }
+
+    static int verticalPadding(Component c) {
+        return buttonSizeOf(c) == MD3Button.Size.SMALL ? MD3Spacing.XS : MD3Spacing.S;
+    }
+
+    static int leadingIconPadding(Component c) {
+        return buttonSizeOf(c) == MD3Button.Size.SMALL ? MD3Spacing.M : MD3Spacing.L;
     }
 
     @Override
@@ -300,6 +525,10 @@ public class MD3ButtonUI extends BasicButtonUI {
         }
 
         size.height = Math.max(size.height, UIScale.scale(minimumHeight()));
+
+        if (c instanceof MD3Button) {
+            size.width = Math.max(size.width, UIScale.scale(MD3Spacing.BUTTON_MIN_WIDTH));
+        }
 
         return size;
     }
@@ -316,22 +545,38 @@ public class MD3ButtonUI extends BasicButtonUI {
     private static class MD3ButtonBorder extends AbstractBorder {
         @Override
         public Insets getBorderInsets(Component c, Insets insets) {
+            if (c instanceof MD3IconButton) {
+                // the 40dp (or 32, or 48) is the whole target; padding here would shove the glyph
+                // off centre and, on a 40dp box with 16/24 insets, leave no room for it at all
+                insets.set(0, 0, 0, 0);
+
+                return insets;
+            }
+
             boolean hasIcon = c instanceof AbstractButton && ((AbstractButton) c).getIcon() != null;
+            boolean hasTrailing = trailingOf(c) != null;
             boolean lowEmphasis = variantOf(c) == MD3Button.Variant.TEXT;
+
+            int padH = horizontalPadding(c);
+            int padV = verticalPadding(c);
+            int iconPad = leadingIconPadding(c);
 
             int leading;
             int trailing;
 
             if (lowEmphasis) {
                 leading = MD3Spacing.M;
-                trailing = hasIcon ? MD3Spacing.L : MD3Spacing.M;
+                trailing = hasIcon || hasTrailing ? MD3Spacing.L : MD3Spacing.M;
             } else {
-                leading = hasIcon ? MD3Spacing.L : MD3Spacing.BUTTON_PADDING_H;
-                trailing = MD3Spacing.BUTTON_PADDING_H;
+                leading = hasIcon ? iconPad : padH;
+                trailing = padH;
             }
 
-            insets.set(UIScale.scale(MD3Spacing.S), UIScale.scale(leading), UIScale.scale(MD3Spacing.S),
-                    UIScale.scale(trailing));
+            if (hasTrailing) {
+                trailing = trailingZone(c);
+            }
+
+            insets.set(UIScale.scale(padV), UIScale.scale(leading), UIScale.scale(padV), UIScale.scale(trailing));
 
             return insets;
         }

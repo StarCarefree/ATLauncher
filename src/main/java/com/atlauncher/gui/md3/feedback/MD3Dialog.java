@@ -393,7 +393,11 @@ public class MD3Dialog extends JDialog {
         }
 
         public Builder action(String label, MD3Button.Variant variant) {
-            actions.add(new ActionSpec(label, variant));
+            return action(label, variant, MD3Button.Tone.DEFAULT);
+        }
+
+        public Builder action(String label, MD3Button.Variant variant, MD3Button.Tone tone) {
+            actions.add(new ActionSpec(label, variant, tone));
 
             return this;
         }
@@ -401,6 +405,14 @@ public class MD3Dialog extends JDialog {
         /** The action that proceeds. Added last so it lands rightmost. */
         public Builder confirm(String label) {
             return action(label, MD3Button.Variant.FILLED);
+        }
+
+        /**
+         * A confirming action that destroys something. Filled, in the error role, so it cannot be
+         * mistaken for the routine confirm next to it.
+         */
+        public Builder destructive(String label) {
+            return action(label, MD3Button.Variant.FILLED, MD3Button.Tone.ERROR);
         }
 
         /** The action that backs out. */
@@ -424,10 +436,12 @@ public class MD3Dialog extends JDialog {
     private static final class ActionSpec {
         final String label;
         final MD3Button.Variant variant;
+        final MD3Button.Tone tone;
 
-        ActionSpec(String label, MD3Button.Variant variant) {
+        ActionSpec(String label, MD3Button.Variant variant, MD3Button.Tone tone) {
             this.label = label;
             this.variant = variant;
+            this.tone = tone;
         }
     }
 
@@ -505,6 +519,7 @@ public class MD3Dialog extends JDialog {
                     int index = i;
 
                     MD3Button button = new MD3Button(spec.label, spec.variant);
+                    button.setTone(spec.tone);
                     button.addActionListener(e -> dialog.finish(index));
 
                     row.add(button);

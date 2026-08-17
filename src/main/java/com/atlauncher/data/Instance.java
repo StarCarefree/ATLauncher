@@ -1941,6 +1941,14 @@ public class Instance extends MinecraftVersion implements ModManagement {
                             file.fileSize = modPath.toFile().length();
 
                             file.downloads = new ArrayList<>();
+
+                            // when joint packaging, prefer the CurseForge download source for
+                            // mods available on both platforms, falling back to Modrinth
+                            if (jointPackaging && mod.isFromCurseForge() && mod.hasFullCurseForgeInformation()
+                                && mod.curseForgeFile.isAvailable && mod.curseForgeFile.downloadUrl != null) {
+                                file.downloads.add(mod.curseForgeFile.downloadUrl);
+                            }
+
                             file.downloads.add(HttpUrl.get(mod.modrinthVersion.getFileBySha1(sha1Hash).url)
                                 .toString());
 

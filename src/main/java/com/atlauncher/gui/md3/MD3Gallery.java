@@ -39,14 +39,18 @@ import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3ButtonGroup;
 import com.atlauncher.gui.md3.button.MD3Fab;
 import com.atlauncher.gui.md3.button.MD3IconButton;
+import com.atlauncher.gui.md3.button.MD3MenuButton;
 import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.container.MD3ListItem;
@@ -388,10 +392,70 @@ public final class MD3Gallery {
             panel.add(row);
         }
 
+        JPanel sizes = flow();
+        sizes.add(tag("SIZE"));
+        sizes.add(MD3Button.filled("Small").withButtonSize(MD3Button.Size.SMALL));
+        sizes.add(MD3Button.filled("Medium"));
+        sizes.add(MD3Button.filled("Large").withButtonSize(MD3Button.Size.LARGE));
+        panel.add(sizes);
+
+        JPanel tones = flow();
+        tones.add(tag("ERROR"));
+        tones.add(MD3Button.filledError("Delete"));
+        tones.add(MD3Button.tonal("Remove").withTone(MD3Button.Tone.ERROR));
+        tones.add(MD3Button.outlined("Cancel").withTone(MD3Button.Tone.ERROR));
+        tones.add(MD3Button.text("Dismiss").withTone(MD3Button.Tone.ERROR));
+        panel.add(tones);
+
+        JPanel selected = flow();
+        selected.add(tag("SELECTED"));
+
+        MD3Button selectedOutlined = MD3Button.outlined("Grid");
+        selectedOutlined.setSelected(true);
+
+        selected.add(selectedOutlined);
+        selected.add(MD3Button.outlined("List"));
+        panel.add(selected);
+
+        JPanel menus = flow();
+        menus.add(tag("MENU"));
+        menus.add(MD3MenuButton.filled("Play", demoMenu()));
+        menus.add(MD3MenuButton.tonal("Open", demoMenu()).withSplit(true));
+        panel.add(menus);
+
+        JPanel groups = flow();
+        groups.add(tag("GROUP"));
+
+        MD3ButtonGroup group = new MD3ButtonGroup();
+        group.addOption("Name");
+        group.addOption("Date");
+        group.addOption("Size");
+        groups.add(group);
+        panel.add(groups);
+
+        JPanel fabs = flow();
+        fabs.add(tag("FAB"));
+        fabs.add(MD3Fab.small(MD3Icons.ADD, "Create"));
+        fabs.add(new MD3Fab(MD3Icons.ADD, "Create instance"));
+        fabs.add(MD3Fab.extended(MD3Icons.ADD, "Create instance"));
+        panel.add(fabs);
+
         return panel;
     }
 
+    private static JPopupMenu demoMenu() {
+        JPopupMenu menu = new JPopupMenu();
+        menu.add(new JMenuItem("Play Online"));
+        menu.add(new JMenuItem("Play Offline"));
+
+        return menu;
+    }
+
     private static JComponent iconButtons() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(false);
+
         JPanel row = flow();
 
         for (MD3IconButton.Variant variant : MD3IconButton.Variant.values()) {
@@ -403,7 +467,29 @@ public final class MD3Gallery {
             row.add(disabled);
         }
 
-        return row;
+        panel.add(row);
+
+        JPanel selected = flow();
+        selected.add(tag("SELECTED"));
+
+        for (MD3IconButton.Variant variant : MD3IconButton.Variant.values()) {
+            MD3IconButton on = new MD3IconButton(MD3Icons.GRID_VIEW, "Grid view", variant);
+            on.setSelected(true);
+            selected.add(on);
+        }
+
+        panel.add(selected);
+
+        JPanel sizes = flow();
+        sizes.add(tag("SIZE"));
+        sizes.add(new MD3IconButton(MD3Icons.MORE_VERT, "More options", MD3IconButton.Variant.STANDARD,
+                MD3IconButton.Size.SMALL));
+        sizes.add(new MD3IconButton(MD3Icons.MORE_VERT, "More options"));
+        sizes.add(new MD3IconButton(MD3Icons.MORE_VERT, "More options", MD3IconButton.Variant.STANDARD,
+                MD3IconButton.Size.LARGE));
+        panel.add(sizes);
+
+        return panel;
     }
 
     private static JComponent icons() {

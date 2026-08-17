@@ -18,7 +18,9 @@
 package com.atlauncher.gui.md3.button;
 
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Shape;
@@ -35,6 +37,7 @@ import com.atlauncher.themes.md3.token.MD3Elevation;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3State;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.formdev.flatlaf.util.UIScale;
 
 /**
@@ -51,24 +54,55 @@ import com.formdev.flatlaf.util.UIScale;
  * with a lighter surface. So this reserves room inside its own bounds for the shadow to fall in -
  * Swing clips painting to the component, and a shadow drawn at the edges of the container would
  * have nowhere to go.
+ *
+ * <pre>
+ * {@link #MD3Fab(MD3Icon.Painter, String) regular}   56dp, icon only - the default
+ * {@link #small(MD3Icon.Painter, String) small}      40dp, icon only - a FAB that has to share
+ * {@link #extended(MD3Icon.Painter, String) extended} 56dp, icon plus a label
+ * </pre>
  */
 public class MD3Fab extends JButton {
-    /** The container. The component itself is larger, by the room the shadow needs. */
-    private static final int SIZE = MD3Spacing.FAB_SIZE;
+    public enum Size {
+        SMALL, REGULAR
+    }
 
     /** Level 3 at rest, and a level higher under the pointer, which is Material's lift. */
     private static final int RESTING = MD3Elevation.LEVEL3;
     private static final int HOVERED = MD3Elevation.LEVEL4;
 
     private final MD3Icon.Painter painter;
+    private final Size fabSize;
+    private final boolean extended;
+    private final String label;
     private final MD3StateLayer stateLayer;
 
     /**
+     * A regular 56dp icon-only FAB.
+     *
      * @param label what the action is, as the tooltip and the accessible name - a button drawn as a
      *              plus sign is one a screen reader can otherwise only call "button"
      */
     public MD3Fab(MD3Icon.Painter painter, String label) {
+        this(painter, label, Size.REGULAR, false);
+    }
+
+    public static MD3Fab small(MD3Icon.Painter painter, String label) {
+        return new MD3Fab(painter, label, Size.SMALL, false);
+    }
+
+    /**
+     * A FAB that carries its label next to the icon, for a screen that has the room and a first-time
+     * user who should not have to guess what the plus sign does.
+     */
+    public static MD3Fab extended(MD3Icon.Painter painter, String label) {
+        return new MD3Fab(painter, label, Size.REGULAR, true);
+    }
+
+    private MD3Fab(MD3Icon.Painter painter, String label, Size fabSize, boolean extended) {
         this.painter = painter;
+        this.fabSize = fabSize;
+        this.extended = extended;
+        this.label = label;
 
         setToolTipText(label);
         getAccessibleContext().setAccessibleName(label);
@@ -78,10 +112,22 @@ public class MD3Fab extends JButton {
         setBorderPainted(false);
         setFocusPainted(false);
         setBorder(null);
+        setRolloverEnabled(true);
+        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        setFont(MD3Type.font(MD3Type.LABEL_LARGE));
+        putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.LABEL_LARGE);
 
         // from the model rather than from mouse listeners: it is the only source that reports a
         // space bar press as a press
         stateLayer = MD3StateLayer.attach(this, getModel());
+    }
+
+    public Size getFabSize() {
+        return fabSize;
+    }
+
+    public boolean isExtended() {
+        return extended;
     }
 
     /**
@@ -111,15 +157,16 @@ public class MD3Fab extends JButton {
     /**
      * The corner it has reached. A FAB is the one control in the launcher that rounds <em>out</em>
      * under the finger rather than in: it is already a squircle, and Material 3 morphs it the rest of
-     * the way to a circle.
+     * the way to a circle. An extended FAB is already a stadium, so the morph has nothing to do.
      */
     private Shape shapeOf(float inset) {
-        float size = getWidth() - inset * 2f;
-        float radius = MD3Animated.lerp(MD3Shape.resolve(MD3Shape.FAB, size, size),
-                MD3Shape.resolve(MD3Shape.FULL, size, size), stateLayer.pressProgress());
+        float width = getWidth() - inset * 2f;
+        float height = getHeight() - inset * 2f;
+        int restToken = extended ? MD3Shape.FULL : MD3Shape.FAB;
+        float radius = MD3Animated.lerp(MD3Shape.resolve(restToken, width, height),
+                MD3Shape.resolve(MD3Shape.FULL, width, height), stateLayer.pressProgress());
 
-        return new RoundRectangle2D.Float(inset, inset, size, getHeight() - inset * 2f, radius * 2f,
-                radius * 2f);
+        return new RoundRectangle2D.Float(inset, inset, width, height, radius * 2f, radius * 2f);
     }
 
     private Color containerColor() {
@@ -138,6 +185,10 @@ public class MD3Fab extends JButton {
         return MD3Color.get(MD3Color.ON_PRIMARY_CONTAINER);
     }
 
+    private int containerHeight() {
+        return fabSize == Size.SMALL ? MD3Spacing.FAB_SIZE_SMALL : MD3Spacing.FAB_SIZE;
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = MD3Paint.setup(g);
@@ -154,12 +205,31 @@ public class MD3Fab extends JButton {
 
             if (isEnabled() && isFocusOwner()) {
                 MD3Paint.focusRing(g2, inset, inset, getWidth() - inset * 2f, getHeight() - inset * 2f,
-                        MD3Shape.FAB);
+                        extended ? MD3Shape.FULL : MD3Shape.FAB);
             }
 
             int box = UIScale.scale(MD3Spacing.ICON_SIZE_LARGE);
-            MD3Icon.of(painter, MD3Spacing.ICON_SIZE_LARGE).withColor(content).paintIcon(this, g2,
-                    (getWidth() - box) / 2, (getHeight() - box) / 2);
+            int iconX;
+            int iconY = (getHeight() - box) / 2;
+
+            if (extended) {
+                iconX = Math.round(inset) + UIScale.scale(MD3Spacing.L);
+            } else {
+                iconX = (getWidth() - box) / 2;
+            }
+
+            MD3Icon.of(painter, MD3Spacing.ICON_SIZE_LARGE).withColor(content).paintIcon(this, g2, iconX, iconY);
+
+            if (extended && label != null && !label.isEmpty()) {
+                g2.setFont(getFont());
+                g2.setColor(content);
+
+                FontMetrics metrics = g2.getFontMetrics();
+                int textX = iconX + box + UIScale.scale(MD3Spacing.M);
+                int textY = (getHeight() + metrics.getAscent() - metrics.getDescent()) / 2;
+
+                g2.drawString(label, textX, textY);
+            }
         } finally {
             g2.dispose();
         }
@@ -167,9 +237,19 @@ public class MD3Fab extends JButton {
 
     @Override
     public Dimension getPreferredSize() {
-        int size = UIScale.scale(SIZE) + shadowRoom() * 2;
+        int room = shadowRoom();
+        int height = UIScale.scale(containerHeight()) + room * 2;
 
-        return new Dimension(size, size);
+        if (!extended) {
+            return new Dimension(height, height);
+        }
+
+        FontMetrics metrics = getFontMetrics(getFont());
+        int text = label == null ? 0 : metrics.stringWidth(label);
+        int width = room * 2 + UIScale.scale(MD3Spacing.L) + UIScale.scale(MD3Spacing.ICON_SIZE_LARGE)
+                + UIScale.scale(MD3Spacing.M) + text + UIScale.scale(20);
+
+        return new Dimension(width, height);
     }
 
     @Override

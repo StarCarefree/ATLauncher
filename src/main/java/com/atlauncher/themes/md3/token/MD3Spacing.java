@@ -47,11 +47,24 @@ public final class MD3Spacing {
     /** Minimum size of anything the user has to hit with a pointer. */
     public static final int MIN_TOUCH_TARGET = 40;
 
+    public static final int BUTTON_HEIGHT_SMALL = 32;
     public static final int BUTTON_HEIGHT = 40;
+    public static final int BUTTON_HEIGHT_LARGE = 48;
+    public static final int BUTTON_PADDING_H_SMALL = 16;
     public static final int BUTTON_PADDING_H = 24;
+    /** Short labels like "Add" still need to look like a button, not a lozenge. */
+    public static final int BUTTON_MIN_WIDTH = 48;
+    public static final int BUTTON_ICON_SIZE_SMALL = 16;
+    public static final int BUTTON_ICON_SIZE = 18;
+    public static final int BUTTON_ICON_SIZE_LARGE = 20;
+    /** Gap between segments of a connected button group. */
+    public static final int BUTTON_GROUP_GAP = 2;
+    public static final int ICON_BUTTON_SIZE_SMALL = 32;
     public static final int ICON_BUTTON_SIZE = 40;
+    public static final int ICON_BUTTON_SIZE_LARGE = 48;
     public static final int ICON_SIZE = 20;
     public static final int ICON_SIZE_LARGE = 24;
+    public static final int FAB_SIZE_SMALL = 40;
     public static final int FAB_SIZE = 56;
     public static final int CHIP_HEIGHT = 32;
     public static final int TEXT_FIELD_HEIGHT = 56;

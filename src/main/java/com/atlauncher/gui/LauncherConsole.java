@@ -242,7 +242,7 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
         clearButton = MD3Button.text(GetText.tr("Clear"));
         copyLogButton = MD3Button.outlined(GetText.tr("Copy Log"));
         uploadLogButton = MD3Button.outlined(GetText.tr("Upload Log"));
-        killMinecraftButton = MD3Button.filled(GetText.tr("Kill Minecraft"));
+        killMinecraftButton = MD3Button.filledError(GetText.tr("Kill Minecraft"));
         killMinecraftButton.setVisible(false);
 
         addActionListeners();

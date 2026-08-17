@@ -22,6 +22,8 @@ import javax.swing.JButton;
 import javax.swing.UIManager;
 import javax.swing.plaf.ButtonUI;
 
+import com.atlauncher.themes.md3.token.MD3Type;
+
 /**
  * A Material 3 button.
  *
@@ -49,7 +51,48 @@ public class MD3Button extends JButton {
         FILLED, TONAL, OUTLINED, ELEVATED, TEXT
     }
 
+    /**
+     * How large the button is. Medium is Material's default, and what every existing call site gets.
+     *
+     * <pre>
+     * SMALL   32dp - a card action, a table row, anything that has to share a line
+     * MEDIUM  40dp - the default, and the size a dialog action should stay
+     * LARGE   48dp - an empty state, a hero action that is the page
+     * </pre>
+     *
+     * <p>
+     * The extra-large sizes Material 3 Expressive added for phones do not appear here. At the
+     * launcher's 1200x700 minimum they would be a third of the window.
+     */
+    public enum Size {
+        SMALL, MEDIUM, LARGE
+    }
+
+    /**
+     * The colour role the variant is painted in.
+     *
+     * <p>
+     * {@link Tone#ERROR} is for an action that destroys something - Delete, Remove, Kill Minecraft.
+     * It is not a sixth variant: the hierarchy of filled / tonal / outlined still applies, and a
+     * dialog that asks before deleting still wants a filled confirm and a text dismiss.
+     */
+    public enum Tone {
+        DEFAULT, ERROR
+    }
+
+    /**
+     * Where the button sits in a connected group. {@link Segment#SOLO} is the default, and the only
+     * value a button that is not inside an {@link MD3ButtonGroup} should ever have.
+     */
+    public enum Segment {
+        SOLO, START, MIDDLE, END
+    }
+
     private Variant variant;
+    private Size buttonSize;
+    private Tone tone;
+    private Segment segment;
+    private Icon trailingIcon;
 
     public MD3Button() {
         this(null, null, Variant.TONAL);
@@ -67,8 +110,11 @@ public class MD3Button extends JButton {
         super(text, icon);
 
         this.variant = variant;
+        this.buttonSize = Size.MEDIUM;
+        this.tone = Tone.DEFAULT;
+        this.segment = Segment.SOLO;
 
-        // the superclass constructor already ran updateUI, before the field above existed, so the
+        // the superclass constructor already ran updateUI, before the fields above existed, so the
         // UI needs telling that the variant it read as null has since become real
         updateUI();
     }
@@ -109,6 +155,14 @@ public class MD3Button extends JButton {
         return new MD3Button(text, icon, Variant.TEXT);
     }
 
+    public static MD3Button filledError(String text) {
+        return filled(text).withTone(Tone.ERROR);
+    }
+
+    public static MD3Button filledError(String text, Icon icon) {
+        return filled(text, icon).withTone(Tone.ERROR);
+    }
+
     /**
      * @return the variant, never null - a button constructed through the no-argument path reads as
      *         tonal until told otherwise
@@ -124,6 +178,94 @@ public class MD3Button extends JButton {
         firePropertyChange("variant", old, variant);
         revalidate();
         repaint();
+    }
+
+    /**
+     * Named {@code getButtonSize} rather than {@code getSize} so it does not hide
+     * {@link java.awt.Component#getSize()}, which is the pixel box the layout already asked for.
+     */
+    public Size getButtonSize() {
+        return buttonSize != null ? buttonSize : Size.MEDIUM;
+    }
+
+    public void setButtonSize(Size buttonSize) {
+        Size old = this.buttonSize;
+        this.buttonSize = buttonSize;
+
+        firePropertyChange("buttonSize", old, buttonSize);
+        applyTypeRole();
+        revalidate();
+        repaint();
+    }
+
+    public MD3Button withButtonSize(Size buttonSize) {
+        setButtonSize(buttonSize);
+
+        return this;
+    }
+
+    public Tone getTone() {
+        return tone != null ? tone : Tone.DEFAULT;
+    }
+
+    public void setTone(Tone tone) {
+        Tone old = this.tone;
+        this.tone = tone;
+
+        firePropertyChange("tone", old, tone);
+        repaint();
+    }
+
+    public MD3Button withTone(Tone tone) {
+        setTone(tone);
+
+        return this;
+    }
+
+    public Segment getSegment() {
+        return segment != null ? segment : Segment.SOLO;
+    }
+
+    public void setSegment(Segment segment) {
+        Segment old = this.segment;
+        this.segment = segment;
+
+        firePropertyChange("segment", old, segment);
+        repaint();
+    }
+
+    /**
+     * An icon on the trailing edge, after the label. Used for a menu chevron or a "opens something"
+     * affordance; the leading icon stays the one {@link #setIcon(Icon)} holds.
+     */
+    public Icon getTrailingIcon() {
+        return trailingIcon;
+    }
+
+    public void setTrailingIcon(Icon trailingIcon) {
+        Icon old = this.trailingIcon;
+        this.trailingIcon = trailingIcon;
+
+        firePropertyChange("trailingIcon", old, trailingIcon);
+        revalidate();
+        repaint();
+    }
+
+    public MD3Button withTrailingIcon(Icon trailingIcon) {
+        setTrailingIcon(trailingIcon);
+
+        return this;
+    }
+
+    /**
+     * Restores the type role for the current size. The UI sets this at install time; calling it
+     * again is what lets {@link #setButtonSize(Size)} change the face without rebuilding the UI.
+     */
+    void applyTypeRole() {
+        MD3Type.Role role = getButtonSize() == Size.SMALL ? MD3Type.LABEL_MEDIUM : MD3Type.LABEL_LARGE;
+
+        setFont(MD3Type.font(role));
+        putClientProperty(MD3Type.TYPE_ROLE_KEY, role);
     }
 
     @Override

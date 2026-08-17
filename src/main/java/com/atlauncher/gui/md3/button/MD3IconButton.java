@@ -45,7 +45,21 @@ public class MD3IconButton extends JButton {
         OUTLINED
     }
 
+    /**
+     * How large the target is. Medium is Material's 40dp default.
+     *
+     * <pre>
+     * SMALL   32dp - a dense toolbar, or a trailing control on a list item
+     * MEDIUM  40dp - the default, and the size an app-bar action should stay
+     * LARGE   48dp - a sparse header, or an action that has to be easy to hit
+     * </pre>
+     */
+    public enum Size {
+        SMALL, MEDIUM, LARGE
+    }
+
     private Variant variant;
+    private Size buttonSize;
 
     public MD3IconButton(MD3Icon.Painter painter, String tooltip) {
         this(MD3Icon.of(painter), tooltip, Variant.STANDARD);
@@ -56,9 +70,18 @@ public class MD3IconButton extends JButton {
     }
 
     public MD3IconButton(Icon icon, String tooltip, Variant variant) {
+        this(icon, tooltip, variant, Size.MEDIUM);
+    }
+
+    public MD3IconButton(MD3Icon.Painter painter, String tooltip, Variant variant, Size size) {
+        this(MD3Icon.of(painter), tooltip, variant, size);
+    }
+
+    public MD3IconButton(Icon icon, String tooltip, Variant variant, Size size) {
         super(icon);
 
         this.variant = variant;
+        this.buttonSize = size;
 
         setToolTipText(tooltip);
         getAccessibleContext().setAccessibleName(tooltip);
@@ -76,6 +99,29 @@ public class MD3IconButton extends JButton {
 
         firePropertyChange("variant", old, variant);
         repaint();
+    }
+
+    /**
+     * Named {@code getButtonSize} rather than {@code getSize} so it does not hide
+     * {@link java.awt.Component#getSize()}.
+     */
+    public Size getButtonSize() {
+        return buttonSize != null ? buttonSize : Size.MEDIUM;
+    }
+
+    public void setButtonSize(Size buttonSize) {
+        Size old = this.buttonSize;
+        this.buttonSize = buttonSize;
+
+        firePropertyChange("buttonSize", old, buttonSize);
+        revalidate();
+        repaint();
+    }
+
+    public MD3IconButton withButtonSize(Size buttonSize) {
+        setButtonSize(buttonSize);
+
+        return this;
     }
 
     @Override

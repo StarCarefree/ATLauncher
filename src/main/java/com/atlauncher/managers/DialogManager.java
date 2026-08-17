@@ -294,7 +294,11 @@ public final class DialogManager {
             String option = this.options.get(order[i]);
 
             if (i == order.length - 1) {
-                builder.confirm(option);
+                if (this.type == ERROR) {
+                    builder.destructive(option);
+                } else {
+                    builder.confirm(option);
+                }
             } else {
                 builder.dismiss(option);
             }

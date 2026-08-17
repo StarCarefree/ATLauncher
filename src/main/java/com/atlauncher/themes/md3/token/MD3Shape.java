@@ -44,6 +44,11 @@ public final class MD3Shape {
     /** Per component-class defaults, so the same component is shaped alike everywhere. */
     public static final int BUTTON = FULL;
     public static final int ICON_BUTTON = FULL;
+    /**
+     * Inner corners of a connected button group. Small enough that the row reads as one control,
+     * large enough that a segment does not look like it was clipped out of a stadium.
+     */
+    public static final int BUTTON_GROUP_INNER = EXTRA_SMALL;
     public static final int CHIP = SMALL;
     public static final int CARD = MEDIUM;
     public static final int DIALOG = EXTRA_LARGE;
@@ -102,6 +107,55 @@ public final class MD3Shape {
         float tr = resolve(topRight, width, height);
         float br = resolve(bottomRight, width, height);
         float bl = resolve(bottomLeft, width, height);
+
+        Path2D.Float path = new Path2D.Float();
+        float right = x + width;
+        float bottom = y + height;
+
+        path.moveTo(x + tl, y);
+        path.lineTo(right - tr, y);
+
+        if (tr > 0) {
+            path.quadTo(right, y, right, y + tr);
+        }
+
+        path.lineTo(right, bottom - br);
+
+        if (br > 0) {
+            path.quadTo(right, bottom, right - br, bottom);
+        }
+
+        path.lineTo(x + bl, bottom);
+
+        if (bl > 0) {
+            path.quadTo(x, bottom, x, bottom - bl);
+        }
+
+        path.lineTo(x, y + tl);
+
+        if (tl > 0) {
+            path.quadTo(x, y, x + tl, y);
+        }
+
+        path.closePath();
+
+        return path;
+    }
+
+    /**
+     * The same independent-corner outline, taking radii that have already been resolved to pixels.
+     *
+     * <p>
+     * Needed where a corner is mid-animation: the value is no longer a token, and running it back
+     * through {@link #resolve(int, float, float)} would scale it a second time.
+     */
+    public static Shape roundedRadii(float x, float y, float width, float height, float topLeft,
+            float topRight, float bottomRight, float bottomLeft) {
+        float limit = Math.min(width, height) / 2f;
+        float tl = Math.max(0f, Math.min(topLeft, limit));
+        float tr = Math.max(0f, Math.min(topRight, limit));
+        float br = Math.max(0f, Math.min(bottomRight, limit));
+        float bl = Math.max(0f, Math.min(bottomLeft, limit));
 
         Path2D.Float path = new Path2D.Float();
         float right = x + width;
