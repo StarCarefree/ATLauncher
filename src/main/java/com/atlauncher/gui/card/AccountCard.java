@@ -36,6 +36,7 @@ import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.data.MicrosoftAccount;
 import com.atlauncher.gui.layouts.CardGridLayout;
+import com.atlauncher.gui.md3.MD3FittingLabel;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Badge;
@@ -69,6 +70,7 @@ public final class AccountCard extends MD3Card implements CardGridLayout.WidthAw
     private static final int SKIN_HEIGHT = 200;
 
     private final Skin skin;
+    private MD3FittingLabel username;
 
     /** Scaled; -1 until the grid has said how wide this card is. */
     private int layoutWidth = -1;
@@ -137,12 +139,11 @@ public final class AccountCard extends MD3Card implements CardGridLayout.WidthAw
         body.setOpaque(false);
         body.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.M, MD3Spacing.S));
 
-        JLabel username = new JLabel(account.minecraftUsername);
+        username = new MD3FittingLabel(account.minecraftUsername, 2);
         username.setFont(MD3Type.font(MD3Type.TITLE_MEDIUM, account.minecraftUsername));
         username.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_MEDIUM);
         username.setForeground(MD3Color.onSurface());
-        username.setAlignmentX(LEFT_ALIGNMENT);
-        username.setToolTipText(account.minecraftUsername);
+        username.setOverflowTip(account.minecraftUsername);
         body.add(username);
 
         // an account whose token has expired cannot launch anything, and until now the only sign of
@@ -205,6 +206,10 @@ public final class AccountCard extends MD3Card implements CardGridLayout.WidthAw
         }
 
         layoutWidth = width;
+
+        if (username != null) {
+            username.fitTo(width - UIScale.scale(MD3Spacing.L) - UIScale.scale(MD3Spacing.S));
+        }
     }
 
     @Override

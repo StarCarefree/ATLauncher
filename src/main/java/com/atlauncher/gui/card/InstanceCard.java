@@ -63,6 +63,7 @@ import com.atlauncher.gui.dialogs.InstanceSettingsDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.md3.MD3FittingLabel;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Badge;
@@ -110,8 +111,8 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
 
     private final String titleFormat;
 
-    private JLabel titleLabel;
-    private JLabel subtitleLabel;
+    private MD3FittingLabel titleLabel;
+    private MD3FittingLabel subtitleLabel;
     private MD3Button playAction;
     private MD3IconButton overflowAction;
     private JPanel coverWrapper;
@@ -293,18 +294,16 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
         body.setOpaque(false);
         body.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.M, MD3Spacing.S));
 
-        titleLabel = new JLabel(instance.launcher.name);
-        titleLabel.setFont(MD3Type.font(MD3Type.TITLE_MEDIUM));
+        titleLabel = new MD3FittingLabel(instance.launcher.name, 2);
+        titleLabel.setFont(MD3Type.font(MD3Type.TITLE_MEDIUM, instance.launcher.name));
         titleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_MEDIUM);
         titleLabel.setForeground(MD3Color.onSurface());
-        titleLabel.setAlignmentX(LEFT_ALIGNMENT);
-        titleLabel.setToolTipText(formattedTitle());
+        titleLabel.setOverflowTip(formattedTitle());
 
-        subtitleLabel = new JLabel(subtitleText());
-        subtitleLabel.setFont(MD3Type.font(MD3Type.BODY_SMALL));
+        subtitleLabel = new MD3FittingLabel(subtitleText(), 1);
+        subtitleLabel.setFont(MD3Type.font(MD3Type.BODY_SMALL, subtitleText()));
         subtitleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
         subtitleLabel.setForeground(MD3Color.onSurfaceVariant());
-        subtitleLabel.setAlignmentX(LEFT_ALIGNMENT);
 
         JPanel badges = new JPanel(new WrapLayout(FlowLayout.LEFT, UIScale.scale(MD3Spacing.XS), 0));
         badges.setOpaque(false);
@@ -331,11 +330,13 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
 
         actions.add(playAction, BorderLayout.WEST);
         actions.add(overflowAction, BorderLayout.EAST);
+        actions.setMaximumSize(new Dimension(Integer.MAX_VALUE, actions.getPreferredSize().height));
 
         body.add(titleLabel);
         body.add(subtitleLabel);
         body.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
         body.add(badges);
+        body.add(Box.createVerticalGlue());
         body.add(actions);
 
         return body;
@@ -381,6 +382,16 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
 
         if (coverWrapper != null) {
             coverWrapper.setPreferredSize(new Dimension(width, Math.round(width * 9f / 16f)));
+        }
+
+        int textWidth = width - UIScale.scale(MD3Spacing.L) - UIScale.scale(MD3Spacing.S);
+
+        if (titleLabel != null) {
+            titleLabel.fitTo(textWidth);
+        }
+
+        if (subtitleLabel != null) {
+            subtitleLabel.fitTo(textWidth);
         }
     }
 

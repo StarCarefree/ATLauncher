@@ -53,6 +53,7 @@ import com.atlauncher.gui.dialogs.EditModsDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.md3.MD3FittingLabel;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Badge;
@@ -98,8 +99,8 @@ public class ServerCard extends MD3Card implements RelocalizationListener, CardG
     private final Server server;
     private final ImagePanel image;
 
-    private JLabel titleLabel;
-    private JLabel subtitleLabel;
+    private MD3FittingLabel titleLabel;
+    private MD3FittingLabel subtitleLabel;
     private MD3Button launchAction;
     private MD3IconButton overflowAction;
     private JPanel coverWrapper;
@@ -208,18 +209,16 @@ public class ServerCard extends MD3Card implements RelocalizationListener, CardG
         body.setOpaque(false);
         body.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.M, MD3Spacing.S));
 
-        titleLabel = new JLabel(server.name);
+        titleLabel = new MD3FittingLabel(server.name, 2);
         titleLabel.setFont(MD3Type.font(MD3Type.TITLE_MEDIUM, server.name));
         titleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_MEDIUM);
         titleLabel.setForeground(MD3Color.onSurface());
-        titleLabel.setAlignmentX(LEFT_ALIGNMENT);
-        titleLabel.setToolTipText(server.name);
+        titleLabel.setOverflowTip(server.name);
 
-        subtitleLabel = new JLabel(subtitleText());
+        subtitleLabel = new MD3FittingLabel(subtitleText(), 1);
         subtitleLabel.setFont(MD3Type.font(MD3Type.BODY_SMALL, subtitleText()));
         subtitleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
         subtitleLabel.setForeground(MD3Color.onSurfaceVariant());
-        subtitleLabel.setAlignmentX(LEFT_ALIGNMENT);
 
         JPanel badges = new JPanel(new WrapLayout(FlowLayout.LEFT, UIScale.scale(MD3Spacing.XS), 0));
         badges.setOpaque(false);
@@ -439,6 +438,16 @@ public class ServerCard extends MD3Card implements RelocalizationListener, CardG
 
         if (coverWrapper != null) {
             coverWrapper.setPreferredSize(new Dimension(width, Math.round(width * 9f / 16f)));
+        }
+
+        int textWidth = width - UIScale.scale(MD3Spacing.L) - UIScale.scale(MD3Spacing.S);
+
+        if (titleLabel != null) {
+            titleLabel.fitTo(textWidth);
+        }
+
+        if (subtitleLabel != null) {
+            subtitleLabel.fitTo(textWidth);
         }
     }
 

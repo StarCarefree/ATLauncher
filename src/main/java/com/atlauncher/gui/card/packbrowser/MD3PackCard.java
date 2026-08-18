@@ -50,6 +50,7 @@ import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.gui.dialogs.PackDescriptionDialog;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.layouts.WrapLayout;
+import com.atlauncher.gui.md3.MD3FittingLabel;
 import com.atlauncher.gui.md3.MD3Menus;
 import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
@@ -104,6 +105,7 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
 
     private JPanel coverWrapper;
     private JPanel actionsHolder;
+    private MD3FittingLabel titleLabel;
     private JLabel summary;
     private String title;
     private String description;
@@ -142,6 +144,7 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
         }
 
         refreshSummary();
+        refreshTitle();
     }
 
     private int contentWidth() {
@@ -252,12 +255,11 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
         body.setOpaque(false);
         body.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.M, MD3Spacing.S));
 
-        JLabel titleLabel = new JLabel(title);
+        titleLabel = new MD3FittingLabel(title, 2);
         titleLabel.setFont(MD3Type.font(MD3Type.TITLE_MEDIUM, title));
         titleLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_MEDIUM);
         titleLabel.setForeground(MD3Color.onSurface());
-        titleLabel.setAlignmentX(LEFT_ALIGNMENT);
-        titleLabel.setToolTipText(title);
+        titleLabel.setOverflowTip(title);
         body.add(titleLabel);
 
         body.add(buildSummary(title, description));
@@ -384,6 +386,12 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
         String flat = shorten(description, TOOLTIP_LIMIT);
 
         return new HTMLBuilder().text(MD3Text.escapeHtml(flat)).split(TOOLTIP_WRAP).build();
+    }
+
+    private void refreshTitle() {
+        if (titleLabel != null) {
+            titleLabel.fitTo(contentWidth());
+        }
     }
 
     /**

@@ -78,10 +78,10 @@ public class MD3Card extends JPanel {
     }
 
     /** How far an outlined card's edge moves toward the accent under the pointer. */
-    private static final float HOVER_RING_ALPHA = 0.24f;
+    private static final float HOVER_RING_ALPHA = 0.4f;
 
     /** How much a filled card warms under the pointer, where no state layer is doing it already. */
-    private static final float HOVER_TONE_ALPHA = 0.08f;
+    private static final float HOVER_TONE_ALPHA = 0.12f;
 
     private Variant variant;
     private boolean clickable;
@@ -213,7 +213,9 @@ public class MD3Card extends JPanel {
 
     private void installStateLayer() {
         if (stateLayer == null) {
-            stateLayer = MD3StateLayer.install(this);
+            stateLayer = MD3StateLayer.install(this, clickable);
+        } else {
+            stateLayer.setOverlayEnabled(clickable);
         }
     }
 

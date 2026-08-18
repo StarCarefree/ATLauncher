@@ -79,6 +79,7 @@ public final class MD3StateLayer {
     private boolean pressed;
     private boolean focused;
     private boolean selected;
+    private boolean overlayEnabled = true;
 
     private final MD3Animated overlay;
     private final MD3Animated hoverProgress;
@@ -88,7 +89,7 @@ public final class MD3StateLayer {
         this.component = component;
 
         overlay = new MD3Animated(component, 0f, MD3Motion.STATE_LAYER, MD3Motion.STANDARD);
-        hoverProgress = new MD3Animated(component, 0f, MD3Motion.ELEVATION, MD3Motion.STANDARD);
+        hoverProgress = new MD3Animated(component, 0f, MD3Motion.ELEVATION, MD3Motion.EMPHASIZED_DECELERATE);
         pressProgress = new MD3Animated(component, 0f, MD3Motion.SHAPE_MORPH, MD3Motion.STANDARD_ACCELERATE);
     }
 
@@ -111,11 +112,30 @@ public final class MD3StateLayer {
      * Drives the layer from its own mouse and focus listeners, for components with no button model.
      */
     public static MD3StateLayer install(JComponent component) {
+        return install(component, true);
+    }
+
+    /**
+     * @param overlayTint false for a hover-only card: it still lifts, but does not run a second
+     *                    fade that nothing on it paints
+     */
+    public static MD3StateLayer install(JComponent component, boolean overlayTint) {
         MD3StateLayer layer = new MD3StateLayer(component);
+        layer.overlayEnabled = overlayTint;
         layer.installMouseListeners();
         layer.installFocusListener();
 
         return layer;
+    }
+
+    public void setOverlayEnabled(boolean overlayTint) {
+        overlayEnabled = overlayTint;
+
+        if (!overlayTint) {
+            overlay.set(0f);
+        } else {
+            retarget();
+        }
     }
 
     private void installMouseListeners() {
@@ -351,7 +371,10 @@ public final class MD3StateLayer {
     private void retarget() {
         boolean enabled = component.isEnabled();
 
-        overlay.setTarget(enabled ? MD3State.opacityFor(hovered, focused, pressed, false) : 0f);
+        if (overlayEnabled) {
+            overlay.setTarget(enabled ? MD3State.opacityFor(hovered, focused, pressed, false) : 0f);
+        }
+
         hoverProgress.setTarget(enabled && hovered ? 1f : 0f);
         pressProgress.setTarget(enabled && pressed ? 1f : 0f);
     }

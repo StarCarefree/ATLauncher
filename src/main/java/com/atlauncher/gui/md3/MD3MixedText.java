@@ -54,6 +54,11 @@ public final class MD3MixedText {
 
     private static final Pattern CSS_WIDTH = Pattern.compile("(?i)width\\s*:\\s*(\\d+)px");
 
+    /** Last split, so a hover-repaint of the same label does not walk the string again. */
+    private static Font cachedRunFont;
+    private static String cachedRunText;
+    private static List<Run> cachedRuns;
+
     private MD3MixedText() {
     }
 
@@ -68,11 +73,15 @@ public final class MD3MixedText {
     }
 
     public static List<Run> runs(Font base, String text) {
-        List<Run> runs = new ArrayList<Run>();
-
         if (text == null || text.isEmpty() || base == null) {
-            return runs;
+            return new ArrayList<Run>();
         }
+
+        if (cachedRuns != null && text.equals(cachedRunText) && sameFace(base, cachedRunFont)) {
+            return cachedRuns;
+        }
+
+        List<Run> runs = new ArrayList<Run>();
 
         int i = 0;
         int length = text.length();
@@ -95,6 +104,10 @@ public final class MD3MixedText {
             runs.add(new Run(text.substring(i, j), font));
             i = j;
         }
+
+        cachedRunFont = base;
+        cachedRunText = text;
+        cachedRuns = runs;
 
         return runs;
     }
