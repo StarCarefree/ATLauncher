@@ -19,7 +19,6 @@ package com.atlauncher.gui.components;
 
 import java.awt.Color;
 import java.awt.Container;
-import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -31,13 +30,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import javax.swing.JLabel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.BoxView;
@@ -55,7 +52,6 @@ import javax.swing.text.ViewFactory;
 
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.App;
 import com.atlauncher.evnt.LogEvent.LogType;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Type;
@@ -101,32 +97,44 @@ public final class Console extends JTextPane {
     private final Set<LogType> levels = EnumSet.allOf(LogType.class);
 
     private String query = "";
+    private String queryRaw = "";
     private Runnable onContentChanged;
 
     public Console() {
         setEditable(false);
         setEditorKit(new WrapEditorKit());
-        setFont(consoleFont());
+        refreshAppearance();
     }
 
     /**
-     * The theme's console face, or the platform's monospaced one if that face is not monospaced.
-     *
-     * <p>
-     * The columns here are held apart by padding the level tag to a fixed number of characters, which
-     * only lines up if every character is the same width. A theme whose console font does not load,
-     * or which names a proportional face, would otherwise leave the messages starting at a different
-     * place on every line depending on which level it was.
+     * Puts the console back on JetBrains Mono and the theme's chrome. Called after a theme or
+     * language change: those walk the tree and would otherwise restyle this pane to the UI face,
+     * which is proportional and cannot keep the columns lined up.
      */
-    private static Font consoleFont() {
-        Font font = App.THEME.getConsoleFont().deriveFont((float) UIManager.get("Console.fontSize"));
-        FontMetrics metrics = new JLabel().getFontMetrics(font);
+    public void refreshAppearance() {
+        setFont(ConsoleFonts.latin());
+        putClientProperty(ConsoleFonts.TYPE_ROLE_KEY, Boolean.TRUE);
 
-        if (metrics.charWidth('i') == metrics.charWidth('W')) {
-            return font;
+        setBackground(MD3Color.surfaceContainerLowest());
+        setForeground(MD3Color.onSurface());
+        setCaretColor(MD3Color.primary());
+        setSelectionColor(MD3Color.primaryContainer());
+        setSelectedTextColor(MD3Color.onPrimaryContainer());
+        setDisabledTextColor(MD3Color.onSurfaceVariant());
+
+        if (!entries.isEmpty()) {
+            rebuild();
         }
+    }
 
-        return new Font(Font.MONOSPACED, font.getStyle(), font.getSize());
+    @Override
+    public void updateUI() {
+        super.updateUI();
+
+        // JTextPane.updateUI runs from the super constructor, before the entries deque exists
+        if (entries != null) {
+            refreshAppearance();
+        }
     }
 
     /**
@@ -240,7 +248,15 @@ public final class Console extends JTextPane {
             return false;
         }
 
-        return query.isEmpty() || entry.body.toLowerCase(Locale.ROOT).contains(query);
+        if (query.isEmpty()) {
+            return true;
+        }
+
+        // time and level are searched too, so "ERROR" or a timestamp finds the line. The raw
+        // query is kept so a Chinese search is not lost to a case fold that does not apply to it
+        String haystack = entry.time + " " + entry.type.name() + " " + entry.body;
+
+        return haystack.toLowerCase(Locale.ROOT).contains(query) || haystack.contains(queryRaw);
     }
 
     /**
@@ -254,9 +270,9 @@ public final class Console extends JTextPane {
         int start = document.getLength();
 
         try {
-            document.insertString(document.getLength(), entry.time + "  ", timeStyle());
-            document.insertString(document.getLength(), pad(entry.type.name()) + "  ", levelStyle(entry.type));
-            document.insertString(document.getLength(), entry.body, bodyStyle(entry.type));
+            ConsoleFonts.insert(document, entry.time + "  ", timeStyle());
+            ConsoleFonts.insert(document, pad(entry.type.name()) + "  ", levelStyle(entry.type));
+            ConsoleFonts.insert(document, entry.body, bodyStyle(entry.type));
         } catch (BadLocationException e) {
             return;
         }
@@ -285,6 +301,7 @@ public final class Console extends JTextPane {
         SimpleAttributeSet attributes = new SimpleAttributeSet();
         StyleConstants.setLeftIndent(attributes, indent);
         StyleConstants.setFirstLineIndent(attributes, -indent);
+        StyleConstants.setLineSpacing(attributes, 0.18f);
 
         return attributes;
     }
@@ -330,10 +347,12 @@ public final class Console extends JTextPane {
     }
 
     public void setQuery(String query) {
-        String normalised = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        String raw = query == null ? "" : query.trim();
+        String normalised = raw.toLowerCase(Locale.ROOT);
 
-        if (!normalised.equals(this.query)) {
+        if (!normalised.equals(this.query) || !raw.equals(this.queryRaw)) {
             this.query = normalised;
+            this.queryRaw = raw;
 
             rebuild();
         }
@@ -456,11 +475,13 @@ public final class Console extends JTextPane {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        if (getDocument().getLength() > 0 || getTotalCount() == 0) {
+        if (getDocument().getLength() > 0) {
             return;
         }
 
-        String message = GetText.tr("No lines match the filter");
+        String message = getTotalCount() == 0
+                ? GetText.tr("No log output yet")
+                : GetText.tr("No lines match the filter");
 
         Graphics2D g2 = (Graphics2D) g.create();
 

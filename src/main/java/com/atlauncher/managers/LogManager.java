@@ -35,7 +35,15 @@ import com.atlauncher.thread.LoggingThread;
 import com.atlauncher.utils.SystemOutInterceptor;
 
 public final class LogManager {
-    private static final BlockingQueue<LogEvent> queue = new ArrayBlockingQueue<>(128);
+    /**
+     * Large enough that a burst of Minecraft output does not drop the lines that
+     * explain the crash. The previous 128-slot queue silently discarded whatever
+     * arrived while the logging thread was writing, which is exactly when you
+     * need the log.
+     */
+    private static final int QUEUE_CAPACITY = 2048;
+
+    private static final BlockingQueue<LogEvent> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
     public static boolean showDebug = false;
 
     private static final Pattern LOG4J_THREAD_REGEX = Pattern.compile("<log4j:Event.*?thread=\"(.*?)\".*?>");
@@ -63,22 +71,35 @@ public final class LogManager {
      */
     public static int debugLevel = 0;
 
+    /**
+     * Enqueues a line. If the queue is full the oldest line is dropped so the
+     * newest - the one you are looking at - still arrives.
+     */
+    private static void offer(LogEvent event) {
+        if (queue.offer(event)) {
+            return;
+        }
+
+        queue.poll();
+        queue.offer(event);
+    }
+
     public static void info(String message) {
-        queue.offer(new LogEvent(LogType.INFO, message));
+        offer(new LogEvent(LogType.INFO, message));
     }
 
     public static void debug(String message) {
         if (showDebug) {
-            queue.offer(new LogEvent(LogType.DEBUG, message));
+            offer(new LogEvent(LogType.DEBUG, message));
         }
     }
 
     public static void warn(String message) {
-        queue.offer(new LogEvent(LogType.WARN, message));
+        offer(new LogEvent(LogType.WARN, message));
     }
 
     public static void error(String message) {
-        queue.offer(new LogEvent(LogType.ERROR, message));
+        offer(new LogEvent(LogType.ERROR, message));
     }
 
     public static void debugObject(Object object) {
@@ -93,7 +114,7 @@ public final class LogManager {
 
     public static void minecraft(String message) {
         Object[] value = prepareMessageForMinecraftLog(message);
-        queue.offer(new LogEvent((LogType) value[0], (String) value[1], LogEvent.CONSOLE));
+        offer(new LogEvent((LogType) value[0], (String) value[1], LogEvent.CONSOLE));
     }
 
     public static void logStackTrace(Throwable t) {
@@ -251,7 +272,7 @@ public final class LogManager {
             message = messageMatcher.group(1);
         }
 
-        queue.offer(new LogEvent(level, String.format("[%s/%s] %s", thread, levelString, message),
+        offer(new LogEvent(level, String.format("[%s/%s] %s", thread, levelString, message),
                 LogEvent.CONSOLE));
     }
 }

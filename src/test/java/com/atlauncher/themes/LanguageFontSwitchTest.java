@@ -113,6 +113,22 @@ public class LanguageFontSwitchTest {
                 "the type scale is derived from the base face, so it has to be rebuilt too");
     }
 
+    /**
+     * The log is a column of Latin timestamps. Switching the UI to Chinese must
+     * not drag the console off JetBrains Mono onto the proportional fallback
+     * the rest of the window uses.
+     */
+    @Test
+    public void theConsoleKeepsJetBrainsMonoWhenTheUiIsChinese() {
+        startUpIn(ZH_CN);
+
+        String name = (App.THEME.getConsoleFont().getFamily() + " "
+                + App.THEME.getConsoleFont().getFontName()).toLowerCase(Locale.ROOT);
+
+        assertTrue(name.contains("jetbrains"),
+                "the console followed the UI onto the locale fallback, so the log is no longer monospaced");
+    }
+
     @Test
     public void changingBackToEnglishReturnsToTheThemesFace() {
         startUpIn(ZH_CN);

@@ -129,6 +129,9 @@ msgstr "重置"
 msgid "Copy"
 msgstr "复制"
 
+msgid "Copy All"
+msgstr "复制全部"
+
 msgid "Launch"
 msgstr "启动"
 
@@ -1885,6 +1888,9 @@ msgstr "未找到此模组的文件。CurseForge 可能宕机或出现问题。<
 
 msgid "No lines match the filter"
 msgstr "没有匹配过滤条件的行"
+
+msgid "No log output yet"
+msgstr "还没有日志"
 
 msgid "No mods found."
 msgstr "未找到模组。"

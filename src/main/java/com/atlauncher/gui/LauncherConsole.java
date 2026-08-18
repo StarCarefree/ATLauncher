@@ -56,6 +56,8 @@ import com.atlauncher.evnt.manager.ConsoleStateManager;
 import com.atlauncher.evnt.manager.RelocalizationManager;
 import com.atlauncher.gui.components.Console;
 import com.atlauncher.gui.dialogs.ProgressDialog;
+import com.atlauncher.gui.md3.MD3MenuItem;
+import com.atlauncher.gui.md3.MD3PopupMenu;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.input.MD3Chip;
@@ -104,6 +106,7 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
 
     private JPopupMenu contextMenu;
     private JMenuItem copy;
+    private JMenuItem copyAll;
 
     public LauncherConsole() {
         // #. {0} is the name of the launcher (ATLauncher)
@@ -126,7 +129,6 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
         }
 
         console = new Console();
-        console.setBackground(MD3Color.surface());
         console.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
         console.setOnContentChanged(this::updateCounts);
 
@@ -135,7 +137,7 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
         JScrollPane scrollPane = new JScrollPane(console, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getViewport().setBackground(MD3Color.surface());
+        scrollPane.getViewport().setBackground(MD3Color.surfaceContainerLowest());
         scrollPane.getVerticalScrollBar().setUnitIncrement(UIScale.scale(24));
 
         add(buildToolbar(), BorderLayout.NORTH);
@@ -183,16 +185,19 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
             @Override
             public void insertUpdate(DocumentEvent e) {
                 debounce.restart();
+                MD3Type.ensureCanDisplay(search);
             }
 
             @Override
             public void removeUpdate(DocumentEvent e) {
                 debounce.restart();
+                MD3Type.ensureCanDisplay(search);
             }
 
             @Override
             public void changedUpdate(DocumentEvent e) {
                 debounce.restart();
+                MD3Type.ensureCanDisplay(search);
             }
         });
 
@@ -369,26 +374,52 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
     }
 
     private void setupContextMenu() {
-        contextMenu = new JPopupMenu();
+        contextMenu = new MD3PopupMenu();
 
-        copy = new JMenuItem(GetText.tr("Copy"));
+        copy = new MD3MenuItem(GetText.tr("Copy"));
         copy.addActionListener(e -> {
-            StringSelection text = new StringSelection(console.getSelectedText());
+            String selected = console.getSelectedText();
+
+            if (selected == null) {
+                return;
+            }
+
+            StringSelection text = new StringSelection(selected);
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
             clipboard.setContents(text, null);
         });
         contextMenu.add(copy);
 
-        console.addMouseListener(new MouseAdapter() {
+        copyAll = new MD3MenuItem(GetText.tr("Copy All"));
+        copyAll.addActionListener(e -> {
+            StringSelection text = new StringSelection(console.getLog());
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard.setContents(text, null);
+        });
+        contextMenu.add(copyAll);
+
+        MouseAdapter popup = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                if (console.getSelectedText() != null) {
-                    if (e.getButton() == MouseEvent.BUTTON3) {
-                        contextMenu.show(console, e.getX(), e.getY());
-                    }
-                }
+                showIfPopup(e);
             }
-        });
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                showIfPopup(e);
+            }
+
+            private void showIfPopup(MouseEvent e) {
+                if (!e.isPopupTrigger()) {
+                    return;
+                }
+
+                copy.setEnabled(console.getSelectedText() != null);
+                contextMenu.show(console, e.getX(), e.getY());
+            }
+        };
+
+        console.addMouseListener(popup);
     }
 
     /**
@@ -419,6 +450,7 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
     @Override
     public void onRelocalization() {
         copy.setText(GetText.tr("Copy"));
+        copyAll.setText(GetText.tr("Copy All"));
         search.setLabel(GetText.tr("Search"));
         counts.setToolTipText(GetText.tr("Lines shown of lines logged"));
 

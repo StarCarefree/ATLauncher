@@ -2,10 +2,10 @@
 <Configuration packages="com.atlauncher.thread">
     <Appenders>
         <Console name="LogToConsole" target="SYSTEM_OUT">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level - %msg%n"/>
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level - %msg%n" charset="UTF-8"/>
         </Console>
         <RollingFile name="LogToRollingFile" fileName="logs/atlauncher.log" filePattern="logs/old/%d{yyyy-MM-dd-HH-mm-ss}.log">
-            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level - %msg%n"/>
+            <PatternLayout pattern="%d{HH:mm:ss.SSS} [%t] %-5level - %msg%n" charset="UTF-8"/>
             <Policies>
                 <OnStartupTriggeringPolicy />
             </Policies>

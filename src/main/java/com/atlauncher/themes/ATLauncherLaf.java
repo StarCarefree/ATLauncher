@@ -49,9 +49,15 @@ import com.formdev.flatlaf.FlatLightLaf;
 public class ATLauncherLaf extends FlatLaf {
     public static ATLauncherLaf instance;
 
+    /**
+     * Client property the console sets so a language-driven font walk leaves JetBrains Mono in
+     * place. The UI face follows the locale; the log face does not.
+     */
+    public static final String CONSOLE_FONT_KEY = "ATL.consoleFont";
+
     private final String defaultFontName = "OpenSans-Regular";
     private final String defaultBoldFontName = "OpenSans-Bold";
-    private final String consoleFontName = "OpenSans-Regular";
+    private final String consoleFontName = "JetBrainsMono-Medium";
     private final String tabFontName = "Oswald-Regular";
 
     public static boolean install() {
@@ -104,12 +110,18 @@ public class ATLauncherLaf extends FlatLaf {
         }
     }
 
+    /**
+     * JetBrains Mono Medium for the log. Independent of {@link #useBaseFont()}: the UI face follows
+     * the locale so Chinese labels are not empty boxes, but the log is a column of Latin timestamps
+     * and level tags and has to stay monospaced. CJK in a log line is drawn with a fallback face
+     * by the console itself.
+     */
     public Font getConsoleFont() {
-        if (useBaseFont()) {
-            return Resources.makeFont("sansserif").deriveFont(Font.PLAIN, 12f);
-        } else {
-            return Resources.makeFont(consoleFontName).deriveFont(Font.PLAIN, 12f);
+        if (App.settings != null && App.settings.disableCustomFonts) {
+            return new Font(Font.MONOSPACED, Font.PLAIN, 12);
         }
+
+        return Resources.makeFont(consoleFontName).deriveFont(Font.PLAIN, 12f);
     }
 
     public Font getTabFont() {
@@ -333,7 +345,16 @@ public class ATLauncherLaf extends FlatLaf {
         // a component styled from the type scale knows which role it is, so restore that rather
         // than guessing from the point size the way the fallback below has to
         if (c instanceof JComponent) {
-            Object role = ((JComponent) c).getClientProperty(MD3Type.TYPE_ROLE_KEY);
+            JComponent jc = (JComponent) c;
+
+            if (Boolean.TRUE.equals(jc.getClientProperty(CONSOLE_FONT_KEY))) {
+                Object size = UIManager.get("Console.fontSize");
+                float points = size instanceof Number ? ((Number) size).floatValue() : 12f;
+                c.setFont(getConsoleFont().deriveFont(points));
+                return;
+            }
+
+            Object role = jc.getClientProperty(MD3Type.TYPE_ROLE_KEY);
 
             if (role instanceof MD3Type.Role) {
                 c.setFont(MD3Type.font((MD3Type.Role) role));

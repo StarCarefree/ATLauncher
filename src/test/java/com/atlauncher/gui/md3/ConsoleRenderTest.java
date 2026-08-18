@@ -18,6 +18,7 @@
 package com.atlauncher.gui.md3;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Component;
@@ -27,10 +28,13 @@ import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.Locale;
 
 import javax.imageio.ImageIO;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.StyleConstants;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +45,7 @@ import com.atlauncher.data.Settings;
 import com.atlauncher.evnt.LogEvent.LogType;
 import com.atlauncher.gui.LauncherConsole;
 import com.atlauncher.gui.components.Console;
+import com.atlauncher.gui.components.ConsoleFonts;
 import com.atlauncher.themes.MaterialDark;
 
 /**
@@ -114,6 +119,8 @@ public class ConsoleRenderTest {
         log(window.console, LogType.DEBUG, "Setting up language for console");
         log(window.console, LogType.WARN, "_JAVA_OPTIONS environment variable detected");
         log(window.console, LogType.ERROR, "Error organising filesystem");
+        log(window.console, LogType.INFO, "启动器正在打开，正在加载整合包「僵尸入侵 100 天」");
+        log(window.console, LogType.WARN, "检测到中文路径 C:\\游戏\\我的世界\\instances");
         log(window.console, LogType.INFO,
                 "GPU: NVIDIA GeForce RTX 3050 Laptop GPU (NVIDIA) 32.0.16.1062 4096MB VRAM, which is long "
                         + "enough that it has to wrap and hang under the message rather than starting back at "
@@ -137,8 +144,10 @@ public class ConsoleRenderTest {
         new File("build/md3-preview").mkdirs();
         ImageIO.write(image, "png", new File("build/md3-preview/console-dark.png"));
 
-        assertEquals(5, window.console.getTotalCount(), "the console did not keep every line it was given");
-        assertEquals(5, window.console.getShownCount(), "the console is hiding lines with no filter applied");
+        assertEquals(7, window.console.getTotalCount(), "the console did not keep every line it was given");
+        assertEquals(7, window.console.getShownCount(), "the console is hiding lines with no filter applied");
+        assertTrue(window.console.getText().contains("僵尸入侵"),
+                "a Chinese line was accepted but not written into the document");
     }
 
     /**
@@ -231,5 +240,71 @@ public class ConsoleRenderTest {
         assertTrue(log.contains("Error organising filesystem"),
                 "the log handed to Copy and Upload is missing the errors the view is hiding");
         assertTrue(log.contains("[ERROR]"), "the log handed to Copy and Upload does not say what level a line was");
+    }
+
+    /**
+     * English in the log is JetBrains Mono Medium. A proportional face, or the
+     * platform monospaced one the old console fell back to, is a different
+     * product than the one asked for.
+     */
+    @Test
+    public void testTheConsoleUsesJetBrainsMonoForEnglish() throws Exception {
+        assertNotNull(ConsoleFonts.class.getResource("/assets/font/JetBrainsMono-Medium.ttf"),
+                "JetBrains Mono Medium is not on the classpath");
+
+        LauncherConsole window = console();
+        Font font = window.console.getFont();
+        String name = (font.getFamily() + " " + font.getFontName()).toLowerCase(Locale.ROOT);
+
+        assertTrue(name.contains("jetbrains"),
+                "the console is not on JetBrains Mono, it is on " + font.getFontName());
+        assertTrue(window.console.getFontMetrics(font).charWidth('i')
+                == window.console.getFontMetrics(font).charWidth('W'),
+                "the console face is not monospaced, so the message column will not line up");
+    }
+
+    /**
+     * JetBrains Mono has no CJK. The console has to hand those characters to a
+     * face that does, or a Chinese instance name is a row of empty boxes.
+     */
+    @Test
+    public void testChineseIsDrawnWithAFaceThatHasTheGlyphs() throws Exception {
+        LauncherConsole window = console();
+        Console console = window.console;
+
+        log(console, LogType.INFO, "启动器正在打开");
+
+        String shown = console.getText();
+        int index = shown.indexOf("启动器");
+
+        assertTrue(index >= 0, "the Chinese line never reached the document");
+
+        AttributeSet attributes = console.getStyledDocument().getCharacterElement(index).getAttributes();
+        String family = StyleConstants.getFontFamily(attributes);
+        Font face = new Font(family, Font.PLAIN, StyleConstants.getFontSize(attributes));
+
+        assertTrue(face.canDisplayUpTo("启动器") < 0,
+                "the run that holds the Chinese is still on a face that cannot draw it (" + family + ")");
+    }
+
+    /**
+     * Searching for Chinese has to find the line. Folding the query to lower
+     * case with {@code Locale.ROOT} does nothing to CJK, but it used to be the
+     * only thing the filter looked at, and a mismatch between that and the
+     * stored body would hide every Chinese search.
+     */
+    @Test
+    public void testAChineseSearchFindsTheLine() throws Exception {
+        LauncherConsole window = console();
+        Console console = window.console;
+
+        log(console, LogType.INFO, "Launcher opening");
+        log(console, LogType.INFO, "正在加载整合包「僵尸入侵 100 天」");
+        log(console, LogType.DEBUG, "Loading packs");
+
+        SwingUtilities.invokeAndWait(() -> console.setQuery("僵尸入侵"));
+
+        assertEquals(1, console.getShownCount(), "searching for the Chinese name did not leave that one line");
+        assertTrue(console.getText().contains("僵尸入侵"), "the shown line is not the one that was searched for");
     }
 }
