@@ -182,18 +182,35 @@ public class MD3ButtonRenderTest {
                 "a menu button is no wider than the same label without a chevron");
     }
 
+    /**
+     * An icon button is square, and big enough to hit.
+     *
+     * <p>
+     * The size it occupies is not the size of the circle it draws. Material's medium container is
+     * 40dp and its floor for a pointer target is 48, so the component is the target and the container
+     * is centred in it - which is why this asks about the minimum rather than about
+     * {@code ICON_BUTTON_SIZE}. The small one is deliberately exempt: it is the dense variant, for
+     * somewhere the row or card around it is a target of its own.
+     */
     @Test
-    public void testIconButtonSizesAreSquareAndOrdered() {
+    public void testIconButtonSizesAreSquareAndBigEnoughToHit() {
         MD3IconButton small = new MD3IconButton(MD3Icons.MORE_VERT, "More", MD3IconButton.Variant.STANDARD,
                 MD3IconButton.Size.SMALL);
         MD3IconButton medium = new MD3IconButton(MD3Icons.MORE_VERT, "More");
         MD3IconButton large = new MD3IconButton(MD3Icons.MORE_VERT, "More", MD3IconButton.Variant.STANDARD,
                 MD3IconButton.Size.LARGE);
 
-        assertEquals(small.getPreferredSize().width, small.getPreferredSize().height);
-        assertEquals(UIScale.scale(MD3Spacing.ICON_BUTTON_SIZE_SMALL), small.getPreferredSize().width);
-        assertEquals(UIScale.scale(MD3Spacing.ICON_BUTTON_SIZE), medium.getPreferredSize().width);
-        assertEquals(UIScale.scale(MD3Spacing.ICON_BUTTON_SIZE_LARGE), large.getPreferredSize().width);
+        for (MD3IconButton button : new MD3IconButton[] { small, medium, large }) {
+            assertEquals(button.getPreferredSize().width, button.getPreferredSize().height,
+                    "an icon button is not square");
+        }
+
+        assertEquals(UIScale.scale(MD3Spacing.ICON_BUTTON_SIZE_SMALL), small.getPreferredSize().width,
+                "the dense icon button no longer takes a dense amount of room");
+        assertEquals(UIScale.scale(MD3Spacing.MIN_TOUCH_TARGET), medium.getPreferredSize().width,
+                "the default icon button is smaller than the minimum a pointer has to hit");
+        assertEquals(UIScale.scale(MD3Spacing.MIN_TOUCH_TARGET), large.getPreferredSize().width,
+                "the large icon button is smaller than the minimum a pointer has to hit");
     }
 
     @Test

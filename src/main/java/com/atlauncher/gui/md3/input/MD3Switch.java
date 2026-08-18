@@ -34,6 +34,7 @@ import javax.swing.JCheckBox;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.paint.MD3Animated;
+import com.atlauncher.gui.md3.paint.MD3Focus;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Motion;
@@ -65,10 +66,11 @@ import com.formdev.flatlaf.util.UIScale;
  * gain from reimplementing it.
  */
 public class MD3Switch extends JCheckBox {
-    private static final int TRACK_WIDTH = 52;
-    private static final int TRACK_HEIGHT = 32;
-    private static final int HANDLE_OFF = 16;
-    private static final int HANDLE_ON = 24;
+    private static final int TRACK_WIDTH = MD3Spacing.SWITCH_TRACK_WIDTH;
+    private static final int TRACK_HEIGHT = MD3Spacing.SWITCH_TRACK_HEIGHT;
+    private static final int HANDLE_OFF = MD3Spacing.SWITCH_HANDLE_OFF;
+    private static final int HANDLE_ON = MD3Spacing.SWITCH_HANDLE_ON;
+    private static final int HANDLE_PRESSED = MD3Spacing.SWITCH_HANDLE_PRESSED;
 
     public MD3Switch() {
         this(null);
@@ -108,13 +110,20 @@ public class MD3Switch extends JCheckBox {
          */
         final MD3Animated position;
 
+        /** 0 at rest, 1 while held down - Material grows the handle under the finger. */
+        private final MD3Animated pressure;
+
         SwitchIcon(AbstractButton button) {
             this.button = button;
             this.position = new MD3Animated(button, button.isSelected() ? 1f : 0f, MD3Motion.SHORT4,
                     MD3Motion.EMPHASIZED);
+            this.pressure = new MD3Animated(button, 0f, MD3Motion.SHORT3, MD3Motion.STANDARD);
 
             button.addChangeListener(e -> {
+                ButtonModel model = button.getModel();
+
                 position.setTarget(button.isSelected() ? 1f : 0f);
+                pressure.setTarget(model.isPressed() && model.isArmed() ? 1f : 0f);
 
                 // rollover, press and focus all change what is drawn without moving the handle, and
                 // the model reports all of them through here
@@ -162,8 +171,11 @@ public class MD3Switch extends JCheckBox {
                 }
 
                 // the handle grows as it travels, which is what makes the state change read as a
-                // physical movement rather than as a colour swap
-                float diameter = UIScale.scale(HANDLE_OFF + (HANDLE_ON - HANDLE_OFF) * on);
+                // physical movement rather than as a colour swap - and grows again while it is held,
+                // which is the whole of a switch's press feedback. It stops 2dp short of the track at
+                // either end, so the larger handle still has somewhere to be
+                float settled = HANDLE_OFF + (HANDLE_ON - HANDLE_OFF) * on;
+                float diameter = UIScale.scale(MD3Animated.lerp(settled, HANDLE_PRESSED, pressure.value()));
                 float inset = UIScale.scale(4f);
                 float travel = width - inset * 2f - UIScale.scale((float) HANDLE_ON);
                 float centreX = inset + UIScale.scale(HANDLE_ON) / 2f + travel * on;
@@ -173,7 +185,7 @@ public class MD3Switch extends JCheckBox {
                         diameter);
 
                 float stateAlpha = enabled
-                        ? MD3State.opacityFor(model.isRollover(), button.isFocusOwner(),
+                        ? MD3State.opacityFor(model.isRollover(), MD3Focus.isVisible(button),
                                 model.isPressed() && model.isArmed(), false)
                         : 0f;
 

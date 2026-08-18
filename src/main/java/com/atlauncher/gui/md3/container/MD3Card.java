@@ -17,7 +17,6 @@
  */
 package com.atlauncher.gui.md3.container;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Graphics;
@@ -29,22 +28,25 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleRole;
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
 
 import com.atlauncher.gui.md3.paint.MD3Animated;
+import com.atlauncher.gui.md3.paint.MD3Focus;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Elevation;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
-import com.formdev.flatlaf.util.UIScale;
 
 /**
  * A Material 3 card - a rounded surface grouping related content.
@@ -85,6 +87,7 @@ public class MD3Card extends JPanel {
     private boolean clickable;
     private boolean hoverElevation;
     private MD3StateLayer stateLayer;
+    private MouseListener activationListener;
     private final List<ActionListener> actionListeners = new ArrayList<>();
 
     public MD3Card() {
@@ -134,7 +137,7 @@ public class MD3Card extends JPanel {
             setFocusable(true);
             installStateLayer();
 
-            addMouseListener(new MouseAdapter() {
+            activationListener = new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (e.getButton() == MouseEvent.BUTTON1) {
@@ -142,7 +145,9 @@ public class MD3Card extends JPanel {
                         fireActionPerformed();
                     }
                 }
-            });
+            };
+
+            addMouseListener(activationListener);
 
             AbstractAction activate = new AbstractAction() {
                 @Override
@@ -157,6 +162,18 @@ public class MD3Card extends JPanel {
         } else {
             setCursor(Cursor.getDefaultCursor());
             setFocusable(false);
+
+            // a card whose clickability follows its contents can go through here any number of
+            // times; without the removal each pass left another listener behind, and one click then
+            // fired the action once per pass
+            if (activationListener != null) {
+                removeMouseListener(activationListener);
+                activationListener = null;
+            }
+
+            getInputMap(JComponent.WHEN_FOCUSED).remove(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0));
+            getInputMap(JComponent.WHEN_FOCUSED).remove(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0));
+            getActionMap().remove("md3.activate");
 
             releaseStateLayer();
         }
@@ -279,6 +296,30 @@ public class MD3Card extends JPanel {
         return lift <= 0f ? null : MD3Color.get(MD3Color.PRIMARY, HOVER_RING_ALPHA * lift);
     }
 
+    /**
+     * A clickable card is a button, and has to say so.
+     *
+     * <p>
+     * It is a {@link JPanel} that took focus and bound enter and space, which is enough for a keyboard
+     * user and nothing at all for a screen reader: the whole grid of instances was announced as a
+     * stack of panels, with no indication that any of them could be activated.
+     */
+    @Override
+    public AccessibleContext getAccessibleContext() {
+        if (accessibleContext == null) {
+            accessibleContext = new AccessibleMD3Card();
+        }
+
+        return accessibleContext;
+    }
+
+    protected class AccessibleMD3Card extends AccessibleJPanel {
+        @Override
+        public AccessibleRole getAccessibleRole() {
+            return clickable ? AccessibleRole.PUSH_BUTTON : super.getAccessibleRole();
+        }
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         Graphics2D g2 = MD3Paint.setup(g);
@@ -293,10 +334,8 @@ public class MD3Card extends JPanel {
                 stateLayer.paint(g2, shape, MD3Color.onSurface());
             }
 
-            if (clickable && isFocusOwner()) {
-                g2.setColor(MD3Color.get(MD3Color.SECONDARY));
-                g2.setStroke(new BasicStroke(UIScale.scale(2f)));
-                g2.draw(MD3Paint.shapeOf(this, MD3Shape.CARD, UIScale.scale(1f)));
+            if (clickable && MD3Focus.isVisible(this)) {
+                MD3Paint.focusRingInside(g2, shape, null);
             }
         } finally {
             g2.dispose();

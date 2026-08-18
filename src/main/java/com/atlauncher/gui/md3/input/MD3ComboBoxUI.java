@@ -69,7 +69,7 @@ import com.formdev.flatlaf.util.UIScale;
  */
 public class MD3ComboBoxUI extends BasicComboBoxUI {
     /** Same as a search field - the other label-less control that shares a line with chips. */
-    private static final int HEIGHT = MD3Spacing.MIN_TOUCH_TARGET;
+    private static final int HEIGHT = MD3Spacing.FIELD_HEIGHT_COMPACT;
 
     private static final int CHEVRON_SIZE = MD3Spacing.ICON_SIZE;
 

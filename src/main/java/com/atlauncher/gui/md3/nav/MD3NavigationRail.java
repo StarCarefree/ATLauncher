@@ -30,6 +30,10 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleRole;
+import javax.accessibility.AccessibleState;
+import javax.accessibility.AccessibleStateSet;
 import javax.swing.AbstractAction;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -41,6 +45,7 @@ import javax.swing.event.ChangeListener;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.paint.MD3Animated;
+import com.atlauncher.gui.md3.paint.MD3Focus;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -343,6 +348,27 @@ public class MD3NavigationRail extends JPanel {
     }
 
     /**
+     * The launcher's primary navigation, named as such rather than announced as a panel of panels.
+     * The rail is the tab stop and the arrow keys move within it, so it is the list and its
+     * destinations are the items - the same shape as {@link MD3Tabs}.
+     */
+    @Override
+    public AccessibleContext getAccessibleContext() {
+        if (accessibleContext == null) {
+            accessibleContext = new AccessibleMD3NavigationRail();
+        }
+
+        return accessibleContext;
+    }
+
+    protected class AccessibleMD3NavigationRail extends AccessibleJPanel {
+        @Override
+        public AccessibleRole getAccessibleRole() {
+            return AccessibleRole.PAGE_TAB_LIST;
+        }
+    }
+
+    /**
      * One destination: a pill indicator, a glyph, and a label beneath it.
      */
     private final class Destination extends JPanel {
@@ -385,6 +411,38 @@ public class MD3NavigationRail extends JPanel {
             setToolTipText(label);
             revalidate();
             repaint();
+        }
+
+        @Override
+        public AccessibleContext getAccessibleContext() {
+            if (accessibleContext == null) {
+                accessibleContext = new AccessibleDestination();
+            }
+
+            return accessibleContext;
+        }
+
+        private final class AccessibleDestination extends AccessibleJPanel {
+            @Override
+            public AccessibleRole getAccessibleRole() {
+                return AccessibleRole.PAGE_TAB;
+            }
+
+            @Override
+            public String getAccessibleName() {
+                return label;
+            }
+
+            @Override
+            public AccessibleStateSet getAccessibleStateSet() {
+                AccessibleStateSet states = super.getAccessibleStateSet();
+
+                if (isActive()) {
+                    states.add(AccessibleState.SELECTED);
+                }
+
+                return states;
+            }
         }
 
         private boolean isActive() {
@@ -454,7 +512,7 @@ public class MD3NavigationRail extends JPanel {
                 // the rail is one tab stop and the arrow keys move the selection within it, so the
                 // ring goes on the destination that is selected - the same thing MD3Tabs does.
                 // Without it, tabbing into the launcher's primary navigation showed nothing at all
-                if (MD3NavigationRail.this.isFocusOwner() && isActive()) {
+                if (isActive() && MD3Focus.isVisible(MD3NavigationRail.this)) {
                     MD3Paint.focusRing(g2, indicatorX, indicatorY, indicatorWidth, indicatorHeight,
                             MD3Shape.NAV_INDICATOR);
                 }

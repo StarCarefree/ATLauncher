@@ -67,9 +67,18 @@ import com.formdev.flatlaf.util.UIScale;
  */
 public class MD3SpinnerUI extends BasicSpinnerUI {
     /** Same as the field and the dropdown, so a row of mixed controls sits on one line. */
-    private static final int HEIGHT = MD3Spacing.MIN_TOUCH_TARGET;
+    private static final int HEIGHT = MD3Spacing.FIELD_HEIGHT_COMPACT;
 
-    private static final int ARROW_WIDTH = 28;
+    /**
+     * Width of the stepper column.
+     *
+     * <p>
+     * As wide as a touch target, because it cannot be as tall as one: two steppers share a 40dp
+     * field, so each is 20dp high whatever is done here. Giving them the full target on the axis that
+     * is available is the most a stacked stepper can do, and a spinner is never the only way to set a
+     * number - the field takes typing.
+     */
+    private static final int ARROW_WIDTH = MD3Spacing.MIN_TOUCH_TARGET;
     private static final int ARROW_ICON = 16;
 
     private PropertyChangeListener editorListener;

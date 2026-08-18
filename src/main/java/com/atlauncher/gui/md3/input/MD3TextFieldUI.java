@@ -68,9 +68,9 @@ import com.formdev.flatlaf.util.UIScale;
  */
 public class MD3TextFieldUI extends BasicTextFieldUI {
     /** Height of the field box itself, excluding any supporting text. */
-    private static final int BOX_HEIGHT = 56;
-    /** A search box has no label to make room for, so it takes the minimum touch target instead. */
-    private static final int SEARCH_HEIGHT = MD3Spacing.MIN_TOUCH_TARGET;
+    private static final int BOX_HEIGHT = MD3Spacing.TEXT_FIELD_HEIGHT;
+    /** A search box has no label to make room for, so it takes the compact height instead. */
+    private static final int SEARCH_HEIGHT = MD3Spacing.FIELD_HEIGHT_COMPACT;
     /** Room above an outlined box for the half of the floated label that sits outside it. */
     private static final int LABEL_OVERFLOW = 8;
     /** Height reserved for the supporting text line. */

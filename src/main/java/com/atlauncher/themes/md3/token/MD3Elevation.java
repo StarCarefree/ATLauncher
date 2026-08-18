@@ -21,6 +21,8 @@ import java.awt.Color;
 
 import javax.swing.UIManager;
 
+import com.formdev.flatlaf.FlatLaf;
+
 /**
  * The six elevation levels, expressed the way Material 3 actually expresses them.
  *
@@ -100,10 +102,15 @@ public final class MD3Elevation {
 
     /**
      * Whether the active theme is dark. Published by {@code MD3Scheme} when the theme is built.
+     *
+     * <p>
+     * Falls back to asking the look and feel rather than to a guess. The two shadow ramps differ by
+     * nearly a factor of two, so defaulting the wrong way puts visibly heavy shadows under every
+     * light-theme dialog for the whole time the token is missing.
      */
     public static boolean isDark() {
         Object dark = UIManager.get("md.sys.dark");
 
-        return dark instanceof Boolean ? (Boolean) dark : true;
+        return dark instanceof Boolean ? (Boolean) dark : FlatLaf.isLafDark();
     }
 }

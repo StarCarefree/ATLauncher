@@ -178,7 +178,7 @@ public class ComboBoxRenderTest {
      */
     @Test
     public void testItIsTheHeightASettingsRowCanAbsorb() {
-        assertEquals(UIScale.scale(MD3Spacing.MIN_TOUCH_TARGET),
+        assertEquals(UIScale.scale(MD3Spacing.FIELD_HEIGHT_COMPACT),
                 combo(MD3ComboBox.Variant.OUTLINED).getPreferredSize().height,
                 "the dropdown is not the height a settings row was built for");
     }

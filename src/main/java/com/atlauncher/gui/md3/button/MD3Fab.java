@@ -30,6 +30,7 @@ import javax.swing.JButton;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.paint.MD3Animated;
+import com.atlauncher.gui.md3.paint.MD3Focus;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -74,7 +75,8 @@ public class MD3Fab extends JButton {
     private final Size fabSize;
     private final boolean extended;
     private final String label;
-    private final MD3StateLayer stateLayer;
+
+    private MD3StateLayer stateLayer;
 
     /**
      * A regular 56dp icon-only FAB.
@@ -131,12 +133,45 @@ public class MD3Fab extends JButton {
     }
 
     /**
+     * A FAB paints itself rather than going through a {@code ComponentUI}, so there is no
+     * {@code uninstallUI} for its state layer to be released from. Leaving the hierarchy is the
+     * equivalent moment: the layer listens to this button's model and animates it, and neither is
+     * any use to a FAB that is no longer on screen.
+     */
+    @Override
+    public void addNotify() {
+        super.addNotify();
+
+        if (stateLayer == null) {
+            stateLayer = MD3StateLayer.attach(this, getModel());
+        }
+    }
+
+    @Override
+    public void removeNotify() {
+        if (stateLayer != null) {
+            stateLayer.uninstall();
+            stateLayer = null;
+        }
+
+        super.removeNotify();
+    }
+
+    private float hoverLift() {
+        return stateLayer == null ? 0f : Math.max(0f, stateLayer.hoverProgress() - stateLayer.pressProgress());
+    }
+
+    private float pressProgress() {
+        return stateLayer == null ? 0f : stateLayer.pressProgress();
+    }
+
+    /**
      * The room kept around the container for the shadow. Enough for the blur at the height this
      * reaches under the pointer; the few pixels of downward offset below that are allowed to clip,
      * being the faintest part of it.
      */
     private static int shadowRoom() {
-        return UIScale.scale(MD3Elevation.shadowBlur(HOVERED));
+        return UIScale.scale(MD3Paint.shadowRoom(HOVERED));
     }
 
     /**
@@ -149,9 +184,7 @@ public class MD3Fab extends JButton {
             return MD3Elevation.LEVEL0;
         }
 
-        float lift = Math.max(0f, stateLayer.hoverProgress() - stateLayer.pressProgress());
-
-        return MD3Animated.lerp(RESTING, HOVERED, lift);
+        return MD3Animated.lerp(RESTING, HOVERED, hoverLift());
     }
 
     /**
@@ -164,7 +197,7 @@ public class MD3Fab extends JButton {
         float height = getHeight() - inset * 2f;
         int restToken = extended ? MD3Shape.FULL : MD3Shape.FAB;
         float radius = MD3Animated.lerp(MD3Shape.resolve(restToken, width, height),
-                MD3Shape.resolve(MD3Shape.FULL, width, height), stateLayer.pressProgress());
+                MD3Shape.resolve(MD3Shape.FULL, width, height), pressProgress());
 
         return new RoundRectangle2D.Float(inset, inset, width, height, radius * 2f, radius * 2f);
     }
@@ -201,9 +234,11 @@ public class MD3Fab extends JButton {
             MD3Paint.shadow(g2, shape, elevation());
             MD3Paint.fill(g2, shape, containerColor());
 
-            stateLayer.paint(g2, shape, content);
+            if (stateLayer != null) {
+                stateLayer.paint(g2, shape, content);
+            }
 
-            if (isEnabled() && isFocusOwner()) {
+            if (isEnabled() && MD3Focus.isVisible(this)) {
                 MD3Paint.focusRing(g2, inset, inset, getWidth() - inset * 2f, getHeight() - inset * 2f,
                         extended ? MD3Shape.FULL : MD3Shape.FAB);
             }

@@ -44,8 +44,33 @@ public final class MD3Spacing {
     public static final int XL = 24;
     public static final int XXL = 32;
 
-    /** Minimum size of anything the user has to hit with a pointer. */
-    public static final int MIN_TOUCH_TARGET = 40;
+    /**
+     * The smallest a thing the user has to hit with a pointer may be, per Material 3 and WCAG 2.5.5.
+     *
+     * <p>
+     * A <em>target</em>, not a size: the control it belongs to is usually smaller and centred in it,
+     * with the difference made up by padding that draws nothing. This used to be 40 and to double as
+     * the height of a compact field and the width of a list's leading column, which meant correcting
+     * it to what the spec asks would silently have resized three unrelated things. Those have
+     * {@link #FIELD_HEIGHT_COMPACT} and {@link #LIST_LEADING_COLUMN} of their own now.
+     */
+    public static final int MIN_TOUCH_TARGET = 48;
+
+    /**
+     * Height of a field that shares a row with other controls - a search box, a dropdown, a spinner.
+     *
+     * <p>
+     * Shorter than the 56dp of a standalone text field, because a toolbar of 56dp controls is a
+     * toolbar that takes a sixth of a short window. The hit target is brought back up to
+     * {@link #MIN_TOUCH_TARGET} by padding rather than by growing what is drawn.
+     */
+    public static final int FIELD_HEIGHT_COMPACT = 40;
+
+    /**
+     * Width of a list item's leading column - the icon, checkbox or avatar, plus the room around it.
+     * Also what an inset divider is indented by, so the rule lines up with the text.
+     */
+    public static final int LIST_LEADING_COLUMN = 40;
 
     public static final int BUTTON_HEIGHT_SMALL = 32;
     public static final int BUTTON_HEIGHT = 40;
@@ -76,6 +101,36 @@ public final class MD3Spacing {
     public static final int NAV_DRAWER_WIDTH = 240;
     public static final int NAV_ITEM_INDICATOR_HEIGHT = 32;
     public static final int DIVIDER_THICKNESS = 1;
+
+    public static final int CHECKBOX_BOX_SIZE = 18;
+    public static final int SWITCH_TRACK_WIDTH = 52;
+    public static final int SWITCH_TRACK_HEIGHT = 32;
+    public static final int SWITCH_HANDLE_OFF = 16;
+    public static final int SWITCH_HANDLE_ON = 24;
+    /** Material grows the handle again while it is held down, past the size it settles at. */
+    public static final int SWITCH_HANDLE_PRESSED = 28;
+
+    /** A label-only tab; Material's height for one line of text. And with an icon above it. */
+    public static final int TAB_HEIGHT = 48;
+    public static final int TAB_HEIGHT_WITH_ICON = 64;
+    public static final int TAB_INDICATOR_HEIGHT = 3;
+    public static final int TAB_MIN_WIDTH = 72;
+
+    /** Held to a line the eye can take in without tracking back; a dialog showing a document says so. */
+    public static final int DIALOG_MIN_WIDTH = 280;
+    public static final int DIALOG_MAX_WIDTH = 560;
+
+    public static final int SNACKBAR_MAX_WIDTH = 560;
+    public static final int SNACKBAR_MIN_HEIGHT = 48;
+
+    public static final int PROGRESS_TRACK_HEIGHT = 4;
+
+    /**
+     * Material's standard density is 52dp. The create-pack table lists every Minecraft version there
+     * has ever been, and the spec allows 36 through 64 for exactly that.
+     */
+    public static final int TABLE_ROW_HEIGHT = 36;
+    public static final int TABLE_HEADER_HEIGHT = 44;
 
     private MD3Spacing() {
     }

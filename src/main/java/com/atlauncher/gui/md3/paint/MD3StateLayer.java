@@ -30,6 +30,7 @@ import java.awt.event.MouseMotionListener;
 import javax.swing.ButtonModel;
 import javax.swing.JComponent;
 import javax.swing.Timer;
+import javax.swing.event.ChangeListener;
 
 import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.themes.md3.token.MD3State;
@@ -68,6 +69,7 @@ public final class MD3StateLayer {
     private final JComponent component;
 
     private ButtonModel model;
+    private ChangeListener modelListener;
     private MouseListener mouseListener;
     private MouseMotionListener mouseMotionListener;
     private FocusListener focusListener;
@@ -97,7 +99,8 @@ public final class MD3StateLayer {
     public static MD3StateLayer attach(JComponent component, ButtonModel model) {
         MD3StateLayer layer = new MD3StateLayer(component);
         layer.model = model;
-        model.addChangeListener(e -> layer.syncFromModel());
+        layer.modelListener = e -> layer.syncFromModel();
+        model.addChangeListener(layer.modelListener);
         layer.installFocusListener();
         layer.syncFromModel();
 
@@ -205,7 +208,10 @@ public final class MD3StateLayer {
         focusListener = new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
-                setFocused(true);
+                // whether this focus should be shown, not whether there is any. A click focuses as
+                // much as a tab does, and Material's focus layer belongs to the second - the first
+                // already has the pointer saying where it is
+                setFocused(MD3Focus.isKeyboardModality());
             }
 
             @Override
@@ -246,6 +252,14 @@ public final class MD3StateLayer {
             focusListener = null;
         }
 
+        // the model outlives the UI delegate that attached to it - a look and feel change installs a
+        // new delegate onto the same button - so a layer left listening here is a layer that keeps
+        // animating and repainting a component it no longer paints
+        if (modelListener != null && model != null) {
+            model.removeChangeListener(modelListener);
+        }
+
+        modelListener = null;
         model = null;
     }
 

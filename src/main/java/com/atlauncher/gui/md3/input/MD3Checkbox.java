@@ -33,6 +33,7 @@ import javax.swing.JCheckBox;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.paint.MD3Animated;
+import com.atlauncher.gui.md3.paint.MD3Focus;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Motion;
@@ -68,17 +69,14 @@ import com.formdev.flatlaf.util.UIScale;
  */
 public class MD3Checkbox extends JCheckBox {
     /** Material's box. The touch target around it is much larger. */
-    private static final int BOX_SIZE = 18;
-
-    /** Material's corner for a checkbox: smaller than any shape token, and particular to it. */
-    private static final int BOX_CORNER = 2;
+    private static final int BOX_SIZE = MD3Spacing.CHECKBOX_BOX_SIZE;
 
     private static final int OUTLINE_WIDTH = 2;
 
     /** The state layer, and the target the pointer actually has to hit. */
     private static final int TARGET = MD3Spacing.MIN_TOUCH_TARGET;
 
-    /** The target for a box in a dense list, where 40dp a row would double the list's height. */
+    /** The target for a box in a dense list, where a full one a row would double the list's height. */
     private static final int COMPACT_TARGET = 24;
 
     private boolean compact;
@@ -187,7 +185,7 @@ public class MD3Checkbox extends JCheckBox {
                 float box = UIScale.scale((float) BOX_SIZE);
 
                 float stateAlpha = enabled
-                        ? MD3State.opacityFor(model.isRollover(), button.isFocusOwner(),
+                        ? MD3State.opacityFor(model.isRollover(), MD3Focus.isVisible(button),
                                 model.isPressed() && model.isArmed(), false)
                         : 0f;
 
@@ -199,7 +197,8 @@ public class MD3Checkbox extends JCheckBox {
                             contentColor(enabled, ticked), stateAlpha);
                 }
 
-                Shape container = MD3Shape.rounded(centreX - box / 2f, centreY - box / 2f, box, box, BOX_CORNER);
+                Shape container = MD3Shape.rounded(centreX - box / 2f, centreY - box / 2f, box, box,
+                        MD3Shape.CHECKBOX);
 
                 // the container arrives by becoming opaque - there is nothing behind an unticked box
                 // but the page, so blending it against a colour it is not on would be wrong

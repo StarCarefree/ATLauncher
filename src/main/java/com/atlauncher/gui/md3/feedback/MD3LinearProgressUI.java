@@ -49,9 +49,9 @@ import com.formdev.flatlaf.util.UIScale;
  * above itself rather than trying to print inside the track.
  */
 public class MD3LinearProgressUI extends BasicProgressBarUI {
-    private static final int TRACK_HEIGHT = 4;
-    private static final int GAP = 4;
-    private static final int STOP_DIAMETER = 4;
+    private static final int TRACK_HEIGHT = MD3Spacing.PROGRESS_TRACK_HEIGHT;
+    private static final int GAP = MD3Spacing.XS;
+    private static final int STOP_DIAMETER = MD3Spacing.XS;
 
     /** Fraction of the track the travelling segment covers while indeterminate. */
     private static final float SWEEP_WIDTH = 0.35f;

@@ -20,11 +20,16 @@ package com.atlauncher.gui.md3.paint;
 import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.RenderingHints;
 import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.geom.RoundRectangle2D;
 
 import javax.swing.JComponent;
 
@@ -86,6 +91,13 @@ public final class MD3Paint {
      * Strokes a shape with the line drawn <em>inside</em> it, so an outlined component occupies
      * exactly the bounds it was given rather than bleeding half a line width past them.
      *
+     * <p>
+     * By pulling the shape in half a line width and stroking that, rather than by stroking at double
+     * width and clipping the outer half away. A clip in Java2D is a hard-edged region and takes no
+     * part in antialiasing, so the clipped version handed every outlined button, card, badge and
+     * switch track a visibly stepped outer edge around each corner - and did it while
+     * {@link #setup} was asking for pure stroke control two lines earlier.
+     *
      * @param widthDp unscaled line width
      */
     public static void outline(Graphics2D g, Shape shape, Color color, float widthDp) {
@@ -95,12 +107,81 @@ public final class MD3Paint {
 
         float width = UIScale.scale(widthDp);
 
+        stroke(g, insetBy(shape, width / 2f), color, width);
+    }
+
+    /**
+     * Strokes a shape centred on its own outline, for a caller that has already pulled the geometry
+     * in by however much it wants clear.
+     *
+     * @param width line width in pixels, already scaled
+     */
+    public static void stroke(Graphics2D g, Shape shape, Color color, float width) {
+        if (color == null || width <= 0f) {
+            return;
+        }
+
         Graphics2D g2 = (Graphics2D) g.create();
-        g2.clip(shape);
         g2.setColor(color);
-        g2.setStroke(new BasicStroke(width * 2f));
+        g2.setStroke(new BasicStroke(width));
         g2.draw(shape);
         g2.dispose();
+    }
+
+    /**
+     * A shape pulled in by the given number of pixels on every side, corners included.
+     *
+     * <p>
+     * Exact for the rounded boxes every Material component is built from. Anything else - a path with
+     * independently rounded corners, which is what a segmented button's end caps are - is scaled
+     * about its centre instead, which shrinks its radii in proportion rather than by a constant. At
+     * the half-pixel insets an outline asks for, on a control tens of pixels across, the difference
+     * is below what a pixel can show; a caller that cannot accept even that builds its own inset
+     * shape and calls {@link #stroke} directly, as the buttons do for their focus ring.
+     */
+    public static Shape insetBy(Shape shape, float inset) {
+        if (shape == null || inset <= 0f) {
+            return shape;
+        }
+
+        if (shape instanceof RoundRectangle2D) {
+            RoundRectangle2D box = (RoundRectangle2D) shape;
+            double width = box.getWidth() - inset * 2d;
+            double height = box.getHeight() - inset * 2d;
+
+            if (width <= 0d || height <= 0d) {
+                return shape;
+            }
+
+            return new RoundRectangle2D.Double(box.getX() + inset, box.getY() + inset, width, height,
+                    Math.max(0d, box.getArcWidth() - inset * 2d), Math.max(0d, box.getArcHeight() - inset * 2d));
+        }
+
+        if (shape instanceof Ellipse2D) {
+            Ellipse2D oval = (Ellipse2D) shape;
+            double width = oval.getWidth() - inset * 2d;
+            double height = oval.getHeight() - inset * 2d;
+
+            if (width <= 0d || height <= 0d) {
+                return shape;
+            }
+
+            return new Ellipse2D.Double(oval.getX() + inset, oval.getY() + inset, width, height);
+        }
+
+        Rectangle2D bounds = shape.getBounds2D();
+
+        if (bounds.getWidth() <= inset * 2d || bounds.getHeight() <= inset * 2d) {
+            return shape;
+        }
+
+        AffineTransform transform = new AffineTransform();
+        transform.translate(bounds.getCenterX(), bounds.getCenterY());
+        transform.scale((bounds.getWidth() - inset * 2d) / bounds.getWidth(),
+                (bounds.getHeight() - inset * 2d) / bounds.getHeight());
+        transform.translate(-bounds.getCenterX(), -bounds.getCenterY());
+
+        return transform.createTransformedShape(shape);
     }
 
     /**
@@ -117,6 +198,26 @@ public final class MD3Paint {
         g2.setColor(content);
         g2.fill(shape);
         g2.dispose();
+    }
+
+    /**
+     * How far past a shape its shadow reaches at a given level, unscaled, so a component can keep
+     * that much of its own bounds clear for it.
+     *
+     * <p>
+     * Swing clips painting to the component, so a shadow drawn at the very edge of the container has
+     * nowhere to fall and is spent entirely on pixels that are then covered by the container itself.
+     * Anything calling {@link #shadow} needs room for it or should not be calling it at all.
+     */
+    public static int shadowRoom(int level) {
+        return MD3Elevation.shadowBlur(level);
+    }
+
+    /**
+     * The same, below the shape, where the shadow's own downward offset lands as well.
+     */
+    public static int shadowRoomBelow(int level) {
+        return MD3Elevation.shadowBlur(level) + MD3Elevation.shadowOffsetY(level);
     }
 
     /**
@@ -176,6 +277,22 @@ public final class MD3Paint {
         g2.dispose();
     }
 
+    /** Unscaled width of the focus indicator, and the gap it keeps from the outline it marks. */
+    public static final int FOCUS_RING_WIDTH = 3;
+    private static final int FOCUS_RING_GAP = 2;
+
+    /**
+     * The one colour a focus indicator is ever drawn in.
+     *
+     * <p>
+     * Shared because it was not: the buttons drew a 2dp secondary ring, the rail and the tabs a 3dp
+     * one, and {@code MD3Bridge} gave every component still painted by FlatLaf a 2dp primary ring at
+     * 45% alpha. One pass of the tab key showed three different answers to the same question.
+     */
+    public static Color focusRingColor() {
+        return MD3Color.get(MD3Color.SECONDARY);
+    }
+
     /**
      * Paints the focus indicator - a ring drawn outside the component's own outline, so it reads as
      * a separate marker rather than as a thicker border.
@@ -193,16 +310,52 @@ public final class MD3Paint {
      * the arrow keys would move away from, not where the tab landed.
      */
     public static void focusRing(Graphics2D g, float x, float y, float width, float height, int radius) {
-        float stroke = UIScale.scale(3f);
-        float offset = UIScale.scale(2f) + stroke / 2f;
+        float stroke = UIScale.scale((float) FOCUS_RING_WIDTH);
+        float offset = UIScale.scale((float) FOCUS_RING_GAP) + stroke / 2f;
 
-        Shape ring = MD3Shape.rounded(x - offset, y - offset, width + offset * 2f, height + offset * 2f, radius);
+        stroke(g, MD3Shape.rounded(x - offset, y - offset, width + offset * 2f, height + offset * 2f, radius),
+                focusRingColor(), stroke);
+    }
 
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setColor(MD3Color.get(MD3Color.SECONDARY));
-        g2.setStroke(new BasicStroke(stroke));
-        g2.draw(ring);
-        g2.dispose();
+    /**
+     * The same ring, drawn just inside a shape instead of around it.
+     *
+     * <p>
+     * For a component that fills its own bounds - a button, a card - where Material's ring would fall
+     * entirely in the pixels Swing clips away. Same width and same colour as the outside form, so the
+     * two read as one indicator wherever the tab key lands.
+     *
+     * @param color the ring's colour, for the error tone that wants its own; null for the default
+     */
+    public static void focusRingInside(Graphics2D g, Shape shape, Color color) {
+        float width = UIScale.scale((float) FOCUS_RING_WIDTH);
+
+        stroke(g, insetBy(shape, width / 2f), color != null ? color : focusRingColor(), width);
+    }
+
+    /**
+     * Whether a component reads left to right, and so whether its leading edge is its left one.
+     *
+     * <p>
+     * Null and unrealised components read left to right, which is the launcher's own default and what
+     * an offscreen render test gets.
+     */
+    public static boolean isLeftToRight(Component c) {
+        return c == null || c.getComponentOrientation().isLeftToRight();
+    }
+
+    /**
+     * An x position measured from the leading edge, turned into one measured from the left.
+     *
+     * <p>
+     * Everything Material calls leading or trailing is a side of the component rather than a
+     * direction, and only the first of those survives being written as {@code getWidth() - pad}.
+     *
+     * @param itemWidth the width of the thing being placed, so it lands inside the component rather
+     *                  than ending where it should have started
+     */
+    public static int mirrorX(Component c, int x, int itemWidth) {
+        return isLeftToRight(c) ? x : c.getWidth() - x - itemWidth;
     }
 
     /**

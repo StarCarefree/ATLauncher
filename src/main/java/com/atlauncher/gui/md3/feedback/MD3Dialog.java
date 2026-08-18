@@ -80,8 +80,8 @@ public class MD3Dialog extends JDialog {
     /** Returned by {@link Builder#show()} when the dialog was closed without choosing an action. */
     public static final int DISMISSED = -1;
 
-    private static final int MIN_WIDTH = 280;
-    private static final int MAX_WIDTH = 560;
+    private static final int MIN_WIDTH = MD3Spacing.DIALOG_MIN_WIDTH;
+    private static final int MAX_WIDTH = MD3Spacing.DIALOG_MAX_WIDTH;
 
     /**
      * Wraps supporting text to a pixel width, but only once it actually needs wrapping.
@@ -131,6 +131,16 @@ public class MD3Dialog extends JDialog {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
         add(panel, BorderLayout.CENTER);
+
+        // an undecorated window has no title bar to read the title off, so the headline has to be
+        // what names the dialog, and the supporting text what explains it
+        if (builder.headline != null && !builder.headline.isEmpty()) {
+            getAccessibleContext().setAccessibleName(builder.headline);
+        }
+
+        if (builder.supportingText != null && !builder.supportingText.isEmpty()) {
+            getAccessibleContext().setAccessibleDescription(builder.supportingText);
+        }
 
         installEscapeToDismiss();
 
@@ -420,6 +430,29 @@ public class MD3Dialog extends JDialog {
             return action(label, MD3Button.Variant.TEXT);
         }
 
+        /**
+         * Which action the enter key takes.
+         *
+         * <p>
+         * The rightmost one, which is the one that proceeds - except where any of them is
+         * {@link #destructive(String) destructive}, and a destructive action is added last like every
+         * other confirming one. A dialog where enter deletes the instance is a dialog that deletes
+         * instances by accident, so that one is left with no default at all rather than having it
+         * handed to whatever is beside it, which would make enter mean "cancel" here and "proceed"
+         * everywhere else.
+         *
+         * @return the index to make default, or -1 for none
+         */
+        int defaultActionIndex() {
+            for (ActionSpec action : actions) {
+                if (action.tone == MD3Button.Tone.ERROR) {
+                    return -1;
+                }
+            }
+
+            return actions.size() - 1;
+        }
+
         public MD3Dialog build() {
             return new MD3Dialog(owner, this);
         }
@@ -514,6 +547,8 @@ public class MD3Dialog extends JDialog {
                 row.setOpaque(false);
                 row.setBorder(MD3Spacing.border(MD3Spacing.XL, 0, 0, 0));
 
+                int defaultIndex = builder.defaultActionIndex();
+
                 for (int i = 0; i < builder.actions.size(); i++) {
                     ActionSpec spec = builder.actions.get(i);
                     int index = i;
@@ -524,7 +559,7 @@ public class MD3Dialog extends JDialog {
 
                     row.add(button);
 
-                    if (i == builder.actions.size() - 1) {
+                    if (i == defaultIndex) {
                         dialog.getRootPane().setDefaultButton(button);
                     }
                 }
@@ -532,6 +567,7 @@ public class MD3Dialog extends JDialog {
                 add(row, BorderLayout.SOUTH);
             }
         }
+
 
         @Override
         public Dimension getPreferredSize() {

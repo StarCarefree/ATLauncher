@@ -60,11 +60,16 @@ import com.formdev.flatlaf.util.UIScale;
  * call sites are untouched.
  */
 public class MD3Table extends JTable {
-    private static final int ROW_HEIGHT = 36;
-    private static final int HEADER_HEIGHT = 44;
+    private static final int ROW_HEIGHT = MD3Spacing.TABLE_ROW_HEIGHT;
+    private static final int HEADER_HEIGHT = MD3Spacing.TABLE_HEADER_HEIGHT;
 
     /** The row the pointer is on, or -1. Selection wins over it. */
     private int hoveredRow = -1;
+
+    private Border lastRowBorder;
+    private Border ruledRowBorder;
+    private Color borderLine;
+    private int borderPadding = -1;
 
     public MD3Table(TableModel model) {
         super(model);
@@ -154,24 +159,45 @@ public class MD3Table extends JTable {
     public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component component = super.prepareRenderer(renderer, row, column);
 
-        if (row == hoveredRow && !isRowSelected(row) && component != null) {
+        if (component == null || isRowSelected(row)) {
+            return component;
+        }
+
+        // both branches, not just the first. A renderer is a flyweight reused for every cell, so a
+        // hover tint set without a matching reset is a hover tint on every row painted after it -
+        // which is exactly the custom renderers this is meant to work for
+        if (row == hoveredRow) {
             component.setBackground(MD3Color.blend(MD3Color.surface(), MD3Color.onSurface(), MD3State.HOVER));
+        } else {
+            component.setBackground(MD3Color.surface());
         }
 
         return component;
     }
 
-    /** The rule under each row, which is the only line a Material table draws. */
-    private static Border rowBorder(boolean last) {
+    /**
+     * The rule under each row, which is the only line a Material table draws.
+     *
+     * <p>
+     * Cached, because there are only ever two of them and this is asked once per cell - the
+     * create-pack table alone would allocate three borders and look up a colour for every one of the
+     * twenty-odd rows on screen, on every frame of a scroll.
+     */
+    private Border rowBorder(boolean last) {
+        Color line = MD3Color.outlineVariant();
         int padding = MD3Spacing.scale(MD3Spacing.L);
-        Border inner = BorderFactory.createEmptyBorder(0, padding, 0, padding);
 
-        if (last) {
-            return inner;
+        if (!line.equals(borderLine) || padding != borderPadding) {
+            Border inner = BorderFactory.createEmptyBorder(0, padding, 0, padding);
+
+            lastRowBorder = inner;
+            ruledRowBorder = BorderFactory.createCompoundBorder(
+                    BorderFactory.createMatteBorder(0, 0, UIScale.scale(1), 0, line), inner);
+            borderLine = line;
+            borderPadding = padding;
         }
 
-        return BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, UIScale.scale(1), 0, MD3Color.outlineVariant()), inner);
+        return last ? lastRowBorder : ruledRowBorder;
     }
 
     /**

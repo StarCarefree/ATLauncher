@@ -22,6 +22,7 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Shape;
 import java.awt.Window;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
@@ -29,7 +30,11 @@ import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleRole;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
@@ -64,16 +69,20 @@ import com.formdev.flatlaf.util.UIScale;
  * a way to report a failed install.
  *
  * <p>
- * Only one shows at a time; the rest queue.
+ * Only one shows at a time <em>per window</em>; the rest queue behind it. Per window rather than per
+ * launcher, because the queue used to be one slot for the whole process: a message for the settings
+ * dialog waited out the four seconds of one on the main window - by which time the dialog it belonged
+ * to might well have been closed - and a message posted while a modal dialog was up spent its whole
+ * dwell hidden behind the scrim while holding the queue.
  */
 public final class MD3Snackbar {
-    private static final int DEFAULT_DURATION = 4000;
-    private static final int DURATION_WITH_ACTION = 6000;
-    private static final int MAX_WIDTH = 560;
-    private static final int MIN_HEIGHT = 48;
+    private static final int DEFAULT_DURATION = MD3Motion.SNACKBAR_DWELL;
+    private static final int DURATION_WITH_ACTION = MD3Motion.SNACKBAR_DWELL_WITH_ACTION;
+    private static final int MAX_WIDTH = MD3Spacing.SNACKBAR_MAX_WIDTH;
+    private static final int MIN_HEIGHT = MD3Spacing.SNACKBAR_MIN_HEIGHT;
 
-    private static final Deque<Pending> QUEUE = new ArrayDeque<>();
-    private static SnackbarPanel visible;
+    private static final Map<JRootPane, Deque<Pending>> QUEUES = new HashMap<>();
+    private static final Map<JRootPane, SnackbarPanel> VISIBLE = new HashMap<>();
 
     private MD3Snackbar() {
     }
@@ -94,8 +103,9 @@ public final class MD3Snackbar {
         }
 
         SwingUtilities.invokeLater(() -> {
-            QUEUE.add(new Pending(root, message, actionLabel, action));
-            pump();
+            QUEUES.computeIfAbsent(root, key -> new ArrayDeque<>())
+                    .add(new Pending(message, actionLabel, action));
+            pump(root);
         });
     }
 
@@ -107,37 +117,57 @@ public final class MD3Snackbar {
         return null;
     }
 
-    private static void pump() {
-        if (visible != null || QUEUE.isEmpty()) {
+    private static void pump(JRootPane root) {
+        purgeClosedWindows();
+
+        if (VISIBLE.containsKey(root)) {
             return;
         }
 
-        Pending next = QUEUE.poll();
+        Deque<Pending> queue = QUEUES.get(root);
 
-        if (!next.root.isShowing()) {
-            // the window went away while this was queued; drop it and carry on
-            pump();
+        if (queue == null) {
+            return;
+        }
+
+        while (!queue.isEmpty()) {
+            Pending next = queue.poll();
+
+            if (!root.isShowing()) {
+                // the window went away while this was queued; drop it and carry on
+                continue;
+            }
+
+            SnackbarPanel panel = new SnackbarPanel(root, next);
+            VISIBLE.put(root, panel);
+            panel.attach();
 
             return;
         }
 
-        visible = new SnackbarPanel(next);
-        visible.attach();
+        QUEUES.remove(root);
     }
 
-    private static void finished() {
-        visible = null;
-        pump();
+    /**
+     * Forgets windows that have gone. Keyed by root pane, so without this a dialog that was closed
+     * while a message of its own was still queued would be held by the map for the life of the
+     * launcher.
+     */
+    private static void purgeClosedWindows() {
+        QUEUES.keySet().removeIf(root -> !root.isShowing() && !VISIBLE.containsKey(root));
+    }
+
+    private static void finished(JRootPane root) {
+        VISIBLE.remove(root);
+        pump(root);
     }
 
     private static final class Pending {
-        final JRootPane root;
         final String message;
         final String actionLabel;
         final ActionListener action;
 
-        Pending(JRootPane root, String message, String actionLabel, ActionListener action) {
-            this.root = root;
+        Pending(String message, String actionLabel, ActionListener action) {
             this.message = message;
             this.actionLabel = actionLabel;
             this.action = action;
@@ -147,8 +177,22 @@ public final class MD3Snackbar {
     /**
      * The visible bar. Positions itself against the bottom-left of its layered pane and slides in
      * from below.
+     *
+     * <p>
+     * Its bounds are larger than the bar it draws. A snackbar is one of the few things in Material 3
+     * that genuinely floats, so it casts a shadow - and Swing clips a component's painting to its own
+     * bounds, so the panel has to be the bar plus the room the shadow needs on each side. Without
+     * that the shadow was drawn, clipped away on the outside, covered by the container on the inside,
+     * and cost the most expensive call in {@link MD3Paint} to produce nothing at all.
      */
     private static final class SnackbarPanel extends JPanel {
+        private static final int ELEVATION = MD3Elevation.LEVEL3;
+
+        /** Unscaled room kept clear for the shadow; more below, where its offset also lands. */
+        private static final int ROOM = MD3Paint.shadowRoom(ELEVATION);
+        private static final int ROOM_BELOW = MD3Paint.shadowRoomBelow(ELEVATION);
+
+        private final JRootPane root;
         private final JLayeredPane layeredPane;
         private final ComponentListener resizeListener;
         private final Timer dismissTimer;
@@ -158,19 +202,26 @@ public final class MD3Snackbar {
         private Animator animator;
         private boolean dismissing;
 
-        SnackbarPanel(Pending pending) {
+        SnackbarPanel(JRootPane root, Pending pending) {
             super(new BorderLayout(UIScale.scale(MD3Spacing.S), 0));
 
-            this.layeredPane = pending.root.getLayeredPane();
+            this.root = root;
+            this.layeredPane = root.getLayeredPane();
 
             setOpaque(false);
-            setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
+            setBorder(MD3Spacing.border(MD3Spacing.S + ROOM, MD3Spacing.L + ROOM, MD3Spacing.S + ROOM_BELOW,
+                    MD3Spacing.L + ROOM));
 
             JLabel label = new JLabel(pending.message);
             label.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
             label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
             label.setForeground(MD3Color.inverseOnSurface());
             add(label, BorderLayout.CENTER);
+
+            // a panel appearing in a layered pane is not something assistive technology looks for; an
+            // alert is. Swing's support for transient announcements is thin either way, but naming it
+            // and giving it the role is the part that is ours to get right
+            getAccessibleContext().setAccessibleName(pending.message);
 
             if (pending.actionLabel != null && !pending.actionLabel.isEmpty()) {
                 MD3Button action = MD3Button.text(pending.actionLabel);
@@ -225,7 +276,7 @@ public final class MD3Snackbar {
             layeredPane.remove(this);
             layeredPane.repaint();
 
-            finished();
+            finished(root);
         }
 
         private void animateTo(float target, int duration, Animator.Interpolator easing, Runnable onEnd) {
@@ -261,14 +312,21 @@ public final class MD3Snackbar {
         private void reposition() {
             Dimension size = getPreferredSize();
             int margin = UIScale.scale(MD3Spacing.L);
-            int width = Math.min(size.width, Math.min(UIScale.scale(MAX_WIDTH), layeredPane.getWidth() - margin * 2));
-            int height = Math.max(size.height, UIScale.scale(MIN_HEIGHT));
+            int room = UIScale.scale(ROOM);
+            int roomBelow = UIScale.scale(ROOM_BELOW);
+
+            // the margin is measured to the bar's own edges, not to the panel's - the shadow room
+            // around it is not part of what the user sees sitting off the corner of the window
+            int available = Math.max(0, layeredPane.getWidth() - margin * 2);
+            int barWidth = Math.min(size.width - room * 2, Math.min(UIScale.scale(MAX_WIDTH), available));
+            int width = barWidth + room * 2;
+            int height = Math.max(size.height, UIScale.scale(MIN_HEIGHT) + room + roomBelow);
 
             // slides up into place, and drops back out the way it came
-            int restingY = layeredPane.getHeight() - height - margin;
+            int restingY = layeredPane.getHeight() - margin + roomBelow - height;
             int y = Math.round(restingY + height * (1f - entry));
 
-            setBounds(margin, y, width, height);
+            setBounds(margin - room, y, width, height);
 
             // a layered pane uses a null layout, so nothing lays this panel's own children out
             // unless it is asked to - without this the bar shows up as an empty slab
@@ -307,12 +365,39 @@ public final class MD3Snackbar {
         }
 
         @Override
+        public AccessibleContext getAccessibleContext() {
+            if (accessibleContext == null) {
+                accessibleContext = new AccessibleJPanel() {
+                    @Override
+                    public AccessibleRole getAccessibleRole() {
+                        return AccessibleRole.ALERT;
+                    }
+                };
+            }
+
+            return accessibleContext;
+        }
+
+        /**
+         * The bar itself, inside the room kept for its shadow.
+         */
+        private Shape barShape() {
+            float room = UIScale.scale(ROOM);
+            float below = UIScale.scale(ROOM_BELOW);
+
+            return MD3Shape.rounded(room, room, getWidth() - room * 2f, getHeight() - room - below,
+                    MD3Shape.SNACKBAR);
+        }
+
+        @Override
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = MD3Paint.setup(g);
 
             try {
-                MD3Paint.shadow(g2, MD3Paint.shapeOf(this, MD3Shape.SNACKBAR), MD3Elevation.LEVEL3);
-                MD3Paint.fill(g2, MD3Paint.shapeOf(this, MD3Shape.SNACKBAR), MD3Color.inverseSurface());
+                Shape shape = barShape();
+
+                MD3Paint.shadow(g2, shape, ELEVATION);
+                MD3Paint.fill(g2, shape, MD3Color.inverseSurface());
             } finally {
                 g2.dispose();
             }
@@ -323,7 +408,8 @@ public final class MD3Snackbar {
         @Override
         public Dimension getPreferredSize() {
             Dimension size = super.getPreferredSize();
-            size.height = Math.max(size.height, UIScale.scale(MIN_HEIGHT));
+            size.height = Math.max(size.height,
+                    UIScale.scale(MIN_HEIGHT) + UIScale.scale(ROOM) + UIScale.scale(ROOM_BELOW));
 
             return size;
         }

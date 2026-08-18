@@ -75,7 +75,9 @@ public class MD3TopAppBar extends JPanel {
 
     private final JLabel titleLabel = new JLabel();
     private final JPanel leading = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-    private final JPanel trailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.XS, 0));
+    // no gap of its own: the actions are icon buttons, and each already carries the padding that
+    // brings its container up to a full touch target. A gap here would be added to theirs
+    private final JPanel trailing = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
     private final JPanel centre = new JPanel(new BorderLayout());
 
     /** 0 while the page beneath is at the top, 1 once it has scrolled under the bar. */

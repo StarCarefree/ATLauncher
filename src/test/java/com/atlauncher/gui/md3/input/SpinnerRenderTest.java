@@ -137,7 +137,7 @@ public class SpinnerRenderTest {
      */
     @Test
     public void testItIsTheHeightOfTheOtherRowControls() {
-        assertEquals(UIScale.scale(MD3Spacing.MIN_TOUCH_TARGET), memory().getPreferredSize().height,
+        assertEquals(UIScale.scale(MD3Spacing.FIELD_HEIGHT_COMPACT), memory().getPreferredSize().height,
                 "the spinner is not the height the settings rows were built for");
     }
 

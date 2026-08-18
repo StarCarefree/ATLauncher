@@ -37,7 +37,6 @@ public final class MD3State {
     public static final float FOCUS = 0.10f;
     public static final float PRESSED = 0.10f;
     public static final float DRAGGED = 0.16f;
-    public static final float SELECTED = 0.12f;
 
     /** Opacity applied to a disabled component's container. */
     public static final float DISABLED_CONTAINER = 0.12f;
@@ -53,6 +52,17 @@ public final class MD3State {
     /**
      * The opacity for the strongest state currently active. Material 3 does not stack state layers -
      * pressed wins over hover, not pressed plus hover.
+     *
+     * <p>
+     * Ordered {@code dragged > pressed > focus > hover}, which is Material's order. Hover used to be
+     * asked before focus, so a control that was both - a focused button the pointer happened to be
+     * resting on, which is most of them a moment after a click - showed the weaker of the two layers
+     * and told a keyboard user less than the same control told a mouse one.
+     *
+     * <p>
+     * There is deliberately no selected state here. Material expresses selection by changing the
+     * container - a filled chip, a nav rail's pill - not by laying a tint over it, and a 12% layer on
+     * top of a container that has already changed lands somewhere no token describes.
      */
     public static float opacityFor(boolean hovered, boolean focused, boolean pressed, boolean dragged) {
         if (dragged) {
@@ -63,12 +73,12 @@ public final class MD3State {
             return PRESSED;
         }
 
-        if (hovered) {
-            return HOVER;
-        }
-
         if (focused) {
             return FOCUS;
+        }
+
+        if (hovered) {
+            return HOVER;
         }
 
         return 0f;

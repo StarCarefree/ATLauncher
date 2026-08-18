@@ -17,7 +17,6 @@
  */
 package com.atlauncher.gui.md3.button;
 
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
@@ -41,6 +40,7 @@ import javax.swing.plaf.basic.BasicButtonUI;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.paint.MD3Animated;
+import com.atlauncher.gui.md3.paint.MD3Focus;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -201,6 +201,17 @@ public class MD3ButtonUI extends BasicButtonUI {
     }
 
     /**
+     * How far inside its own bounds the button draws its container, in pixels.
+     *
+     * <p>
+     * Zero for a labelled button, whose container is the whole of it. An icon button is the exception:
+     * its 40dp circle has to sit in a 48dp target, and the 4dp between the two draws nothing at all.
+     */
+    protected float containerInset(JComponent c) {
+        return 0f;
+    }
+
+    /**
      * The button's outline at the corner it has reached, which is somewhere between its resting
      * shape and {@link #pressedRadius()} while a press is going in or coming back out.
      *
@@ -225,6 +236,12 @@ public class MD3ButtonUI extends BasicButtonUI {
 
         float leading = segment == MD3Button.Segment.START ? outer : inner;
         float trailing = segment == MD3Button.Segment.END ? outer : inner;
+
+        // the first segment of a right-to-left group is the rightmost one, so which side of the row
+        // is rounded is a question about the writing direction rather than about the segment
+        if (!MD3Paint.isLeftToRight(c)) {
+            return MD3Shape.roundedRadii(inset, inset, width, height, trailing, leading, leading, trailing);
+        }
 
         return MD3Shape.roundedRadii(inset, inset, width, height, leading, trailing, trailing, leading);
     }
@@ -364,7 +381,7 @@ public class MD3ButtonUI extends BasicButtonUI {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
-            Shape shape = shapeOf(c, 0f);
+            Shape shape = shapeOf(c, containerInset(c));
 
             MD3Paint.fill(g2, shape, containerColor(b));
             MD3Paint.outline(g2, shape, outlineColor(b), 1f);
@@ -373,7 +390,7 @@ public class MD3ButtonUI extends BasicButtonUI {
                 stateLayer.paint(g2, shape, contentColor(b));
             }
 
-            if (b.isEnabled() && b.isFocusOwner()) {
+            if (b.isEnabled() && MD3Focus.isVisible(b)) {
                 paintFocusIndicator(g2, c);
             }
         } finally {
@@ -386,13 +403,18 @@ public class MD3ButtonUI extends BasicButtonUI {
     /**
      * Material puts the focus ring outside the component; Swing clips painting to the component's
      * bounds, so it is drawn just inside the edge instead. Same job, and it cannot be sliced off.
+     *
+     * <p>
+     * Width and colour come from {@link MD3Paint} rather than from here, so this ring and the ones
+     * the rail, the tabs and the FAB draw are the same ring. It builds its own inset shape instead of
+     * going through {@link MD3Paint#focusRingInside}, because a segmented button's corners differ from
+     * each other and only {@link #shapeOf} knows by how much.
      */
     protected void paintFocusIndicator(Graphics2D g, JComponent c) {
-        float width = UIScale.scale(2f);
+        float width = UIScale.scale((float) MD3Paint.FOCUS_RING_WIDTH);
 
-        g.setColor(isError(c) ? MD3Color.error() : MD3Color.get(MD3Color.SECONDARY));
-        g.setStroke(new BasicStroke(width));
-        g.draw(shapeOf(c, width / 2f));
+        MD3Paint.stroke(g, shapeOf(c, containerInset(c) + width / 2f),
+                isError(c) ? MD3Color.error() : MD3Paint.focusRingColor(), width);
     }
 
     @Override
@@ -446,7 +468,8 @@ public class MD3ButtonUI extends BasicButtonUI {
         int size = icon.getIconWidth();
         int pad = UIScale.scale(trailingIconPad(c));
 
-        icon.paintIcon(c, g, c.getWidth() - pad - size, (c.getHeight() - icon.getIconHeight()) / 2);
+        icon.paintIcon(c, g, MD3Paint.mirrorX(c, c.getWidth() - pad - size, size),
+                (c.getHeight() - icon.getIconHeight()) / 2);
     }
 
     /**
@@ -459,7 +482,7 @@ public class MD3ButtonUI extends BasicButtonUI {
         }
 
         AbstractButton b = (AbstractButton) c;
-        int x = c.getWidth() - UIScale.scale(trailingZone(c));
+        int x = MD3Paint.mirrorX(c, c.getWidth() - UIScale.scale(trailingZone(c)), 0);
         int inset = UIScale.scale(MD3Spacing.S);
         Graphics2D g2 = MD3Paint.setup(g);
 
@@ -574,6 +597,14 @@ public class MD3ButtonUI extends BasicButtonUI {
 
             if (hasTrailing) {
                 trailing = trailingZone(c);
+            }
+
+            // Insets are left and right, which leading and trailing only agree with in one direction
+            if (!MD3Paint.isLeftToRight(c)) {
+                insets.set(UIScale.scale(padV), UIScale.scale(trailing), UIScale.scale(padV),
+                        UIScale.scale(leading));
+
+                return insets;
             }
 
             insets.set(UIScale.scale(padV), UIScale.scale(leading), UIScale.scale(padV), UIScale.scale(trailing));

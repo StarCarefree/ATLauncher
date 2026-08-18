@@ -80,14 +80,16 @@ public final class MD3Icons {
 
     public static final MD3Icon.Painter CHEVRON_UP = g -> stroke(g, path(6.5f, 14.5f, 12, 9, 17.5f, 14.5f));
 
-    public static final MD3Icon.Painter CHEVRON_LEFT = g -> stroke(g, path(14.5f, 6.5f, 9, 12, 14.5f, 17.5f));
+    public static final MD3Icon.Painter CHEVRON_LEFT = (MD3Icon.Directional) g -> stroke(g,
+            path(14.5f, 6.5f, 9, 12, 14.5f, 17.5f));
 
-    public static final MD3Icon.Painter CHEVRON_RIGHT = g -> stroke(g, path(9.5f, 6.5f, 15, 12, 9.5f, 17.5f));
+    public static final MD3Icon.Painter CHEVRON_RIGHT = (MD3Icon.Directional) g -> stroke(g,
+            path(9.5f, 6.5f, 15, 12, 9.5f, 17.5f));
 
-    public static final MD3Icon.Painter ARROW_BACK = g -> stroke(g,
+    public static final MD3Icon.Painter ARROW_BACK = (MD3Icon.Directional) g -> stroke(g,
             new Line2D.Float(19, 12, 5, 12), path(11, 6, 5, 12, 11, 18));
 
-    public static final MD3Icon.Painter ARROW_FORWARD = g -> stroke(g,
+    public static final MD3Icon.Painter ARROW_FORWARD = (MD3Icon.Directional) g -> stroke(g,
             new Line2D.Float(5, 12, 19, 12), path(13, 6, 19, 12, 13, 18));
 
     public static final MD3Icon.Painter ARROW_UPWARD = g -> stroke(g,

@@ -51,6 +51,18 @@ public final class MD3Icon implements Icon {
         void paint(Graphics2D g);
     }
 
+    /**
+     * A glyph that points somewhere, and so is mirrored where the interface reads right to left.
+     *
+     * <p>
+     * A back arrow points the way the text came from, not left; in Arabic or Hebrew that is the other
+     * way round, and an unmirrored one sends the user forwards. Marked on the painter rather than
+     * asked for at the call site, because whether a glyph has a direction is a fact about the glyph -
+     * a call site that has to remember is a call site that will not.
+     */
+    public interface Directional extends Painter {
+    }
+
     private final Painter painter;
     private final int sizeDp;
     private final String role;
@@ -118,6 +130,14 @@ public final class MD3Icon implements Icon {
 
             float scale = UIScale.scale((float) sizeDp) / GRID;
             g2.scale(scale, scale);
+
+            if (painter instanceof Directional && !MD3Paint.isLeftToRight(c)) {
+                // flipped about the middle of the grid, so the glyph stays inside the box it was
+                // given rather than being drawn to the left of it
+                g2.translate(GRID, 0);
+                g2.scale(-1, 1);
+            }
+
             g2.setColor(resolveColor(c));
 
             painter.paint(g2);

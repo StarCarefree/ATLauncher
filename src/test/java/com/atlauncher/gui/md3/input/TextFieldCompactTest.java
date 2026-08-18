@@ -97,7 +97,7 @@ public class TextFieldCompactTest {
         int field = new MD3TextField(16).getPreferredSize().height;
         int dropdown = new MD3ComboBox<String>().getPreferredSize().height;
 
-        assertEquals(UIScale.scale(MD3Spacing.MIN_TOUCH_TARGET), field,
+        assertEquals(UIScale.scale(MD3Spacing.FIELD_HEIGHT_COMPACT), field,
                 "a label-less field is not the height the settings rows were built for");
 
         assertTrue(Math.abs(field - dropdown) <= UIScale.scale(4),

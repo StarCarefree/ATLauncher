@@ -106,6 +106,18 @@ public final class MD3Motion {
     /** One whole page replacing another. */
     public static final int PAGE_TRANSITION = MEDIUM2;
 
+    /**
+     * How long a snackbar stays before dismissing itself, and how long one carrying an action stays.
+     *
+     * <p>
+     * Longer than any of the duration tokens above by an order of magnitude, because it is not a
+     * transition - it is how long a message the user did not ask for is allowed to sit on their
+     * window. An action gets more, since reading it and deciding to take it is two things rather
+     * than one.
+     */
+    public static final int SNACKBAR_DWELL = 4000;
+    public static final int SNACKBAR_DWELL_WITH_ACTION = 6000;
+
     private MD3Motion() {
     }
 

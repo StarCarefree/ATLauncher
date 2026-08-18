@@ -18,6 +18,7 @@
 package com.atlauncher.gui.md3.nav;
 
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FontMetrics;
@@ -32,15 +33,21 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleRole;
+import javax.accessibility.AccessibleState;
+import javax.accessibility.AccessibleStateSet;
 import javax.swing.AbstractAction;
 import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.paint.MD3Focus;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -73,23 +80,29 @@ import com.formdev.flatlaf.util.UIScale;
  */
 public class MD3Tabs extends JPanel {
     /** A label-only tab; Material's height for one line of text. */
-    private static final int HEIGHT_TEXT = 48;
+    private static final int HEIGHT_TEXT = MD3Spacing.TAB_HEIGHT;
 
     /** With an icon above the label. */
-    private static final int HEIGHT_WITH_ICON = 64;
+    private static final int HEIGHT_WITH_ICON = MD3Spacing.TAB_HEIGHT_WITH_ICON;
 
-    private static final int INDICATOR_HEIGHT = 3;
+    private static final int INDICATOR_HEIGHT = MD3Spacing.TAB_INDICATOR_HEIGHT;
 
     /** Keeps the indicator from shrinking to a stub under a one or two character label. */
-    private static final int INDICATOR_MIN_WIDTH = 24;
+    private static final int INDICATOR_MIN_WIDTH = MD3Spacing.XL;
 
-    private static final int TAB_MIN_WIDTH = 72;
+    private static final int TAB_MIN_WIDTH = MD3Spacing.TAB_MIN_WIDTH;
     private static final int TAB_PADDING_H = MD3Spacing.L;
+
+    /** How far one notch of the wheel moves a row of scrolling tabs. */
+    private static final int SCROLL_STEP = MD3Spacing.L;
 
     private final List<TabItem> tabs = new ArrayList<>();
     private final List<ChangeListener> changeListeners = new ArrayList<>();
 
     private int selectedIndex = -1;
+
+    /** How far a row too wide to fit has been scrolled. Always 0 for one that fits. */
+    private int scrollOffset;
 
     /** Where the indicator is being painted right now, which is mid-slide during a change. */
     private Rectangle indicator;
@@ -105,6 +118,89 @@ public class MD3Tabs extends JPanel {
         setFocusable(true);
 
         installKeyBindings();
+        installWheelScrolling();
+    }
+
+    /**
+     * Lets the wheel reach tabs that do not fit.
+     *
+     * <p>
+     * Only when there are any. A row that fits has nothing to scroll and must not swallow the event -
+     * the wheel over a header belongs to the page underneath it, and a listener that keeps it would
+     * stop the pack browser scrolling whenever the pointer strayed onto the platform tabs.
+     */
+    private void installWheelScrolling() {
+        addMouseWheelListener(e -> {
+            if (maxScroll() > 0) {
+                setScrollOffset(scrollOffset + e.getUnitsToScroll() * UIScale.scale(SCROLL_STEP));
+
+                return;
+            }
+
+            Container parent = getParent();
+
+            if (parent != null) {
+                parent.dispatchEvent(SwingUtilities.convertMouseEvent(this, e, parent));
+            }
+        });
+    }
+
+    private int contentWidth() {
+        int width = 0;
+
+        for (TabItem tab : tabs) {
+            width += tab.getPreferredSize().width;
+        }
+
+        return width;
+    }
+
+    private int maxScroll() {
+        return Math.max(0, contentWidth() - getWidth());
+    }
+
+    private void setScrollOffset(int offset) {
+        int clamped = Math.max(0, Math.min(offset, maxScroll()));
+
+        if (clamped == scrollOffset) {
+            return;
+        }
+
+        scrollOffset = clamped;
+
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * Brings a tab fully into view.
+     *
+     * <p>
+     * The row is one tab stop with the arrow keys moving inside it, so a keyboard user can select a
+     * tab that is not on screen. Before this, the row simply clipped: the sixth platform in the pack
+     * browser could be selected and then neither seen nor clicked.
+     */
+    private void revealTab(int index) {
+        // nothing is on screen before the first layout, and asking then would measure every tab
+        // against a width of zero - which reads as the whole row overflowing and scrolls it to the
+        // end. Adding the tabs selects the first of them, so that is not a rare path
+        if (index < 0 || index >= tabs.size() || getWidth() <= 0 || maxScroll() == 0) {
+            return;
+        }
+
+        int x = 0;
+
+        for (int i = 0; i < index; i++) {
+            x += tabs.get(i).getPreferredSize().width;
+        }
+
+        int width = tabs.get(index).getPreferredSize().width;
+
+        if (x < scrollOffset) {
+            setScrollOffset(x);
+        } else if (x + width > scrollOffset + getWidth()) {
+            setScrollOffset(x + width - getWidth());
+        }
     }
 
     private void installKeyBindings() {
@@ -184,6 +280,7 @@ public class MD3Tabs extends JPanel {
 
         selectedIndex = index;
 
+        revealTab(index);
         slideIndicatorTo(indicatorBounds(index));
         repaint();
         fireStateChanged();
@@ -230,6 +327,14 @@ public class MD3Tabs extends JPanel {
         changeListeners.add(listener);
     }
 
+    /**
+     * The launcher's pages are rebuilt every time they are shown, and a listener that cannot be taken
+     * off is one the rebuilt page adds a second copy of.
+     */
+    public void removeChangeListener(ChangeListener listener) {
+        changeListeners.remove(listener);
+    }
+
     private void fireStateChanged() {
         ChangeEvent event = new ChangeEvent(this);
 
@@ -247,6 +352,30 @@ public class MD3Tabs extends JPanel {
         }
 
         repaint();
+    }
+
+    /**
+     * A tab row, and the tabs in it, named as such.
+     *
+     * <p>
+     * This is a {@link JPanel} of {@link JPanel}s that paints an indicator, which told a screen reader
+     * nothing: not that the row was a set of choices, not how many there were, and not which one was
+     * current. The row is the tab stop, so it carries the list role and the items carry their own.
+     */
+    @Override
+    public AccessibleContext getAccessibleContext() {
+        if (accessibleContext == null) {
+            accessibleContext = new AccessibleMD3Tabs();
+        }
+
+        return accessibleContext;
+    }
+
+    protected class AccessibleMD3Tabs extends AccessibleJPanel {
+        @Override
+        public AccessibleRole getAccessibleRole() {
+            return AccessibleRole.PAGE_TAB_LIST;
+        }
     }
 
     private boolean hasIcons() {
@@ -306,7 +435,11 @@ public class MD3Tabs extends JPanel {
             }
         }
 
-        int x = 0;
+        // a row that fits is never scrolled, and one that no longer overflows as far as it did has to
+        // give back the offset it cannot use, or it would be scrolled past its own last tab
+        scrollOffset = fits ? 0 : Math.max(0, Math.min(scrollOffset, Math.max(0, contentWidth() - getWidth())));
+
+        int x = fits ? 0 : -scrollOffset;
 
         for (int i = 0; i < tabs.size(); i++) {
             TabItem tab = tabs.get(i);
@@ -409,7 +542,7 @@ public class MD3Tabs extends JPanel {
             // below it rather than as six separate headers
             int thickness = UIScale.scale(MD3Spacing.DIVIDER_THICKNESS);
 
-            g2.setColor(MD3Color.surfaceVariant());
+            g2.setColor(MD3Color.outlineVariant());
             g2.fillRect(0, getHeight() - thickness, getWidth(), thickness);
         } finally {
             g2.dispose();
@@ -477,6 +610,38 @@ public class MD3Tabs extends JPanel {
             repaint();
         }
 
+        @Override
+        public AccessibleContext getAccessibleContext() {
+            if (accessibleContext == null) {
+                accessibleContext = new AccessibleTabItem();
+            }
+
+            return accessibleContext;
+        }
+
+        private final class AccessibleTabItem extends AccessibleJPanel {
+            @Override
+            public AccessibleRole getAccessibleRole() {
+                return AccessibleRole.PAGE_TAB;
+            }
+
+            @Override
+            public String getAccessibleName() {
+                return label;
+            }
+
+            @Override
+            public AccessibleStateSet getAccessibleStateSet() {
+                AccessibleStateSet states = super.getAccessibleStateSet();
+
+                if (isActive()) {
+                    states.add(AccessibleState.SELECTED);
+                }
+
+                return states;
+            }
+        }
+
         void setIcon(Icon icon) {
             this.icon = icon;
 
@@ -532,7 +697,7 @@ public class MD3Tabs extends JPanel {
                 g2.setColor(content);
                 g2.drawString(label, (getWidth() - metrics.stringWidth(label)) / 2, textY);
 
-                if (MD3Tabs.this.isFocusOwner() && isActive()) {
+                if (isActive() && MD3Focus.isVisible(MD3Tabs.this)) {
                     MD3Paint.focusRing(g2, this, MD3Shape.NONE);
                 }
             } finally {

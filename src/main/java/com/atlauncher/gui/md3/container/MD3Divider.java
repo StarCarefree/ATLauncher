@@ -59,7 +59,7 @@ public class MD3Divider extends JComponent {
      */
     public static MD3Divider inset() {
         MD3Divider divider = new MD3Divider(SwingConstants.HORIZONTAL);
-        divider.setInsets(MD3Spacing.L + MD3Spacing.MIN_TOUCH_TARGET + MD3Spacing.L, 0);
+        divider.setInsets(MD3Spacing.L + MD3Spacing.LIST_LEADING_COLUMN + MD3Spacing.L, 0);
 
         return divider;
     }

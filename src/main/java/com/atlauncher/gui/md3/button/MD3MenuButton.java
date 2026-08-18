@@ -19,15 +19,20 @@ package com.atlauncher.gui.md3.button;
 
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.function.Supplier;
 
+import javax.swing.AbstractAction;
 import javax.swing.Icon;
 import javax.swing.JPopupMenu;
+import javax.swing.KeyStroke;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
+import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.formdev.flatlaf.util.UIScale;
 
 /**
@@ -45,13 +50,30 @@ import com.formdev.flatlaf.util.UIScale;
  * opens the menu - which is what Play-with-a-choice-of-offline used to be.
  *
  * <p>
+ * A split button is two targets on one control, and where they are only means something to a
+ * pointer. So the keyboard gets its own route to each: space and enter take the primary action, and
+ * {@code Alt+Down} - what every platform's own split buttons use - opens the menu.
+ *
+ * <p>
  * Build the menu on each open when its contents can change. A supplier that is asked at show time
  * always reflects the current language and the current enabled state of whatever it points at.
  */
 public class MD3MenuButton extends MD3Button {
+    private static final String OPEN_MENU = "md3.openMenu";
+
     private Supplier<JPopupMenu> menu;
     private boolean split;
-    private boolean lastPressInChevron;
+
+    /**
+     * Set by the press that is about to become an action, and read once by it.
+     *
+     * <p>
+     * One-shot rather than remembered: it can only ever be answered by a pointer, and a stale answer
+     * left lying around is one the keyboard reads next. Holding it meant a split button whose chevron
+     * had been clicked would open its menu again on the next space bar, and one that never had been
+     * offered no way to open the menu at all.
+     */
+    private boolean pressInChevron;
 
     public MD3MenuButton(String text, Variant variant, JPopupMenu menu) {
         this(text, variant, () -> menu);
@@ -71,7 +93,15 @@ public class MD3MenuButton extends MD3Button {
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                lastPressInChevron = isSplit() && e.getX() >= chevronStart();
+                pressInChevron = isSplit() && isInChevron(e.getX());
+            }
+        });
+
+        getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.ALT_DOWN_MASK), OPEN_MENU);
+        getActionMap().put(OPEN_MENU, new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showMenu();
             }
         });
     }
@@ -105,6 +135,7 @@ public class MD3MenuButton extends MD3Button {
      */
     public void setSplit(boolean split) {
         this.split = split;
+        this.pressInChevron = false;
 
         repaint();
     }
@@ -127,9 +158,25 @@ public class MD3MenuButton extends MD3Button {
         return getWidth() - UIScale.scale(MD3ButtonUI.trailingZone(this));
     }
 
+    /**
+     * Whether an x position is in the half of a split button that opens the menu.
+     *
+     * <p>
+     * The chevron sits on the trailing edge, which is the left one where the interface reads right to
+     * left - so the test is which side of the divider the press landed on, not whether it was far
+     * enough right.
+     */
+    boolean isInChevron(int x) {
+        return MD3Paint.isLeftToRight(this) ? x >= chevronStart()
+                : x <= UIScale.scale(MD3ButtonUI.trailingZone(this));
+    }
+
     @Override
     protected void fireActionPerformed(ActionEvent event) {
-        if (isSplit() && !lastPressInChevron) {
+        boolean chevron = pressInChevron;
+        pressInChevron = false;
+
+        if (isSplit() && !chevron) {
             super.fireActionPerformed(event);
 
             return;

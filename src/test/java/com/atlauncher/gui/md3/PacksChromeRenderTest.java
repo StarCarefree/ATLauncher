@@ -264,12 +264,16 @@ public class PacksChromeRenderTest {
         Component search = findByName(toolbar, "packsSearchField");
 
         assertNotNull(search, "the search field is missing, or was renamed out from under the ui test");
-        assertEquals(UIScale.scale(MD3Spacing.MIN_TOUCH_TARGET), search.getPreferredSize().height,
+        assertEquals(UIScale.scale(MD3Spacing.FIELD_HEIGHT_COMPACT), search.getPreferredSize().height,
                 "the search box is not the compact variant, so it sets the toolbar's height on its own");
 
-        // the row has to clear the tallest control in it - the buttons, at 40dp - and its own padding
+        // The row has to clear the tallest control in it, plus its own padding. That is the icon
+        // buttons rather than the labelled ones: their container is 40dp like everything else here,
+        // but the component is the touch target the container is centred in, and Material puts the
+        // floor for that at 48. Eight pixels once per page header, for a target a pointer can hit.
         int padding = UIScale.scale(MD3Spacing.M) + UIScale.scale(MD3Spacing.S);
-        int expected = UIScale.scale(MD3Spacing.BUTTON_HEIGHT) + padding;
+        int tallest = Math.max(MD3Spacing.BUTTON_HEIGHT, MD3Spacing.MIN_TOUCH_TARGET);
+        int expected = UIScale.scale(tallest) + padding;
 
         assertEquals(expected, toolbar.getPreferredSize().height,
                 "the toolbar is taller than the controls it holds, so something inside it is out of scale");

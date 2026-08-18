@@ -49,6 +49,8 @@ public final class MD3Shape {
      * large enough that a segment does not look like it was clipped out of a stadium.
      */
     public static final int BUTTON_GROUP_INNER = EXTRA_SMALL;
+    /** A checkbox's box: smaller than any step on the scale, and particular to it. */
+    public static final int CHECKBOX = 2;
     public static final int CHIP = SMALL;
     public static final int CARD = MEDIUM;
     public static final int DIALOG = EXTRA_LARGE;

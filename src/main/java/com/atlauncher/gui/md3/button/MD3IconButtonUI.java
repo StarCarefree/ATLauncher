@@ -161,10 +161,42 @@ public class MD3IconButtonUI extends MD3ButtonUI {
         return MD3Color.withAlpha(line, remaining);
     }
 
+    /**
+     * The whole target, which is larger than the circle drawn in it.
+     *
+     * <p>
+     * Material and WCAG both put the floor for anything a pointer has to hit at
+     * {@link MD3Spacing#MIN_TOUCH_TARGET}, and a medium icon button's container is 40dp. Expanding the
+     * component rather than the container is the only way to get there: Swing dispatches a click to
+     * the deepest component whose bounds contain it, so a target cannot reach past the bounds it was
+     * given. The extra draws nothing, so the button looks the size it was asked for.
+     *
+     * <p>
+     * <b>The small size is exempt.</b> It exists to fit somewhere a medium one will not - a card's
+     * corner, a table row - and giving it a 48dp footprint would leave it taking a medium one's room
+     * while looking like less, which is the opposite of the point. Same trade as
+     * {@link com.atlauncher.gui.md3.input.MD3Checkbox#setCompact(boolean)}, and the same condition on
+     * it: use it where the row or the card around it is a target of its own, not as the only way to
+     * reach something.
+     */
     @Override
     public Dimension getPreferredSize(JComponent c) {
-        int size = UIScale.scale(targetSize(c));
+        int box = sizeOf(c) == MD3IconButton.Size.SMALL ? targetSize(c)
+                : Math.max(targetSize(c), MD3Spacing.MIN_TOUCH_TARGET);
+        int size = UIScale.scale(box);
 
         return new Dimension(size, size);
+    }
+
+    /**
+     * Centres the container in that target. Measured against the size the button actually has rather
+     * than the one it asked for, so a layout that gave it something else still draws a circle rather
+     * than an ellipse pinned to one corner.
+     */
+    @Override
+    protected float containerInset(JComponent c) {
+        int box = Math.min(c.getWidth(), c.getHeight());
+
+        return Math.max(0f, (box - UIScale.scale(targetSize(c))) / 2f);
     }
 }
