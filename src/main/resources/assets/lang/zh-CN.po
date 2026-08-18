@@ -1778,6 +1778,10 @@ msgstr "由启动器管理 Java"
 msgid "Lines shown of lines logged"
 msgstr "已显示行数 / 已记录行数"
 
+#. {0} is how many lines the filter is showing, {1} is how many have been logged
+msgid "{0} / {1} lines"
+msgstr "{0} / {1} 行"
+
 msgid "Loading"
 msgstr "正在加载"
 

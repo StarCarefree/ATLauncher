@@ -18,10 +18,13 @@
 package com.atlauncher.gui.md3.container;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.FontMetrics;
+import java.awt.Graphics;
 import java.awt.Rectangle;
 
 import javax.swing.Box;
@@ -29,6 +32,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextArea;
 import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
 
@@ -39,22 +43,20 @@ import com.atlauncher.themes.md3.token.MD3Type;
 import com.formdev.flatlaf.util.UIScale;
 
 /**
- * A list of settings, one full-width row each.
+ * A list of settings, grouped into cards, one full-width row each.
  *
  * <p>
  * A setting used to be two cells of a {@link java.awt.GridBagLayout}: a right-aligned
  * "{@code Something?}" carrying a help icon, and the control beside it. That put the labels in a
- * ragged column down the middle with the explanation of each hidden in a tooltip on a 16px glyph -
- * which meant the answer to "what does this do" was only available to someone who already suspected
- * there was one.
+ * ragged column down the middle with the explanation of each hidden in a tooltip on a 16px glyph.
  *
  * <p>
- * A row is now what the setting is called, what it does underneath, and the control on the trailing
- * edge. Callers hand over a label, a description and a control, and deal with no constraints at all.
+ * Each section is now a heading plus a filled card of rows. A row is what the setting is called,
+ * what it does underneath, and the control on the trailing edge. Related settings share a surface,
+ * so the page reads as groups rather than a long stack of floating labels.
  *
  * <p>
- * Both the settings page and the instance settings dialog are built from this, which is why it lives
- * here rather than beside either of them.
+ * Both the settings page and the instance settings dialog are built from this.
  */
 public class MD3SettingsList extends JPanel implements Scrollable {
     /**
@@ -71,10 +73,12 @@ public class MD3SettingsList extends JPanel implements Scrollable {
     private static final int NOMINAL_TEXT_WIDTH = 520;
 
     private final JPanel rows = new JPanel();
+    private MD3Card currentGroup;
 
     public MD3SettingsList() {
         setLayout(new BorderLayout());
         setOpaque(false);
+        setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L, MD3Spacing.XL, MD3Spacing.L));
 
         rows.setLayout(new BoxLayout(rows, BoxLayout.Y_AXIS));
         rows.setOpaque(false);
@@ -122,6 +126,7 @@ public class MD3SettingsList extends JPanel implements Scrollable {
      */
     public void clear() {
         rows.removeAll();
+        currentGroup = null;
     }
 
     /**
@@ -133,12 +138,15 @@ public class MD3SettingsList extends JPanel implements Scrollable {
         JLabel label = new JLabel(title);
         label.setFont(MD3Type.font(MD3Type.TITLE_SMALL, title));
         label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
-        label.setForeground(MD3Color.primary());
+        label.setForeground(MD3Color.onSurfaceVariant());
         label.setAlignmentX(LEFT_ALIGNMENT);
         label.setBorder(MD3Spacing.border(rows.getComponentCount() == 0 ? MD3Spacing.S : MD3Spacing.XL,
-                MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+                MD3Spacing.XS, MD3Spacing.S, MD3Spacing.XS));
+        stretch(label);
 
         rows.add(label);
+        currentGroup = newGroup();
+        rows.add(currentGroup);
 
         return label;
     }
@@ -154,10 +162,7 @@ public class MD3SettingsList extends JPanel implements Scrollable {
      * @return the row, for a caller that shows or hides a setting depending on another
      */
     public Row addRow(String label, String help, JComponent control) {
-        Row row = new Row(label, help, control, false);
-        rows.add(row);
-
-        return row;
+        return addRow(label, help, control, false);
     }
 
     /**
@@ -165,8 +170,17 @@ public class MD3SettingsList extends JPanel implements Scrollable {
      * area, anything that would be unusable at a control's width.
      */
     public Row addWideRow(String label, String help, JComponent control) {
-        Row row = new Row(label, help, control, true);
-        rows.add(row);
+        return addRow(label, help, control, true);
+    }
+
+    private Row addRow(String label, String help, JComponent control, boolean wide) {
+        if (currentGroup == null) {
+            currentGroup = newGroup();
+            rows.add(currentGroup);
+        }
+
+        Row row = new Row(label, help, control, wide);
+        currentGroup.add(row);
 
         return row;
     }
@@ -185,12 +199,28 @@ public class MD3SettingsList extends JPanel implements Scrollable {
         return panel;
     }
 
+    private static MD3Card newGroup() {
+        MD3Card card = new MD3Card(MD3Card.Variant.FILLED);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(MD3Spacing.border(MD3Spacing.XS, 0));
+        card.setAlignmentX(LEFT_ALIGNMENT);
+        stretch(card);
+
+        return card;
+    }
+
+    private static void stretch(JComponent component) {
+        // width only: a card's height is the sum of its rows, and pinning the height at the
+        // moment the empty card is built would clip every setting added after
+        component.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+    }
+
     /**
      * One setting: its name, what it does, and the control.
      */
     public static final class Row extends JPanel {
         private final JLabel headline;
-        private final JLabel supporting;
+        private final JTextArea supporting;
         private final String help;
         private final boolean wide;
 
@@ -218,7 +248,15 @@ public class MD3SettingsList extends JPanel implements Scrollable {
             setLabel(label);
             text.add(headline);
 
-            supporting = new JLabel();
+            supporting = new JTextArea();
+            supporting.setEditable(false);
+            supporting.setOpaque(false);
+            supporting.setFocusable(false);
+            supporting.setLineWrap(true);
+            supporting.setWrapStyleWord(true);
+            supporting.setHighlighter(null);
+            supporting.setBorder(null);
+            supporting.setBackground(new Color(0, 0, 0, 0));
             supporting.setFont(MD3Type.font(MD3Type.BODY_SMALL, help));
             supporting.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
             supporting.setForeground(MD3Color.onSurfaceVariant());
@@ -250,7 +288,7 @@ public class MD3SettingsList extends JPanel implements Scrollable {
                 text.setBorder(MD3Spacing.border(0, 0, MD3Spacing.S, 0));
                 add(control, BorderLayout.SOUTH);
             } else {
-                add(trailing(control), BorderLayout.EAST);
+                add(trailing(control), BorderLayout.LINE_END);
             }
         }
 
@@ -268,11 +306,25 @@ public class MD3SettingsList extends JPanel implements Scrollable {
          * than following each label to wherever its control happened to start.
          */
         private static JComponent trailing(JComponent control) {
-            JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+            JPanel panel = new JPanel(new BorderLayout());
             panel.setOpaque(false);
-            panel.add(control);
+            panel.add(control, BorderLayout.EAST);
 
             return panel;
+        }
+
+        @Override
+        public Dimension getPreferredSize() {
+            Dimension size = super.getPreferredSize();
+            int min = UIScale.scale(help != null && !help.isEmpty()
+                    ? MD3Spacing.LIST_ITEM_HEIGHT_TWO_LINE
+                    : MD3Spacing.LIST_ITEM_HEIGHT_ONE_LINE);
+
+            if (size != null) {
+                size.height = Math.max(size.height, min);
+            }
+
+            return size;
         }
 
         @Override
@@ -287,7 +339,18 @@ public class MD3SettingsList extends JPanel implements Scrollable {
             supportingWidth = width;
 
             FontMetrics metrics = supporting.getFontMetrics(supporting.getFont());
-            supporting.setText(MD3Text.wrapToLines(metrics, help, width, SUPPORTING_LINES));
+            String plain = MD3Text.wrapToPlainLines(metrics, help, width, SUPPORTING_LINES);
+            supporting.setText(plain);
+
+            int lines = 1;
+
+            for (int i = 0; i < plain.length(); i++) {
+                if (plain.charAt(i) == '\n') {
+                    lines++;
+                }
+            }
+
+            supporting.setRows(lines);
         }
 
         /**
@@ -307,6 +370,48 @@ public class MD3SettingsList extends JPanel implements Scrollable {
             }
 
             super.doLayout();
+        }
+
+        /**
+         * A hairline between this row and the one above it, skipped for the first visible row so
+         * the card's top edge is clean. Drawn here rather than as a sibling so hiding a row hides
+         * its rule with it.
+         */
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+
+            if (!hasVisiblePredecessor()) {
+                return;
+            }
+
+            int inset = UIScale.scale(MD3Spacing.L);
+            int thickness = UIScale.scale(MD3Spacing.DIVIDER_THICKNESS);
+
+            g.setColor(MD3Color.outlineVariant());
+            g.fillRect(inset, 0, Math.max(0, getWidth() - inset * 2), thickness);
+        }
+
+        private boolean hasVisiblePredecessor() {
+            Container parent = getParent();
+
+            if (parent == null) {
+                return false;
+            }
+
+            Component[] children = parent.getComponents();
+
+            for (int i = 0; i < children.length; i++) {
+                if (children[i] == this) {
+                    return false;
+                }
+
+                if (children[i].isVisible() && children[i] instanceof Row) {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

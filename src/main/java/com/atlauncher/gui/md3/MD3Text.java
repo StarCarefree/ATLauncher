@@ -49,7 +49,7 @@ public final class MD3Text {
      * label itself is not opaque. On a card that is already a step up the container ramp, that
      * shows as a darker rectangle behind the wrapped lines.
      */
-    public static final String HTML_OPEN = "<html><body style='background:none;margin:0'>";
+    public static final String HTML_OPEN = "<html><body style='background:none;background-color:transparent;margin:0;padding:0'>";
 
     public static final String HTML_CLOSE = "</body></html>";
 
@@ -61,14 +61,62 @@ public final class MD3Text {
      *         take the row's alignment with it
      */
     public static String wrapToLines(FontMetrics metrics, String text, int width, int maxLines) {
-        if (text == null || text.trim().isEmpty()) {
+        List<String> lines = breakLines(metrics, text, width, maxLines);
+
+        if (lines.isEmpty()) {
             return " ";
+        }
+
+        StringBuilder html = new StringBuilder(HTML_OPEN);
+
+        for (int i = 0; i < lines.size(); i++) {
+            if (i > 0) {
+                html.append("<br>");
+            }
+
+            html.append(escapeHtml(lines.get(i)));
+        }
+
+        return html.append(HTML_CLOSE).toString();
+    }
+
+    /**
+     * The same wrap as {@link #wrapToLines}, as plain text with {@code \n}s. For a
+     * {@code JTextArea}, which wraps without painting the HTML slab a {@code JLabel} does.
+     */
+    public static String wrapToPlainLines(FontMetrics metrics, String text, int width, int maxLines) {
+        List<String> lines = breakLines(metrics, text, width, maxLines);
+
+        if (lines.isEmpty()) {
+            return " ";
+        }
+
+        StringBuilder plain = new StringBuilder();
+
+        for (int i = 0; i < lines.size(); i++) {
+            if (i > 0) {
+                plain.append('\n');
+            }
+
+            plain.append(lines.get(i));
+        }
+
+        return plain.toString();
+    }
+
+    private static List<String> breakLines(FontMetrics metrics, String text, int width, int maxLines) {
+        List<String> lines = new ArrayList<>();
+
+        if (text == null || text.trim().isEmpty()) {
+            return lines;
         }
 
         String flat = text.replaceAll("\\s+", " ").trim();
 
         if (width <= 0 || maxLines <= 0) {
-            return HTML_OPEN + escapeHtml(flat) + HTML_CLOSE;
+            lines.add(flat);
+
+            return lines;
         }
 
         // Splitting on spaces would take a Chinese sentence - which has none - for one long word,
@@ -78,7 +126,6 @@ public final class MD3Text {
         BreakIterator breaks = BreakIterator.getLineInstance();
         breaks.setText(flat);
 
-        List<String> lines = new ArrayList<>();
         int lineStart = 0;
         int lineEnd = 0;
         int consumed = 0;
@@ -113,17 +160,7 @@ public final class MD3Text {
             lines.set(last, truncateToWidth(metrics, lines.get(last), width));
         }
 
-        StringBuilder html = new StringBuilder(HTML_OPEN);
-
-        for (int i = 0; i < lines.size(); i++) {
-            if (i > 0) {
-                html.append("<br>");
-            }
-
-            html.append(escapeHtml(lines.get(i)));
-        }
-
-        return html.append(HTML_CLOSE).toString();
+        return lines;
     }
 
     /**

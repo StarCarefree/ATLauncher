@@ -33,6 +33,7 @@ import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.nav.MD3Tabs;
 import com.atlauncher.gui.panels.HierarchyPanel;
+import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.gui.tabs.settings.BackupsSettingsTab;
 import com.atlauncher.gui.tabs.settings.CommandsSettingsTab;
 import com.atlauncher.gui.tabs.settings.EnvironmentVariablesTab;
@@ -120,9 +121,11 @@ public class SettingsTab extends HierarchyPanel implements Tab {
     protected void onShow() {
         saveButton = MD3Button.filled(GetText.tr("Save"));
         tabs = new MD3Tabs();
+        tabs.setBackground(MD3Color.surfaceContainer());
         sectionLayout = new CardLayout();
         sections = new JPanel(sectionLayout);
         sections.setOpaque(false);
+        sections.setBackground(MD3Color.surface());
 
         generalSettingsTab = new GeneralSettingsTab(generalSettingsViewModel);
         modsSettingsTab = new ModsSettingsTab(modsSettingsViewModel);
@@ -147,7 +150,8 @@ public class SettingsTab extends HierarchyPanel implements Tab {
             scrollPane.setBorder(null);
             scrollPane.setOpaque(false);
             scrollPane.getViewport().setOpaque(false);
-            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            scrollPane.getViewport().setBackground(MD3Color.surface());
+            scrollPane.getVerticalScrollBar().setUnitIncrement(MD3Spacing.scale(MD3Spacing.L));
 
             sections.add(scrollPane, String.valueOf(i));
             tabs.addTab(tab.getTitle()).setName("settingsSection." + tab.getAnalyticsScreenViewName());
@@ -177,14 +181,15 @@ public class SettingsTab extends HierarchyPanel implements Tab {
      */
     private JPanel buildSaveBar() {
         JPanel bar = new JPanel(new BorderLayout());
-        bar.setOpaque(false);
+        bar.setOpaque(true);
+        bar.setBackground(MD3Color.surfaceContainer());
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.TRAILING, MD3Spacing.scale(MD3Spacing.S), 0));
         actions.setOpaque(false);
         actions.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
         actions.add(saveButton);
 
-        bar.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bar.add(new MD3Divider(), BorderLayout.NORTH);
         bar.add(actions, BorderLayout.CENTER);
 
         return bar;

@@ -458,7 +458,7 @@ public final class MD3Bridge {
         Color outlineVariant = scheme.get(MD3Color.OUTLINE_VARIANT);
         Color secondaryContainer = scheme.get(MD3Color.SECONDARY_CONTAINER);
 
-        defaults.put("Console.LogType.debug", scheme.get(MD3Color.ON_SURFACE_VARIANT));
+        defaults.put("Console.LogType.debug", scheme.get(MD3Color.SECONDARY));
         defaults.put("Console.LogType.error", error);
         defaults.put("Console.LogType.info", primary);
         defaults.put("Console.LogType.warn", tertiary);

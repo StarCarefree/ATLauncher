@@ -25,6 +25,7 @@ import java.awt.Rectangle;
 
 import javax.swing.AbstractButton;
 import javax.swing.JComponent;
+import javax.swing.UIManager;
 import javax.swing.border.AbstractBorder;
 import javax.swing.plaf.ComponentUI;
 
@@ -178,12 +179,15 @@ public class MD3ChipUI extends MD3ButtonUI {
             return null;
         }
 
-        Color container = b.isEnabled() ? MD3Color.secondaryContainer()
-                : MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
+        Color container = b.isEnabled() ? selectedContainer(b) : MD3State.disabledContainer(MD3Color.onSurface(),
+                MD3Color.surface());
+
+        // an accented chip (console Info/Warn/…) is a wash of its colour, not a solid fill of it
+        float alpha = accentOf(b) != null ? selected * 0.24f : selected;
 
         // there is nothing behind an unselected chip but the page, so the container arrives by
         // becoming opaque rather than by being blended against something
-        return MD3Color.withAlpha(container, selected);
+        return MD3Color.withAlpha(container, alpha);
     }
 
     @Override
@@ -198,8 +202,43 @@ public class MD3ChipUI extends MD3ButtonUI {
             return MD3Color.onSurface();
         }
 
-        return MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.onSecondaryContainer(),
-                selectedProgress(b));
+        Color selected = selectedContent(b);
+
+        return MD3Animated.lerp(MD3Color.onSurfaceVariant(), selected, selectedProgress(b));
+    }
+
+    /**
+     * A chip that names a colour (the console's Info/Warn/Error/Debug filters) fills with a wash of
+     * that colour rather than the generic secondary container, so the toolbar matches the log.
+     */
+    private static Color selectedContainer(AbstractButton b) {
+        Color accent = accentOf(b);
+
+        if (accent != null) {
+            return accent;
+        }
+
+        return MD3Color.secondaryContainer();
+    }
+
+    private static Color selectedContent(AbstractButton b) {
+        Color accent = accentOf(b);
+
+        return accent != null ? accent : MD3Color.onSecondaryContainer();
+    }
+
+    private static Color accentOf(AbstractButton b) {
+        Object accent = b.getClientProperty(MD3Chip.ACCENT_KEY);
+
+        if (accent instanceof Color) {
+            return (Color) accent;
+        }
+
+        if (accent instanceof String) {
+            return UIManager.getColor((String) accent);
+        }
+
+        return null;
     }
 
     @Override

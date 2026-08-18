@@ -56,6 +56,12 @@ import com.atlauncher.gui.md3.icon.MD3Icons;
 public class MD3Chip extends JToggleButton {
     public static final String UI_CLASS_ID = "MD3ChipUI";
 
+    /**
+     * Client property naming a colour (or a {@code UIManager} colour key) used when this filter is
+     * on. The console's level chips use it so Info/Warn/Error/Debug match the log they filter.
+     */
+    public static final String ACCENT_KEY = "MD3.chipAccent";
+
     public enum Variant {
         ASSIST, FILTER, INPUT, SUGGESTION
     }

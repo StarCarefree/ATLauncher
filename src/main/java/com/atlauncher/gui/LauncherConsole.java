@@ -26,6 +26,7 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.text.NumberFormat;
@@ -34,12 +35,14 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.BorderFactory;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.KeyStroke;
 import javax.swing.Timer;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -115,6 +118,7 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
         setIconImage(Utils.getImage("/assets/image/icon.png"));
         setLayout(new BorderLayout());
 
+        getContentPane().setBackground(MD3Color.surfaceContainer());
         setMinimumSize(UIScale.scale(new Dimension(720, 320)));
         setSize(UIScale.scale(new Dimension(900, 560)));
 
@@ -144,6 +148,7 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
         add(scrollPane, BorderLayout.CENTER);
         add(buildActionBar(), BorderLayout.SOUTH);
 
+        bindShortcuts();
         updateCounts();
         RelocalizationManager.addListener(this);
 
@@ -205,6 +210,7 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
 
         for (LogType type : LogType.values()) {
             MD3Chip chip = MD3Chip.filter(labelFor(type));
+            chip.putClientProperty(MD3Chip.ACCENT_KEY, colorKey(type));
             chip.setSelected(console.isLevelVisible(type));
             chip.addActionListener(e -> console.setLevelVisible(type, chip.isSelected()));
 
@@ -360,10 +366,45 @@ public class LauncherConsole extends JFrame implements RelocalizationListener {
         }
     }
 
+    /**
+     * UIManager keys the console already publishes per level, reused so a chip's fill tracks the
+     * same colour as the line it filters.
+     */
+    private static String colorKey(LogType type) {
+        switch (type) {
+            case WARN:
+                return "Console.LogType.warn";
+            case ERROR:
+                return "Console.LogType.error";
+            case DEBUG:
+                return "Console.LogType.debug";
+            case INFO:
+            default:
+                return "Console.LogType.info";
+        }
+    }
+
+    /**
+     * Ctrl/Cmd+F focuses search; Escape clears it. A console you cannot search from the keyboard
+     * is a console you end up scrolling through by hand.
+     */
+    private void bindShortcuts() {
+        JComponent root = getRootPane();
+        int menu = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+
+        root.registerKeyboardAction(e -> search.requestFocusInWindow(),
+                KeyStroke.getKeyStroke(KeyEvent.VK_F, menu), JComponent.WHEN_IN_FOCUSED_WINDOW);
+        root.registerKeyboardAction(e -> {
+            search.setText("");
+            console.setQuery("");
+        }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_IN_FOCUSED_WINDOW);
+    }
+
     private void updateCounts() {
         NumberFormat format = NumberFormat.getIntegerInstance();
 
-        counts.setText(format.format(console.getShownCount()) + " / " + format.format(console.getTotalCount()));
+        counts.setText(GetText.tr("{0} / {1} lines", format.format(console.getShownCount()),
+                format.format(console.getTotalCount())));
     }
 
     @Override

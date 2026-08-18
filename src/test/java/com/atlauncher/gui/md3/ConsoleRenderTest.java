@@ -148,6 +148,12 @@ public class ConsoleRenderTest {
         assertEquals(7, window.console.getShownCount(), "the console is hiding lines with no filter applied");
         assertTrue(window.console.getText().contains("僵尸入侵"),
                 "a Chinese line was accepted but not written into the document");
+        assertTrue(window.console.getText().contains("[16:01:16]"),
+                "the timestamp is not wrapped as a [time] marker");
+        assertTrue(window.console.getText().contains("[DEBUG]"),
+                "DEBUG is not wrapped as a [DEBUG] marker");
+        assertTrue(window.console.getText().contains("[INFO]"),
+                "INFO is not wrapped as an [INFO] marker");
     }
 
     /**
@@ -240,6 +246,8 @@ public class ConsoleRenderTest {
         assertTrue(log.contains("Error organising filesystem"),
                 "the log handed to Copy and Upload is missing the errors the view is hiding");
         assertTrue(log.contains("[ERROR]"), "the log handed to Copy and Upload does not say what level a line was");
+        assertTrue(log.contains("[16:01:16] [INFO]"),
+                "the copied log does not keep the [time] [level] markers the view uses");
     }
 
     /**
@@ -306,5 +314,62 @@ public class ConsoleRenderTest {
 
         assertEquals(1, console.getShownCount(), "searching for the Chinese name did not leave that one line");
         assertTrue(console.getText().contains("僵尸入侵"), "the shown line is not the one that was searched for");
+    }
+
+    /**
+     * The level token is a coloured marker, brackets included - not just the letters
+     * INFO/DEBUG in a different foreground. DEBUG in particular used to share the
+     * timestamp's grey, so wrapping it did nothing you could see.
+     */
+    @Test
+    public void testLevelMarkersCarryTheirColour() throws Exception {
+        LauncherConsole window = console();
+        Console console = window.console;
+
+        log(console, LogType.DEBUG, "Setting up language for console");
+
+        String shown = console.getText();
+        int index = shown.indexOf("[DEBUG]");
+
+        assertTrue(index >= 0, "the DEBUG line was not written as [DEBUG]");
+
+        AttributeSet attributes = console.getStyledDocument().getCharacterElement(index).getAttributes();
+
+        assertEquals(LogType.DEBUG.color(), StyleConstants.getForeground(attributes),
+                "the [DEBUG] marker is not in the debug colour");
+        assertTrue(StyleConstants.getBackground(attributes) != null
+                && !StyleConstants.getBackground(attributes).equals(console.getBackground()),
+                "the [DEBUG] marker has no fill, so it does not read as a marker");
+    }
+
+    /**
+     * The body of every level is painted in that level's colour - not only errors. An INFO
+     * line that is white except for a green tag is what this is here to stop.
+     */
+    @Test
+    public void testEachLevelColoursItsMessage() throws Exception {
+        LauncherConsole window = console();
+        Console console = window.console;
+
+        log(console, LogType.INFO, "info-body");
+        log(console, LogType.WARN, "warn-body");
+        log(console, LogType.ERROR, "error-body");
+        log(console, LogType.DEBUG, "debug-body");
+
+        assertBodyColour(console, "info-body", LogType.INFO);
+        assertBodyColour(console, "warn-body", LogType.WARN);
+        assertBodyColour(console, "error-body", LogType.ERROR);
+        assertBodyColour(console, "debug-body", LogType.DEBUG);
+    }
+
+    private static void assertBodyColour(Console console, String body, LogType type) {
+        int index = console.getText().indexOf(body);
+
+        assertTrue(index >= 0, "the " + type + " line never reached the document");
+
+        AttributeSet attributes = console.getStyledDocument().getCharacterElement(index).getAttributes();
+
+        assertEquals(type.color(), StyleConstants.getForeground(attributes),
+                "the " + type + " message is not in the " + type + " colour");
     }
 }

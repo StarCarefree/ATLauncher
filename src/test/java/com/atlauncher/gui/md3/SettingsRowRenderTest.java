@@ -31,17 +31,19 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 
 import javax.imageio.ImageIO;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
+import javax.swing.JTextArea;
 import javax.swing.UIManager;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.atlauncher.gui.md3.container.MD3Card;
+import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3Switch;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.gui.tabs.settings.AbstractSettingsTab;
 import com.atlauncher.themes.md3.token.MD3Color;
 
@@ -60,7 +62,7 @@ import com.atlauncher.themes.md3.token.MD3Color;
  */
 public class SettingsRowRenderTest {
     private static final int PAGE_WIDTH = 900;
-    private static final int PAGE_HEIGHT = 360;
+    private static final int PAGE_HEIGHT = 480;
 
     private static final String LONG_HELP = "The Tray Menu is a little icon that shows in your system taskbar "
             + "which allows you to perform different functions to do various things with the launcher such as "
@@ -75,11 +77,18 @@ public class SettingsRowRenderTest {
         @Override
         protected void onShow() {
             addSection("Appearance");
-            briefRow = addRow("Theme", "This sets the theme that the launcher will use.", new JComboBox<String>());
-            verboseRow = addRow("Enable Tray Menu", LONG_HELP, new JCheckBox());
-            unexplainedRow = addRow("Keep Launcher Open", null, new JCheckBox());
+
+            MD3ComboBox<String> theme = new MD3ComboBox<>();
+            theme.addItem("Material Dark");
+
+            MD3Switch tray = new MD3Switch();
+            tray.setSelected(true);
+
+            briefRow = addRow("Theme", "This sets the theme that the launcher will use.", theme);
+            verboseRow = addRow("Enable Tray Menu", LONG_HELP, tray);
+            unexplainedRow = addRow("Keep Launcher Open", null, new MD3Switch());
             addWideRow("Java Parameters", "Extra Java command line paramaters can be added here.",
-                    new JTextField(20));
+                    new MD3TextField(20));
         }
 
         @Override
@@ -145,22 +154,34 @@ public class SettingsRowRenderTest {
         return section;
     }
 
-    private static JLabel supportingOf(Container row) {
-        JLabel found = null;
-
+    private static JTextArea supportingOf(Container row) {
         for (Component c : row.getComponents()) {
             if (c instanceof Container) {
                 for (Component text : ((Container) c).getComponents()) {
-                    // the headline comes first, so the last label in the text block is the
-                    // description
-                    if (text instanceof JLabel) {
-                        found = (JLabel) text;
+                    if (text instanceof JTextArea) {
+                        return (JTextArea) text;
                     }
                 }
             }
         }
 
-        return found;
+        return null;
+    }
+
+    private static boolean containsCard(Component c) {
+        if (c instanceof MD3Card) {
+            return true;
+        }
+
+        if (c instanceof Container) {
+            for (Component child : ((Container) c).getComponents()) {
+                if (containsCard(child)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     @Test
@@ -196,13 +217,26 @@ public class SettingsRowRenderTest {
     @Test
     public void testTheWholeDescriptionStaysReachable() {
         Section section = buildSection();
-        JLabel supporting = supportingOf(section.verboseRow);
+        JTextArea supporting = supportingOf(section.verboseRow);
 
         assertNotNull(supporting, "the row lost its description");
         assertTrue(supporting.getText().contains("…"),
                 "the description was not shortened, so the cap is not being applied");
         assertEquals(LONG_HELP, supporting.getToolTipText(),
                 "the full description is no longer reachable, so shortening it lost information");
+    }
+
+    /**
+     * Related settings share a surface. Without the card they float on the page and the
+     * section heading is just another line of type.
+     */
+    @Test
+    public void testASectionGroupsItsRowsOnACard() {
+        Section section = buildSection();
+
+        assertTrue(containsCard(section), "the settings were not grouped onto a card");
+        assertTrue(containsCard(section.briefRow.getParent()),
+                "a row was added outside the section card, so the group does not hold");
     }
 
     @Test

@@ -85,11 +85,14 @@ public final class Console extends JTextPane {
     /** Dropping one line per new line would rewrite the document constantly, so they go in blocks. */
     private static final int TRIM_BLOCK = 500;
 
-    /** Level tags are padded to this, so the message column lines up in a monospaced face. */
-    private static final int LEVEL_WIDTH = 5;
+    /** `[DEBUG]` / `[ERROR]` are the widest level markers; shorter ones are padded to this. */
+    private static final int LEVEL_TOKEN_WIDTH = 7;
 
-    /** Characters before the message: the time, the tag, and the gaps around them. */
-    private static final int MESSAGE_COLUMN = 8 + 2 + LEVEL_WIDTH + 2;
+    /**
+     * Characters before the message: {@code [HH:mm:ss]} (10), a gap, a level marker, a gap.
+     * {@code [16:01:16] [DEBUG] } and {@code [16:01:16] [INFO]  } land the body on the same column.
+     */
+    private static final int MESSAGE_COLUMN = 10 + 1 + LEVEL_TOKEN_WIDTH + 1;
 
     private final Object lock = new Object();
     private final ArrayDeque<Entry> entries = new ArrayDeque<>();
@@ -254,25 +257,29 @@ public final class Console extends JTextPane {
 
         // time and level are searched too, so "ERROR" or a timestamp finds the line. The raw
         // query is kept so a Chinese search is not lost to a case fold that does not apply to it
-        String haystack = entry.time + " " + entry.type.name() + " " + entry.body;
+        String haystack = "[" + entry.time + "] [" + entry.type.name() + "] " + entry.body;
 
         return haystack.toLowerCase(Locale.ROOT).contains(query) || haystack.contains(queryRaw);
     }
 
     /**
-     * Draws one entry: the time in the colour of chrome, the level in its own, the message in
-     * whatever the level makes it. The old console coloured the <em>timestamp</em> by level and left
-     * the level itself unwritten, which put the loudest thing on the line on the least interesting
-     * part of it and gave you no way to tell a warning from a note.
+     * Draws one entry: {@code [time]} in the colour of chrome, {@code [LEVEL]} as a coloured
+     * marker, the message in whatever the level makes it.
+     *
+     * <p>
+     * The old console coloured the <em>timestamp</em> by level and left the level itself unwritten,
+     * which put the loudest thing on the line on the least interesting part of it. Bracketing both
+     * columns, and giving the level its own colour (brackets included), is what lets you scan for
+     * {@code [DEBUG]} or {@code [ERROR]} the way a log file is read.
      */
     private void render(Entry entry) {
         StyledDocument document = getStyledDocument();
         int start = document.getLength();
 
         try {
-            ConsoleFonts.insert(document, entry.time + "  ", timeStyle());
-            ConsoleFonts.insert(document, pad(entry.type.name()) + "  ", levelStyle(entry.type));
-            ConsoleFonts.insert(document, entry.body, bodyStyle(entry.type));
+            ConsoleFonts.insert(document, "[" + entry.time + "] ", timeStyle());
+            ConsoleFonts.insert(document, "[" + entry.type.name() + "]", levelStyle(entry.type));
+            ConsoleFonts.insert(document, padAfterLevel(entry.type) + entry.body, bodyStyle(entry.type));
         } catch (BadLocationException e) {
             return;
         }
@@ -284,14 +291,20 @@ public final class Console extends JTextPane {
         document.setParagraphAttributes(start, entry.renderedLength, hangingIndent(), false);
     }
 
-    private static String pad(String level) {
-        StringBuilder padded = new StringBuilder(level);
+    /**
+     * Spaces after a level marker so every body starts on the same column. {@code [INFO]} is one
+     * character shorter than {@code [DEBUG]}; the gap absorbs that, and is not part of the
+     * coloured marker.
+     */
+    private static String padAfterLevel(LogType type) {
+        int pad = LEVEL_TOKEN_WIDTH - (type.name().length() + 2) + 1;
+        StringBuilder spaces = new StringBuilder(pad);
 
-        while (padded.length() < LEVEL_WIDTH) {
-            padded.append(' ');
+        for (int i = 0; i < pad; i++) {
+            spaces.append(' ');
         }
 
-        return padded.toString();
+        return spaces.toString();
     }
 
     private SimpleAttributeSet hangingIndent() {
@@ -314,19 +327,33 @@ public final class Console extends JTextPane {
     }
 
     private static SimpleAttributeSet levelStyle(LogType type) {
+        Color color = type.color();
+
+        if (color == null) {
+            color = MD3Color.onSurface();
+        }
+
         SimpleAttributeSet attributes = new SimpleAttributeSet();
-        StyleConstants.setForeground(attributes, type.color());
+        StyleConstants.setForeground(attributes, color);
         StyleConstants.setBold(attributes, true);
+        // a wash of the same colour, so [DEBUG] / [ERROR] read as markers rather than just
+        // coloured letters sitting on the page
+        StyleConstants.setBackground(attributes, MD3Color.withAlpha(color, 0.18f));
 
         return attributes;
     }
 
     /**
-     * Errors carry their colour through the message. Everything else is read, not scanned for, and a
-     * page of coloured text has nothing left to emphasise with.
+     * The message uses the same colour as its level marker, so an INFO line is green through the
+     * body, a WARN is not just a yellow tag in front of white text, and so on. The marker stays
+     * bolder (and washed) so the column of tags is still what you scan.
      */
     private static SimpleAttributeSet bodyStyle(LogType type) {
-        Color foreground = type == LogType.ERROR ? type.color() : MD3Color.onSurface();
+        Color foreground = type.color();
+
+        if (foreground == null) {
+            foreground = MD3Color.onSurface();
+        }
 
         SimpleAttributeSet attributes = new SimpleAttributeSet();
         StyleConstants.setForeground(attributes, foreground);
@@ -409,7 +436,8 @@ public final class Console extends JTextPane {
         StringBuilder log = new StringBuilder();
 
         for (Entry entry : snapshot) {
-            log.append(entry.time).append(" [").append(entry.type.name()).append("] ").append(entry.body);
+            log.append('[').append(entry.time).append("] [").append(entry.type.name()).append(']')
+                    .append(padAfterLevel(entry.type)).append(entry.body);
         }
 
         return log.toString();

@@ -87,7 +87,7 @@ public final class LogEvent {
 
     @Override
     public String toString() {
-        return "[" + Timestamper.now() + "] [" + this.type.name() + "]" + this.body;
+        return "[" + Timestamper.now() + "] [" + this.type.name() + "] " + this.body;
     }
 
     public enum LogType {
