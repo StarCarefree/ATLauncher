@@ -43,6 +43,7 @@ import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.sort.InstanceSortingStrategies;
 import com.atlauncher.viewmodel.base.IInstancesTabViewModel;
 import com.formdev.flatlaf.util.UIScale;
+import com.gitlab.doomsdayrs.lib.rxswing.schedulers.SwingSchedulers;
 
 /**
  * The instances toolbar: search, sort, import.
@@ -50,7 +51,8 @@ import com.formdev.flatlaf.util.UIScale;
  * <p>
  * Sorting moved from a combo box to a row of filter chips. There are four orders and exactly one is
  * active - a combo hides all four behind a click and gives no hint that changing it is cheap, while
- * chips show the whole choice and which one is on.
+ * chips show the whole choice and which one is on. The count of what the grid is showing sits with
+ * Import, so a search that has hidden most of the library is visible without scrolling the cards.
  */
 public final class InstancesNavigationPanel extends JPanel implements RelocalizationListener {
     private final IInstancesTabViewModel viewModel;
@@ -59,8 +61,12 @@ public final class InstancesNavigationPanel extends JPanel implements Relocaliza
             MD3Icon.of(MD3Icons.DOWNLOAD));
     private final InstancesSearchField searchField;
     private final List<MD3Chip> sortChips = new ArrayList<>();
+    private final JLabel countLabel = new JLabel();
     private final JLabel loadingLabel = new JLabel();
     private final JPanel loadingIndicator = new JPanel(new FlowLayout(FlowLayout.LEFT, UIScale.scale(MD3Spacing.S), 0));
+
+    /** What {@link #countLabel} last showed, so a language change can rewrite it. */
+    private int shownCount;
 
     /** Stops a chip's own deselection from cascading while the row is being re-synchronised. */
     private boolean syncingChips;
@@ -85,6 +91,9 @@ public final class InstancesNavigationPanel extends JPanel implements Relocaliza
         add(MD3TopAppBar.centred(buildTrailing(tab)), BorderLayout.EAST);
 
         this.importButton.addActionListener(e -> new ImportInstanceDialog());
+
+        tab.addDisposable(viewModel.getInstancesList().observeOn(SwingSchedulers.edt())
+                .subscribe(list -> setShownCount(list.instances.size())));
 
         RelocalizationManager.addListener(this);
     }
@@ -153,10 +162,22 @@ public final class InstancesNavigationPanel extends JPanel implements Relocaliza
 
         tab.addDisposable(viewModel.getIsLoading().subscribe(loadingIndicator::setVisible));
 
+        countLabel.setFont(MD3Type.font(MD3Type.LABEL_MEDIUM));
+        countLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.LABEL_MEDIUM);
+        countLabel.setForeground(MD3Color.onSurfaceVariant());
+        setShownCount(0);
+
         trailing.add(loadingIndicator);
+        trailing.add(countLabel);
         trailing.add(importButton);
 
         return trailing;
+    }
+
+    private void setShownCount(int count) {
+        shownCount = count;
+        // #. {0} is the number of instances currently shown in the grid
+        countLabel.setText(GetText.tr("{0} instances", count));
     }
 
     @Override
@@ -164,6 +185,7 @@ public final class InstancesNavigationPanel extends JPanel implements Relocaliza
         importButton.setText(GetText.tr("Import"));
         loadingLabel.setText(GetText.tr("Loading..."));
         searchField.setLabel(GetText.tr("Search"));
+        setShownCount(shownCount);
 
         InstanceSortingStrategies[] strategies = InstanceSortingStrategies.values();
 

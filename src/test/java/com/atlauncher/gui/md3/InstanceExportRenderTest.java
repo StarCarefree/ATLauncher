@@ -51,7 +51,8 @@ import com.atlauncher.data.Instance;
 import com.atlauncher.data.Settings;
 import com.atlauncher.gui.dialogs.InstanceExportDialog;
 import com.atlauncher.gui.md3.button.MD3Button;
-import com.atlauncher.gui.md3.container.MD3SettingsList;
+import com.atlauncher.gui.md3.container.MD3ListContainer;
+import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.themes.md3.token.MD3Color;
 
@@ -62,8 +63,8 @@ import com.atlauncher.themes.md3.token.MD3Color;
  * Sheets land in {@code build/md3-preview}.
  */
 public class InstanceExportRenderTest {
-    private static final int PAGE_WIDTH = 720;
-    private static final int PAGE_HEIGHT = 680;
+    private static final int PAGE_WIDTH = 960;
+    private static final int PAGE_HEIGHT = 640;
 
     @BeforeEach
     public void installTheme() throws Exception {
@@ -124,7 +125,7 @@ public class InstanceExportRenderTest {
         dialog.setSize(new Dimension(PAGE_WIDTH, PAGE_HEIGHT));
         layoutTree(dialog);
 
-        boolean foundList = false;
+        boolean foundCard = false;
         boolean foundSwitch = false;
         MD3Button export = null;
         MD3Button cancel = null;
@@ -132,8 +133,8 @@ public class InstanceExportRenderTest {
         MD3Button reset = null;
 
         for (Component c : findAll(dialog)) {
-            if (c instanceof MD3SettingsList) {
-                foundList = true;
+            if (c instanceof MD3Card) {
+                foundCard = true;
             }
 
             if (c instanceof MD3Switch) {
@@ -156,7 +157,7 @@ public class InstanceExportRenderTest {
             }
         }
 
-        assertTrue(foundList, "the export dialog is not built from a settings list");
+        assertTrue(foundCard, "the export form is not grouped into cards");
         assertTrue(foundSwitch, "joint packaging and hash verification are not switches");
         assertNotNull(export, "no Export button");
         assertNotNull(cancel, "no Cancel button");
@@ -177,6 +178,22 @@ public class InstanceExportRenderTest {
         }
 
         assertTrue(foundPackHeading, "the form has no Pack section");
+
+        boolean foundFolders = false;
+        boolean foundFolderList = false;
+
+        for (Component c : findAll(dialog)) {
+            if (c instanceof JLabel && "Folders to export".equals(((JLabel) c).getText())) {
+                foundFolders = true;
+            }
+
+            if (c instanceof MD3ListContainer) {
+                foundFolderList = true;
+            }
+        }
+
+        assertTrue(foundFolders, "the folders column has no heading");
+        assertTrue(foundFolderList, "the folders are not in a list container of their own");
 
         BufferedImage image = new BufferedImage(PAGE_WIDTH, PAGE_HEIGHT, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = image.createGraphics();

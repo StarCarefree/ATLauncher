@@ -95,8 +95,9 @@ public class ServerCard extends MD3Card implements RelocalizationListener, CardG
 
     private static final int MAX_BADGES = 3;
 
-    /** 16:9 against the card width. */
-    private static final int COVER_HEIGHT = 158;
+    /** 2:1 against the card width, matching {@link InstanceCard}. */
+    private static final float COVER_RATIO = 0.5f;
+    private static final int COVER_HEIGHT = 140;
 
     private final Server server;
     private final ImagePanel image;
@@ -433,7 +434,7 @@ public class ServerCard extends MD3Card implements RelocalizationListener, CardG
         layoutWidth = width;
 
         if (coverWrapper != null) {
-            coverWrapper.setPreferredSize(new Dimension(width, Math.round(width * 9f / 16f)));
+            coverWrapper.setPreferredSize(new Dimension(width, Math.round(width * COVER_RATIO)));
         }
 
         int textWidth = width - UIScale.scale(MD3Spacing.L) - UIScale.scale(MD3Spacing.S);

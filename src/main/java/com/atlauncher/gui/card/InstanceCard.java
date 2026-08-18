@@ -92,9 +92,12 @@ import com.formdev.flatlaf.util.UIScale;
  * <p>
  * The old card was a collapsible titled panel carrying fourteen visible controls - eight buttons and
  * six dropdowns holding twenty more items - which made every instance look equally urgent and left
- * no room for the cover art. Here the cover leads, the metadata is a row of badges, playing is the
- * one filled button - split, so offline is a chevron away rather than a menu deep - and an update
- * steps up to a tonal button beside it. Everything else lives behind the overflow.
+ * no room for the cover art. Here the cover leads at 2:1 rather than 16:9, so more of each card
+ * is the instance and another row fits the window. The metadata is a row of badges, playing is
+ * the one filled button - split, so offline is a chevron away rather than a menu deep - and an
+ * update steps up to a tonal button beside it. Editing mods is the other thing people come here
+ * to do, so it sits on the card when there is no update claiming that slot. Everything else
+ * lives behind the overflow.
  *
  * <p>
  * Nothing was dropped. The original buttons and menus are still constructed and still hold all the
@@ -108,8 +111,9 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
     public static final int MAX_CARD_WIDTH = 400;
 
     private static final int MAX_BADGES = 3;
-    /** 16:9 against the card width. */
-    private static final int COVER_HEIGHT = 158;
+    /** 2:1 against the card width. Shorter than 16:9, so the grid shows more of each instance. */
+    private static final float COVER_RATIO = 0.5f;
+    private static final int COVER_HEIGHT = 140;
 
     private final String titleFormat;
 
@@ -117,6 +121,7 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
     private MD3FittingLabel subtitleLabel;
     private MD3MenuButton playAction;
     private MD3Button updateAction;
+    private MD3Button editAction;
     private MD3IconButton overflowAction;
     private JPanel coverWrapper;
 
@@ -332,12 +337,17 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
         actions.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
 
         // Update is the one secondary that cannot wait behind the overflow: the badge already said
-        // there is one, and a tonal button is how Material asks for it
+        // there is one, and a tonal button is how Material asks for it. Editing mods is the next
+        // most common visit, so it takes that same slot when there is no update to show.
         if (hasUpdate) {
             updateAction = MD3Button.tonal(GetText.tr("Update"), MD3Icon.of(MD3Icons.REFRESH))
                     .withButtonSize(MD3Button.Size.SMALL);
             updateAction.addActionListener(e -> updateButton.doClick());
             actions.leading(playAction, updateAction);
+        } else if (editButton.isVisible()) {
+            editAction = MD3Button.outlined(GetText.tr("Edit Mods")).withButtonSize(MD3Button.Size.SMALL);
+            editAction.addActionListener(e -> editButton.doClick());
+            actions.leading(playAction, editAction);
         } else {
             actions.leading(playAction);
         }
@@ -393,7 +403,7 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
         layoutWidth = width;
 
         if (coverWrapper != null) {
-            coverWrapper.setPreferredSize(new Dimension(width, Math.round(width * 9f / 16f)));
+            coverWrapper.setPreferredSize(new Dimension(width, Math.round(width * COVER_RATIO)));
         }
 
         int textWidth = width - UIScale.scale(MD3Spacing.L) - UIScale.scale(MD3Spacing.S);
@@ -940,6 +950,10 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
 
         if (this.updateAction != null) {
             this.updateAction.setText(GetText.tr("Update"));
+        }
+
+        if (this.editAction != null) {
+            this.editAction.setText(GetText.tr("Edit Mods"));
         }
 
         this.overflowAction.setToolTipText(GetText.tr("More options"));

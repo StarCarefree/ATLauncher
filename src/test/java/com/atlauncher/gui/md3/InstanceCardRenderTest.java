@@ -234,6 +234,30 @@ public class InstanceCardRenderTest {
                 "Update is not tonal, so it competes with Play");
     }
 
+    /**
+     * Edit Mods used to live only in the overflow, so managing an instance that did not need an
+     * update took an extra click for the most common next action.
+     */
+    @Test
+    public void testEditModsIsOnTheCardWhenThereIsNoUpdate() throws Exception {
+        InstanceCard card = new InstanceCard(load("VanillaTest"), false, "%1$s");
+        card.setSize(card.getPreferredSize());
+        layoutTree(card);
+
+        MD3Button edit = null;
+
+        for (Component c : findAll(card)) {
+            if (c instanceof MD3Button && !(c instanceof MD3MenuButton)
+                    && "Edit Mods".equals(((MD3Button) c).getText())) {
+                edit = (MD3Button) c;
+            }
+        }
+
+        assertNotNull(edit, "Edit Mods is still only in the overflow");
+        assertEquals(MD3Button.Variant.OUTLINED, edit.getVariant(),
+                "Edit Mods is not outlined, so it competes with Play");
+    }
+
     @Test
     public void testACorruptedInstanceCannotBePlayed() throws Exception {
         Instance corrupted = load("VanillaTest");

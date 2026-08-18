@@ -19,21 +19,29 @@ package com.atlauncher.gui.md3;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.JList;
+import javax.swing.JPopupMenu;
 import javax.swing.UIManager;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.atlauncher.gui.md3.input.MD3FilterChip;
+import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.utils.ComboItem;
 
 /**
@@ -127,5 +135,84 @@ public class MD3FilterChipTest {
 
         assertEquals("Sort: Popularity", sort.getChip().getText(),
                 "a sort chip dropped its name, so its value reads as a filter");
+    }
+
+    /**
+     * An empty chip used to return no menu, so clicking Category before the network came back -
+     * or after a failed fetch - did nothing. The chip has to open and say so.
+     */
+    @Test
+    public void testAnEmptyChipStillOpensAMenu() {
+        MD3FilterChip<String> chip = new MD3FilterChip<>("Category", true, () -> {
+        });
+
+        JPopupMenu menu = chip.createMenu();
+
+        assertNotNull(menu, "an empty chip built no menu, so clicking it does nothing");
+        assertTrue(menu.getComponentCount() > 0, "the menu has nothing to show");
+    }
+
+    /**
+     * CurseForge has dozens of categories and Minecraft has hundreds of versions. Without a search
+     * box the chip can be opened and still not used.
+     */
+    @Test
+    public void testALongListCanBeSearched() {
+        AtomicInteger changes = new AtomicInteger();
+        MD3FilterChip<String> chip = new MD3FilterChip<>("Category", true, changes::incrementAndGet);
+        chip.setOptions(manyCategories());
+
+        JPopupMenu menu = chip.createMenu();
+        MD3TextField search = find(menu, MD3TextField.class);
+
+        assertNotNull(search, "a long list has no search box");
+
+        search.setText("tech");
+
+        JList<?> list = find(menu, JList.class);
+
+        assertNotNull(list, "the menu has no list of values");
+        assertEquals(1, list.getModel().getSize(), "search did not narrow the list");
+        assertEquals("Technology", list.getModel().getElementAt(0).toString());
+
+        list.setSelectedIndex(0);
+        list.getActionMap().get("md3.choose").actionPerformed(new ActionEvent(list, 0, "md3.choose"));
+
+        assertEquals("tech", chip.getValue(), "picking the filtered row did not choose that value");
+        assertEquals(1, changes.get(), "choosing from a filtered list did not count as a change");
+    }
+
+    private static List<ComboItem<String>> manyCategories() {
+        List<ComboItem<String>> values = new ArrayList<>();
+        values.add(new ComboItem<>(null, "All Categories"));
+        values.add(new ComboItem<>("adv", "Adventure and RPG"));
+        values.add(new ComboItem<>("magic", "Magic"));
+        values.add(new ComboItem<>("map", "Map and Information"));
+        values.add(new ComboItem<>("redstone", "Redstone"));
+        values.add(new ComboItem<>("storage", "Storage"));
+        values.add(new ComboItem<>("tech", "Technology"));
+        values.add(new ComboItem<>("world", "World Generation"));
+        values.add(new ComboItem<>("lib", "Library / APIs"));
+
+        return values;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Component> T find(Container root, Class<T> type) {
+        for (Component child : root.getComponents()) {
+            if (type.isInstance(child)) {
+                return (T) child;
+            }
+
+            if (child instanceof Container) {
+                T nested = find((Container) child, type);
+
+                if (nested != null) {
+                    return nested;
+                }
+            }
+        }
+
+        return null;
     }
 }

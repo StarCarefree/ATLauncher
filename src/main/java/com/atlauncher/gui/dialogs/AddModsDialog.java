@@ -20,9 +20,11 @@ package com.atlauncher.gui.dialogs;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridBagLayout;
 import java.awt.LayoutManager;
 import java.awt.Window;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -60,6 +62,7 @@ import com.atlauncher.data.modrinth.ModrinthSearchResult;
 import com.atlauncher.exceptions.InvalidMinecraftVersion;
 import com.atlauncher.gui.card.CurseForgeProjectCard;
 import com.atlauncher.gui.card.ModrinthSearchHitCard;
+import com.atlauncher.gui.card.NilCard;
 import com.atlauncher.gui.card.packbrowser.MD3PackCard;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
@@ -73,7 +76,6 @@ import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.gui.md3.nav.MD3Tabs;
 import com.atlauncher.gui.md3.nav.MD3TopAppBar;
 import com.atlauncher.gui.panels.LoadingPanel;
-import com.atlauncher.gui.panels.NoCurseModsPanel;
 import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.LogManager;
@@ -90,9 +92,23 @@ import com.atlauncher.utils.Utils;
 
 import com.formdev.flatlaf.util.UIScale;
 
+/**
+ * Browse CurseForge or Modrinth for mods to add to an instance or server.
+ *
+ * <p>
+ * The chrome matches the pack browser: a search box, a row of filter chips, a card grid that
+ * takes the leftover space, and pagination on a trailing action bar. Search sits on its own row
+ * so the chips are not fighting it for width - "Type of Mod" plus a long category used to wrap
+ * the one-line toolbar into a second line that was not designed for it. The window used to be
+ * 800×500, which left the grid two cards across; 1000×640 is the smallest size that still shows
+ * three.
+ */
 public final class AddModsDialog extends JDialog {
-    /** Wide enough for a mod name, and no wider - the grid needs the rest. */
-    private static final int SEARCH_COLUMNS = 18;
+    /** Wide enough for a mod name, and no wider - the chips need the rest of the row. */
+    private static final int SEARCH_COLUMNS = 22;
+
+    private static final int WIDTH = 1000;
+    private static final int HEIGHT = 640;
 
     /**
      * How long typing has to stop for before a search is sent.
@@ -113,6 +129,13 @@ public final class AddModsDialog extends JDialog {
      * lands on top of a later one, which is what a chip changed twice in quick succession does.
      */
     private final AtomicLong searchGeneration = new AtomicLong();
+
+    /**
+     * Separate from {@link #searchGeneration}. Categories used to be keyed on the search counter,
+     * and {@link #getMods()} increments that the moment the dialog opens, so the category list
+     * always arrived already stale and the chip never filled.
+     */
+    private final AtomicLong categoryGeneration = new AtomicLong();
 
     private Timer settle;
 
@@ -187,12 +210,21 @@ public final class AddModsDialog extends JDialog {
     }
 
     public AddModsDialog(Window parent, ModManagement instanceOrServer) {
+        this(parent, instanceOrServer, true);
+    }
+
+    /**
+     * @param loadRemote whether to fetch categories and the first page. Tests assemble the chrome
+     *                   without waiting on the network, which is what used to keep this dialog
+     *                   untested.
+     */
+    public AddModsDialog(Window parent, ModManagement instanceOrServer, boolean loadRemote) {
         // #. {0} is the name of the mod we're installing
         super(parent, GetText.tr("Adding Mods For {0}", instanceOrServer.getName()), ModalityType.DOCUMENT_MODAL);
         this.instanceOrServer = instanceOrServer;
 
-        this.setPreferredSize(UIScale.scale(new Dimension(800, 500)));
-        this.setMinimumSize(UIScale.scale(new Dimension(800, 500)));
+        this.setPreferredSize(UIScale.scale(new Dimension(WIDTH, HEIGHT)));
+        this.setMinimumSize(UIScale.scale(new Dimension(880, 520)));
         this.setResizable(true);
         this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
@@ -237,15 +269,20 @@ public final class AddModsDialog extends JDialog {
         setPlatformMessage(platformMessage);
 
         addSectionAndSortOptions(true);
+        // so the chip is a working filter from the first paint, not an empty token that does
+        // nothing until the network comes back - and so a failed fetch still leaves "All
+        // Categories" rather than a chip that cannot be opened
+        categoryChip.setOptions(
+                Collections.singletonList(new ComboItem<>(null, GetText.tr("All Categories"))));
 
         setupComponents();
 
-        // the categories used to be fetched here, on the event thread, so the dialog did not appear
-        // until two API calls had come back - and there was no way to open it offline at all, which
-        // is why it is the one dialog in the launcher with no render test
-        loadCategories();
-
-        this.loadDefaultMods();
+        if (loadRemote) {
+            loadCategories();
+            loadDefaultMods();
+        } else {
+            showEmpty();
+        }
 
         this.pack();
         this.setLocationRelativeTo(parent);
@@ -281,22 +318,26 @@ public final class AddModsDialog extends JDialog {
 
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S), 0));
         filters.setOpaque(false);
-        filters.setBorder(MD3Spacing.border(0, MD3Spacing.M, 0, 0));
+        filters.setBorder(MD3Spacing.border(0, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+        filters.setAlignmentX(LEFT_ALIGNMENT);
         filters.add(sectionChip.getChip());
         filters.add(sortChip.getChip());
         filters.add(categoryChip.getChip());
 
-        JPanel leading = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        leading.setOpaque(false);
-        leading.add(this.searchField);
+        JPanel searchRow = new JPanel(new BorderLayout());
+        searchRow.setOpaque(false);
+        searchRow.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+        searchRow.setAlignmentX(LEFT_ALIGNMENT);
+        searchRow.add(this.searchField, BorderLayout.CENTER);
 
-        JPanel searchButtonsPanel = new JPanel(new BorderLayout());
+        JPanel searchButtonsPanel = new JPanel();
+        searchButtonsPanel.setLayout(new BoxLayout(searchButtonsPanel, BoxLayout.Y_AXIS));
         searchButtonsPanel.setOpaque(false);
-        searchButtonsPanel.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+        searchButtonsPanel.setBackground(MD3Color.surface());
         // the stack is aligned on its leading edge; a child left at the default centres itself in it
         searchButtonsPanel.setAlignmentX(LEFT_ALIGNMENT);
-        searchButtonsPanel.add(leading, BorderLayout.WEST);
-        searchButtonsPanel.add(filters, BorderLayout.CENTER);
+        searchButtonsPanel.add(searchRow);
+        searchButtonsPanel.add(filters);
 
         this.installFabricApiButton.addActionListener(e -> {
             ModPlatform selectedHost = selectedPlatform();
@@ -689,9 +730,11 @@ public final class AddModsDialog extends JDialog {
         this.jscrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         this.jscrollPane.setBorder(null);
         this.jscrollPane.setOpaque(false);
-        this.jscrollPane.getViewport().setOpaque(false);
+        this.jscrollPane.getViewport().setOpaque(true);
+        this.jscrollPane.getViewport().setBackground(MD3Color.surface());
 
-        this.contentPanel.setOpaque(false);
+        this.contentPanel.setOpaque(true);
+        this.contentPanel.setBackground(MD3Color.surface());
         this.mainPanel.setOpaque(false);
 
         mainPanel.add(this.topPanel, BorderLayout.NORTH);
@@ -1156,9 +1199,7 @@ public final class AddModsDialog extends JDialog {
         contentPanel.removeAll();
 
         if (mods == null || mods.isEmpty()) {
-            contentPanel.setLayout(new BorderLayout());
-            contentPanel.add(new NoCurseModsPanel(!this.searchField.getText().isEmpty()), BorderLayout.CENTER);
-            setPageLabel(0, 0);
+            showEmpty();
         } else {
             prevButton.setEnabled(page > 0);
             nextButton.setEnabled(mods.size() == Constants.CURSEFORGE_PAGINATION_SIZE);
@@ -1243,9 +1284,7 @@ public final class AddModsDialog extends JDialog {
         contentPanel.removeAll();
 
         if (searchResult == null || searchResult.hits.isEmpty()) {
-            contentPanel.setLayout(new BorderLayout());
-            contentPanel.add(new NoCurseModsPanel(!this.searchField.getText().isEmpty()), BorderLayout.CENTER);
-            setPageLabel(0, 0);
+            showEmpty();
         } else {
             prevButton.setEnabled(page > 0);
             nextButton.setEnabled((searchResult.offset + searchResult.limit) < searchResult.totalHits);
@@ -1402,14 +1441,41 @@ public final class AddModsDialog extends JDialog {
     }
 
     /**
+     * The empty grid: the same card the instances page uses when it has nothing, so a failed
+     * search does not look like a leftover from before Material.
+     */
+    private void showEmpty() {
+        boolean hasSearch = !this.searchField.getText().isEmpty();
+        String message = hasSearch
+                ? GetText.tr("No mods found. Remove your search query and try again.")
+                : GetText.tr("No mods found.");
+
+        contentPanel.setLayout(new GridBagLayout());
+        contentPanel.add(new NilCard(new HTMLBuilder().text(message).build()));
+        setPageLabel(0, 0);
+    }
+
+    /**
      * Fetches the categories for the platform and section being browsed, off the event thread.
      *
      * <p>
      * {@link MD3FilterChip#setOptions} deliberately does not fire its change callback, so filling
      * the chip in later does not reload a grid that is already loading.
+     *
+     * <p>
+     * Stale answers are dropped against {@link #categoryGeneration}, not the search counter. The
+     * first page of mods is requested in the same breath as this, and used to increment the only
+     * generation this checked - so the chip never received its list.
+     *
+     * <p>
+     * The chip stays enabled the whole time. Disabling it while the list loaded is what made
+     * category filtering look broken: the chip could be clicked and then did nothing.
      */
     private void loadCategories() {
-        final long generation = searchGeneration.get();
+        final long generation = categoryGeneration.incrementAndGet();
+        final String previous = categoryChip.getValue();
+
+        categoryChip.setLoading(true);
 
         new SwingWorker<List<ComboItem<String>>, Void>() {
             @Override
@@ -1419,18 +1485,23 @@ public final class AddModsDialog extends JDialog {
 
             @Override
             protected void done() {
-                if (isCancelled() || generation != searchGeneration.get()) {
+                if (isCancelled() || generation != categoryGeneration.get()) {
                     return;
                 }
 
                 try {
                     updating = true;
                     categoryChip.setOptions(get());
+
+                    if (previous != null) {
+                        categoryChip.selectValue(previous);
+                    }
                 } catch (Exception e) {
                     // the chip stays on "All Categories", which is a working filter rather than an
                     // error - the grid below it is unaffected
                     LogManager.logStackTrace("Failed to fetch mod categories", e);
                 } finally {
+                    categoryChip.setLoading(false);
                     updating = false;
                 }
             }
