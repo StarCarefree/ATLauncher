@@ -330,6 +330,10 @@ public class MD3ButtonUI extends BasicButtonUI {
             return MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface());
         }
 
+        if (b instanceof MD3Button && ((MD3Button) b).getContentOverride() != null) {
+            return ((MD3Button) b).getContentOverride();
+        }
+
         float selected = selectedProgress(b);
         boolean error = isError(b);
 

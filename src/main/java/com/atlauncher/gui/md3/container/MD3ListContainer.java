@@ -54,9 +54,8 @@ public class MD3ListContainer extends JPanel {
         super(new BorderLayout());
 
         setOpaque(false);
-        // keeps the rows - and the scrollbar - off the rounded corners, so nothing rectangular
-        // ever paints over them
-        setBorder(MD3Spacing.border(MD3Spacing.XS));
+        // at least the corner radius, so a row cannot paint over the curve and look clipped
+        setBorder(MD3Spacing.border(MD3Shape.MEDIUM));
 
         scroller = new JScrollPane(content, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);

@@ -199,7 +199,7 @@ public class SettingsRowRenderTest {
         JLabel supporting = supportingOf(section.verboseRow);
 
         assertNotNull(supporting, "the row lost its description");
-        assertTrue(supporting.getText().length() < LONG_HELP.length(),
+        assertTrue(supporting.getText().contains("…"),
                 "the description was not shortened, so the cap is not being applied");
         assertEquals(LONG_HELP, supporting.getToolTipText(),
                 "the full description is no longer reachable, so shortening it lost information");

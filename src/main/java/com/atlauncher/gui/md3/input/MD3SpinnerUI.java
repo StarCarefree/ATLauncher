@@ -307,17 +307,20 @@ public class MD3SpinnerUI extends BasicSpinnerUI {
                 int width = spinner.getWidth() - insets.left - insets.right;
                 int height = spinner.getHeight() - insets.top - insets.bottom;
                 int arrows = UIScale.scale(ARROW_WIDTH);
+                boolean ltr = MD3Paint.isLeftToRight(spinner);
+                int editorX = ltr ? x : x + arrows;
+                int arrowX = ltr ? x + width - arrows : x;
 
                 if (editor != null) {
-                    editor.setBounds(x, y, Math.max(0, width - arrows), height);
+                    editor.setBounds(editorX, y, Math.max(0, width - arrows), height);
                 }
 
                 if (next != null) {
-                    next.setBounds(x + width - arrows, y, arrows, height / 2);
+                    next.setBounds(arrowX, y, arrows, height / 2);
                 }
 
                 if (previous != null) {
-                    previous.setBounds(x + width - arrows, y + height / 2, arrows, height - height / 2);
+                    previous.setBounds(arrowX, y + height / 2, arrows, height - height / 2);
                 }
             }
 
@@ -352,7 +355,7 @@ public class MD3SpinnerUI extends BasicSpinnerUI {
 
     private Color accentColor() {
         if (!spinner.isEnabled()) {
-            return MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface());
+            return MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
         }
 
         JFormattedTextField field = editorField();

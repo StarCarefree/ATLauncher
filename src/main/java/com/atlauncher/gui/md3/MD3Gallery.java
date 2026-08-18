@@ -39,7 +39,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
@@ -59,7 +58,10 @@ import com.atlauncher.gui.md3.feedback.MD3LinearProgress;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3Chip;
+import com.atlauncher.gui.md3.input.MD3Radio;
+import com.atlauncher.gui.md3.input.MD3Slider;
 import com.atlauncher.gui.md3.input.MD3Switch;
+import com.atlauncher.gui.md3.input.MD3TextArea;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.gui.md3.nav.MD3NavigationRail;
 import com.atlauncher.gui.md3.nav.MD3TopAppBar;
@@ -180,6 +182,7 @@ public final class MD3Gallery {
         root.add(section("Icons", icons()));
         root.add(section("Text fields", textFields()));
         root.add(section("Switches and chips", switchesAndChips()));
+        root.add(section("Sliders", sliders()));
         root.add(section("Progress", progress()));
         root.add(section("Navigation", navigation()));
         root.add(section("Cards", cards()));
@@ -218,6 +221,10 @@ public final class MD3Gallery {
             row.add(field);
         }
 
+        MD3TextArea area = new MD3TextArea(3, 24);
+        area.setText("A description that runs to more than one line.");
+        row.add(area.contained(88));
+
         return row;
     }
 
@@ -255,6 +262,7 @@ public final class MD3Gallery {
         MD3Chip unselected = MD3Chip.filter("Forge");
         MD3Chip suggestion = MD3Chip.suggestion("Minecraft 1.21.4");
         MD3Chip assist = MD3Chip.assist("Open folder", MD3Icons.FOLDER);
+        MD3Chip input = MD3Chip.input("sodium");
 
         MD3Chip disabledChip = MD3Chip.filter("Unavailable");
         disabledChip.setEnabled(false);
@@ -263,12 +271,45 @@ public final class MD3Gallery {
         chips.add(unselected);
         chips.add(suggestion);
         chips.add(assist);
+        chips.add(input);
         chips.add(disabledChip);
+
+        JPanel radios = flow();
+        radios.add(tag("RADIO"));
+
+        MD3Radio fabric = new MD3Radio("Fabric");
+        fabric.setSelected(true);
+        MD3Radio forge = new MD3Radio("Forge");
+        MD3Radio quilt = new MD3Radio("Quilt");
+        quilt.setEnabled(false);
+
+        radios.add(fabric);
+        radios.add(forge);
+        radios.add(quilt);
 
         panel.add(switches);
         panel.add(chips);
+        panel.add(radios);
 
         return panel;
+    }
+
+    private static JComponent sliders() {
+        JPanel row = flow();
+
+        MD3Slider memory = new MD3Slider(1024, 16384, 4096);
+        memory.setPreferredSize(new java.awt.Dimension(240, memory.getPreferredSize().height));
+
+        MD3Slider disabled = new MD3Slider(0, 100, 40);
+        disabled.setEnabled(false);
+        disabled.setPreferredSize(new java.awt.Dimension(160, disabled.getPreferredSize().height));
+
+        row.add(tag("RANGE"));
+        row.add(memory);
+        row.add(tag("DISABLED"));
+        row.add(disabled);
+
+        return row;
     }
 
     private static JComponent section(String title, JComponent content) {
@@ -444,9 +485,9 @@ public final class MD3Gallery {
     }
 
     private static JPopupMenu demoMenu() {
-        JPopupMenu menu = new JPopupMenu();
-        menu.add(new JMenuItem("Play Online"));
-        menu.add(new JMenuItem("Play Offline"));
+        MD3PopupMenu menu = new MD3PopupMenu();
+        menu.add("Play Online");
+        menu.add("Play Offline");
 
         return menu;
     }

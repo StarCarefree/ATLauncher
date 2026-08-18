@@ -24,10 +24,8 @@ import java.io.File;
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JScrollPane;
+import javax.swing.JComponent;
 import javax.swing.JSpinner;
-import javax.swing.JTextArea;
-import javax.swing.ScrollPaneConstants;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.text.AbstractDocument;
@@ -46,6 +44,7 @@ import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3Spinner;
 import com.atlauncher.gui.md3.input.MD3Switch;
+import com.atlauncher.gui.md3.input.MD3TextArea;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.managers.DialogManager;
@@ -53,14 +52,14 @@ import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.viewmodel.impl.settings.JavaSettingsViewModel;
-import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
+
 
 public class JavaSettingsTab extends AbstractSettingsTab {
     private final JavaSettingsViewModel viewModel;
 
     private MD3TextField javaPath;
     private JLabelWithHover javaPathChecker;
-    private JTextArea javaParameters;
+    private MD3TextArea javaParameters;
     private JLabelWithHover javaParamChecker;
     private MD3TextField javaInstallLocation;
     private JLabelWithHover javaInstallLocationChecker;
@@ -260,12 +259,9 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         // Java Paramaters
 
-        JScrollPane javaParametersScrollPane = new JScrollPane(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        javaParametersScrollPane.setBorder(new FlatScrollPaneBorder());
+        javaParameters = new MD3TextArea(6, 40);
+        JComponent javaParametersScrollPane = javaParameters.contained(160);
         javaParametersScrollPane.setMaximumSize(new Dimension(1000, 200));
-
-        javaParameters = new JTextArea(6, 40);
         ((AbstractDocument) javaParameters.getDocument()).setDocumentFilter(
             new DocumentFilter() {
                 @Override
@@ -281,8 +277,6 @@ public class JavaSettingsTab extends AbstractSettingsTab {
                 }
             });
         javaParamChecker = new JLabelWithHover("", null, null);
-        javaParameters.setLineWrap(true);
-        javaParameters.setWrapStyleWord(true);
         javaParameters.addKeyListener(new DelayedSavingKeyListener(
             500,
             () -> viewModel.setJavaParams(javaParameters.getText()),
@@ -296,8 +290,6 @@ public class JavaSettingsTab extends AbstractSettingsTab {
 
         MD3Button javaParametersResetButton = MD3Button.outlined(GetText.tr("Reset"));
         javaParametersResetButton.addActionListener(e -> viewModel.resetJavaParams());
-
-        javaParametersScrollPane.setViewportView(javaParameters);
 
         addWideRow(GetText.tr("Java Parameters"),
             GetText.tr("Extra Java command line paramaters can be added here."),

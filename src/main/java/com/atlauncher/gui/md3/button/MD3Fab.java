@@ -195,7 +195,8 @@ public class MD3Fab extends JButton {
     private Shape shapeOf(float inset) {
         float width = getWidth() - inset * 2f;
         float height = getHeight() - inset * 2f;
-        int restToken = extended ? MD3Shape.FULL : MD3Shape.FAB;
+        int restToken = extended ? MD3Shape.FULL
+                : (fabSize == Size.SMALL ? MD3Shape.MEDIUM : MD3Shape.FAB);
         float radius = MD3Animated.lerp(MD3Shape.resolve(restToken, width, height),
                 MD3Shape.resolve(MD3Shape.FULL, width, height), pressProgress());
 

@@ -47,7 +47,7 @@ public final class MD3Menus {
      * matter how many places surface it.
      */
     public static JMenuItem delegateTo(AbstractButton source) {
-        JMenuItem item = new JMenuItem(source.getText());
+        JMenuItem item = new MD3MenuItem(source.getText());
         item.setEnabled(source.isEnabled());
         item.addActionListener(e -> source.doClick());
 
@@ -74,7 +74,7 @@ public final class MD3Menus {
             return;
         }
 
-        JMenuItem item = new JMenuItem(text);
+        JMenuItem item = new MD3MenuItem(text);
         item.setEnabled(source.isEnabled());
         item.addActionListener(e -> action.run());
         menu.add(item);

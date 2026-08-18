@@ -26,6 +26,8 @@ import java.awt.Graphics2D;
 import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleRole;
 import javax.swing.AbstractButton;
 import javax.swing.ButtonModel;
 import javax.swing.Icon;
@@ -91,6 +93,20 @@ public class MD3Switch extends JCheckBox {
         setForeground(MD3Color.onSurface());
     }
 
+    @Override
+    public AccessibleContext getAccessibleContext() {
+        if (accessibleContext == null) {
+            accessibleContext = new AccessibleJCheckBox() {
+                @Override
+                public AccessibleRole getAccessibleRole() {
+                    return AccessibleRole.TOGGLE_BUTTON;
+                }
+            };
+        }
+
+        return accessibleContext;
+    }
+
     /**
      * Draws the track and handle, and animates the handle between the two ends.
      *
@@ -138,7 +154,9 @@ public class MD3Switch extends JCheckBox {
 
         @Override
         public int getIconHeight() {
-            return UIScale.scale(TRACK_HEIGHT);
+            // the track is 32dp; the halo and the pointer target are 40 and 48. Swing clips an
+            // icon to the size it declares, so reporting the track height sliced the focus ring
+            return UIScale.scale(MD3Spacing.MIN_TOUCH_TARGET);
         }
 
         @Override
@@ -155,19 +173,19 @@ public class MD3Switch extends JCheckBox {
             Graphics2D g2 = MD3Paint.setup(g);
 
             try {
-                g2.translate(x, y);
+                float width = UIScale.scale((float) TRACK_WIDTH);
+                float height = UIScale.scale((float) TRACK_HEIGHT);
 
-                float width = getIconWidth();
-                float height = getIconHeight();
+                g2.translate(x, y + (getIconHeight() - height) / 2f);
+
                 Shape track = MD3Shape.rounded(0, 0, width, height, MD3Shape.FULL);
 
                 MD3Paint.fill(g2, track, trackColor(enabled, on));
 
-                // the outline belongs to the off state, and goes as the track fills in
-                if (!enabled) {
-                    MD3Paint.outline(g2, track, outlineColor(false), 2f);
-                } else if (on < 1f) {
-                    MD3Paint.outline(g2, track, MD3Color.get(MD3Color.OUTLINE, 1f - on), 2f);
+                // the outline belongs to the off state, and goes as the track fills in. A selected
+                // disabled switch is fill only - keeping the line draws two edges on a 12% track
+                if (on < 1f) {
+                    MD3Paint.outline(g2, track, MD3Color.withAlpha(outlineColor(enabled), 1f - on), 2f);
                 }
 
                 // the handle grows as it travels, which is what makes the state change read as a

@@ -77,11 +77,11 @@ public class MD3Card extends JPanel {
         ELEVATED, FILLED, OUTLINED
     }
 
-    /** How far the accent ring comes up under the pointer. */
-    private static final float HOVER_RING_ALPHA = 0.45f;
+    /** How far an outlined card's edge moves toward the accent under the pointer. */
+    private static final float HOVER_RING_ALPHA = 0.24f;
 
-    /** How much the container darkens under the pointer, where no state layer is doing it already. */
-    private static final float HOVER_TONE_ALPHA = 0.05f;
+    /** How much a filled card warms under the pointer, where no state layer is doing it already. */
+    private static final float HOVER_TONE_ALPHA = 0.08f;
 
     private Variant variant;
     private boolean clickable;
@@ -260,9 +260,9 @@ public class MD3Card extends JPanel {
 
         switch (getVariant()) {
             case ELEVATED:
-                // height on a Material surface is carried by tone, so lifting is a step up the ramp
-                return MD3Animated.lerp(MD3Elevation.surface(elevation() + 1),
-                        MD3Elevation.surface(elevation() + 2), lift);
+                // rest at L1 (surface-container-low); hover steps to L2
+                return MD3Animated.lerp(MD3Elevation.surface(elevation()),
+                        MD3Elevation.surface(elevation() + 1), lift);
             case OUTLINED:
                 return MD3Animated.lerp(MD3Color.surface(), MD3Color.surfaceContainerLow(), lift);
             case FILLED:
@@ -293,7 +293,7 @@ public class MD3Card extends JPanel {
             return MD3Animated.lerp(MD3Color.outlineVariant(), MD3Color.primary(), lift);
         }
 
-        return lift <= 0f ? null : MD3Color.get(MD3Color.PRIMARY, HOVER_RING_ALPHA * lift);
+        return lift <= 0f ? null : MD3Color.get(MD3Color.OUTLINE, HOVER_RING_ALPHA * lift);
     }
 
     /**

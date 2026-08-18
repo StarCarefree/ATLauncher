@@ -246,7 +246,7 @@ public class MD3Checkbox extends JCheckBox {
 
         private Color containerColor(boolean enabled) {
             return enabled ? MD3Color.primary()
-                    : MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
+                    : MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface());
         }
 
         private Color outlineColor(boolean enabled) {

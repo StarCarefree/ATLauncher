@@ -86,7 +86,8 @@ public class SwitchMotionTest {
     private static Color trackColourOf(MD3Switch toggle) {
         BufferedImage image = paintIcon(toggle);
 
-        return new Color(image.getRGB(image.getWidth() / 2, image.getHeight() / 6));
+        // the track is centred in a 48dp target; sample the band above the handle
+        return new Color(image.getRGB(image.getWidth() / 2, image.getHeight() / 2 - 12));
     }
 
     private static int differingPixels(BufferedImage a, BufferedImage b) {

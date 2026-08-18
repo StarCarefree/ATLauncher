@@ -42,6 +42,18 @@ public final class MD3Text {
     }
 
     /**
+     * Opens an HTML block whose body does not paint a slab of {@code Label.background}.
+     *
+     * <p>
+     * Swing's HTML view fills the default stylesheet colour - the surface role - even when the
+     * label itself is not opaque. On a card that is already a step up the container ramp, that
+     * shows as a darker rectangle behind the wrapped lines.
+     */
+    public static final String HTML_OPEN = "<html><body style='background:none;margin:0'>";
+
+    public static final String HTML_CLOSE = "</body></html>";
+
+    /**
      * @param width    the space available, in device pixels
      * @param maxLines how many lines the caller has measured room for
      * @return an HTML block for a {@link javax.swing.JLabel}, or a single space when there is
@@ -56,7 +68,7 @@ public final class MD3Text {
         String flat = text.replaceAll("\\s+", " ").trim();
 
         if (width <= 0 || maxLines <= 0) {
-            return "<html>" + escapeHtml(flat) + "</html>";
+            return HTML_OPEN + escapeHtml(flat) + HTML_CLOSE;
         }
 
         // Splitting on spaces would take a Chinese sentence - which has none - for one long word,
@@ -101,7 +113,7 @@ public final class MD3Text {
             lines.set(last, truncateToWidth(metrics, lines.get(last), width));
         }
 
-        StringBuilder html = new StringBuilder("<html>");
+        StringBuilder html = new StringBuilder(HTML_OPEN);
 
         for (int i = 0; i < lines.size(); i++) {
             if (i > 0) {
@@ -111,7 +123,7 @@ public final class MD3Text {
             html.append(escapeHtml(lines.get(i)));
         }
 
-        return html.append("</html>").toString();
+        return html.append(HTML_CLOSE).toString();
     }
 
     /**

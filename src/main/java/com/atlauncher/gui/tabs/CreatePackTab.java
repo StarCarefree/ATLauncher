@@ -32,7 +32,7 @@ import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+import javax.swing.JComponent;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
@@ -52,6 +52,7 @@ import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.container.MD3Table;
 import com.atlauncher.gui.md3.input.MD3Chip;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3TextArea;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.listener.StatefulTextKeyAdapter;
@@ -75,7 +76,7 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
     private static final int DESCRIPTION_HEIGHT = 80;
 
     private MD3TextField nameField;
-    private JTextArea descriptionField;
+    private MD3TextArea descriptionField;
     private MD3Chip minecraftVersionReleasesFilterCheckbox;
     private MD3Chip minecraftVersionExperimentsFilterCheckbox;
     private MD3Chip minecraftVersionSnapshotsFilterCheckbox;
@@ -191,16 +192,11 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
         // Description
         header.add(sectionLabel(GetText.tr("Description")));
 
-        JScrollPane descriptionScrollPane = new JScrollPane(
-            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        descriptionScrollPane.setBorder(new FlatScrollPaneBorder());
+        JComponent descriptionScrollPane = descriptionField.contained(DESCRIPTION_HEIGHT);
         descriptionScrollPane.setAlignmentX(LEFT_ALIGNMENT);
         descriptionScrollPane.setPreferredSize(new Dimension(UIScale.scale(FIELD_WIDTH),
                 UIScale.scale(DESCRIPTION_HEIGHT)));
         descriptionScrollPane.setMaximumSize(descriptionScrollPane.getPreferredSize());
-        descriptionScrollPane.setViewportView(descriptionField);
-
-        descriptionField.setLineWrap(true);
         LockingPreservingCaretTextSetter descriptionFieldSetter = new LockingPreservingCaretTextSetter(
             descriptionField);
         addDisposable(viewModel.description().subscribe((it) -> descriptionFieldSetter.setText(it.orElse(null))));
@@ -637,7 +633,7 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
     protected void onShow() {
         hasScrolledToSelection = false;
         nameField = new MD3TextField(GetText.tr("Instance Name"));
-        descriptionField = new JTextArea(2, 40);
+        descriptionField = new MD3TextArea(2, 40);
         minecraftVersionReleasesFilterCheckbox = MD3Chip.filter(getReleasesText());
         minecraftVersionExperimentsFilterCheckbox = MD3Chip.filter(getExperimentsText());
         minecraftVersionSnapshotsFilterCheckbox = MD3Chip.filter(getSnapshotsText());

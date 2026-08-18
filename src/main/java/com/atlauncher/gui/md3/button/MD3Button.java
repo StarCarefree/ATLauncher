@@ -17,6 +17,8 @@
  */
 package com.atlauncher.gui.md3.button;
 
+import java.awt.Color;
+
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.UIManager;
@@ -93,6 +95,7 @@ public class MD3Button extends JButton {
     private Tone tone;
     private Segment segment;
     private Icon trailingIcon;
+    private Color contentOverride;
 
     public MD3Button() {
         this(null, null, Variant.TONAL);
@@ -253,6 +256,28 @@ public class MD3Button extends JButton {
 
     public MD3Button withTrailingIcon(Icon trailingIcon) {
         setTrailingIcon(trailingIcon);
+
+        return this;
+    }
+
+    /**
+     * A content colour that is not the variant's. Used on an inverse surface - a snackbar action -
+     * where {@code primary} would sit on a light slab and fail contrast.
+     */
+    public Color getContentOverride() {
+        return contentOverride;
+    }
+
+    public void setContentOverride(Color contentOverride) {
+        Color old = this.contentOverride;
+        this.contentOverride = contentOverride;
+
+        firePropertyChange("contentOverride", old, contentOverride);
+        repaint();
+    }
+
+    public MD3Button withContentOverride(Color contentOverride) {
+        setContentOverride(contentOverride);
 
         return this;
     }

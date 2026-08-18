@@ -22,7 +22,7 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
-import javax.swing.JToolTip;
+
 
 import org.mini2Dx.gettext.GetText;
 
@@ -36,7 +36,7 @@ import com.atlauncher.data.curseforge.CurseForgeSocialLinkType;
 import com.atlauncher.data.json.Mod;
 import com.atlauncher.data.modrinth.ModrinthDonationUrl;
 import com.atlauncher.data.modrinth.ModrinthProject;
-import com.atlauncher.gui.HoverLineBorder;
+
 import com.atlauncher.gui.dialogs.EditModsDialog;
 import com.atlauncher.gui.dialogs.ModsChooser;
 import com.atlauncher.managers.DialogManager;
@@ -438,13 +438,6 @@ public class ModsJCheckBox extends MD3Checkbox {
                 }
             }
         });
-    }
-
-    @Override
-    public JToolTip createToolTip() {
-        JToolTip tip = super.createToolTip();
-        tip.setBorder(new HoverLineBorder());
-        return tip;
     }
 
 }

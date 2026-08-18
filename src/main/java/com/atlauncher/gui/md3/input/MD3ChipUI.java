@@ -21,6 +21,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Insets;
+import java.awt.Rectangle;
 
 import javax.swing.AbstractButton;
 import javax.swing.JComponent;
@@ -31,6 +32,7 @@ import com.atlauncher.gui.md3.button.MD3ButtonUI;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.paint.MD3Animated;
+import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
@@ -89,7 +91,12 @@ public class MD3ChipUI extends MD3ButtonUI {
 
     @Override
     protected int minimumHeight() {
-        return MD3Spacing.CHIP_HEIGHT;
+        return MD3Spacing.MIN_TOUCH_TARGET;
+    }
+
+    @Override
+    protected float containerInset(JComponent c) {
+        return Math.max(0f, (c.getHeight() - UIScale.scale(MD3Spacing.CHIP_HEIGHT)) / 2f);
     }
 
     @Override
@@ -97,27 +104,74 @@ public class MD3ChipUI extends MD3ButtonUI {
         return 18;
     }
 
+    private static MD3Chip.Variant variantOf(Component c) {
+        return c instanceof MD3Chip ? ((MD3Chip) c).getVariant() : MD3Chip.Variant.FILTER;
+    }
+
     private static boolean hasMenu(Component c) {
         return c instanceof MD3Chip && ((MD3Chip) c).hasMenu();
+    }
+
+    private static boolean isRemovable(Component c) {
+        return c instanceof MD3Chip && ((MD3Chip) c).isRemovable();
+    }
+
+    /**
+     * Where the trailing close sits, or an empty box for a chip that has none.
+     */
+    public static Rectangle closeBounds(JComponent c) {
+        if (!isRemovable(c)) {
+            return new Rectangle();
+        }
+
+        int size = UIScale.scale(TRAILING_ICON_SIZE);
+
+        return new Rectangle(MD3Paint.mirrorX(c, c.getWidth() - UIScale.scale(MD3Spacing.M) - size, size),
+                (c.getHeight() - size) / 2, size, size);
     }
 
     @Override
     public void paint(Graphics g, JComponent c) {
         super.paint(g, c);
 
-        if (!hasMenu(c)) {
+        AbstractButton b = (AbstractButton) c;
+        int size = UIScale.scale(TRAILING_ICON_SIZE);
+        Color color = contentColor(b);
+
+        if (hasMenu(c)) {
+            MD3Icon.of(MD3Icons.CHEVRON_DOWN, TRAILING_ICON_SIZE).withColor(color).paintIcon(c, g,
+                    MD3Paint.mirrorX(c, c.getWidth() - UIScale.scale(MD3Spacing.M) - size, size),
+                    (c.getHeight() - size) / 2);
+        } else if (isRemovable(c)) {
+            Rectangle bounds = closeBounds(c);
+            MD3Icon.of(MD3Icons.CLOSE, TRAILING_ICON_SIZE).withColor(color).paintIcon(c, g, bounds.x, bounds.y);
+        }
+    }
+
+    @Override
+    protected void paintIcon(Graphics g, JComponent c, Rectangle iconRect) {
+        if (variantOf(c) == MD3Chip.Variant.ASSIST && c instanceof AbstractButton
+                && ((AbstractButton) c).isEnabled() && ((AbstractButton) c).getIcon() instanceof MD3Icon) {
+            MD3Icon icon = ((MD3Icon) ((AbstractButton) c).getIcon()).withSize(iconSize())
+                    .withColor(MD3Color.primary());
+            icon.paintIcon(c, g, iconRect.x, iconRect.y);
+
             return;
         }
 
-        AbstractButton b = (AbstractButton) c;
-        int size = UIScale.scale(TRAILING_ICON_SIZE);
-
-        MD3Icon.of(MD3Icons.CHEVRON_DOWN, TRAILING_ICON_SIZE).withColor(contentColor(b)).paintIcon(c, g,
-                c.getWidth() - UIScale.scale(MD3Spacing.M) - size, (c.getHeight() - size) / 2);
+        super.paintIcon(g, c, iconRect);
     }
 
     @Override
     protected Color containerColor(AbstractButton b) {
+        MD3Chip.Variant variant = variantOf(b);
+
+        // only a filter chip fills when selected. Assist, input and suggestion stay outlined so
+        // they do not read as the same control as a facet that is on
+        if (variant != MD3Chip.Variant.FILTER) {
+            return null;
+        }
+
         float selected = selectedProgress(b);
 
         if (selected <= 0f) {
@@ -138,15 +192,20 @@ public class MD3ChipUI extends MD3ButtonUI {
             return MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface());
         }
 
+        MD3Chip.Variant variant = variantOf(b);
+
+        if (variant == MD3Chip.Variant.ASSIST || variant == MD3Chip.Variant.SUGGESTION) {
+            return MD3Color.onSurface();
+        }
+
         return MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.onSecondaryContainer(),
                 selectedProgress(b));
     }
 
     @Override
     protected Color outlineColor(AbstractButton b) {
-        // a selected chip is identified by its fill, and keeping the outline as well would make it
-        // read as two nested shapes - so the line leaves as the fill arrives
-        float remaining = 1f - selectedProgress(b);
+        MD3Chip.Variant variant = variantOf(b);
+        float remaining = variant == MD3Chip.Variant.FILTER ? 1f - selectedProgress(b) : 1f;
 
         if (remaining <= 0f) {
             return null;
@@ -157,7 +216,8 @@ public class MD3ChipUI extends MD3ButtonUI {
                     remaining);
         }
 
-        return MD3Color.withAlpha(b.isFocusOwner() ? MD3Color.primary() : MD3Color.outline(), remaining);
+        // focus is the ring from the button UI, not a primary stroke on top of it
+        return MD3Color.withAlpha(MD3Color.outline(), remaining);
     }
 
     private static class ChipBorder extends AbstractBorder {
@@ -166,11 +226,14 @@ public class MD3ChipUI extends MD3ButtonUI {
             boolean hasIcon = c instanceof AbstractButton && ((AbstractButton) c).getIcon() != null;
             int leading = hasIcon ? MD3Spacing.S : MD3Spacing.L;
 
-            // a menu chip's chevron is painted rather than laid out, so the label has to be kept
-            // out of the strip it occupies
-            int trailing = hasMenu(c) ? MD3Spacing.M + TRAILING_ICON_SIZE + MD3Spacing.XS : MD3Spacing.L;
+            // a menu chevron or a close is painted rather than laid out, so the label has to be
+            // kept out of the strip it occupies
+            int trailing = hasMenu(c) || isRemovable(c) ? MD3Spacing.M + TRAILING_ICON_SIZE + MD3Spacing.XS
+                    : MD3Spacing.L;
 
-            insets.set(UIScale.scale(MD3Spacing.XS), UIScale.scale(leading), UIScale.scale(MD3Spacing.XS),
+            int top = MD3Spacing.XS + Math.max(0, (MD3Spacing.MIN_TOUCH_TARGET - MD3Spacing.CHIP_HEIGHT) / 2);
+
+            MD3Paint.setLeadingTrailing(insets, c, UIScale.scale(top), UIScale.scale(leading), UIScale.scale(top),
                     UIScale.scale(trailing));
 
             return insets;

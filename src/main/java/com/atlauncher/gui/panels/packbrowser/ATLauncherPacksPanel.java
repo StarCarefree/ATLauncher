@@ -32,7 +32,7 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.builders.HTMLBuilder;
-import com.atlauncher.constants.UIConstants;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.data.Pack;
 import com.atlauncher.data.minecraft.VersionManifestVersion;
 import com.atlauncher.data.minecraft.VersionManifestVersionType;
@@ -90,7 +90,7 @@ public class ATLauncherPacksPanel extends PackBrowserPlatformPanel {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 1.0;
-        gbc.insets = UIConstants.FIELD_INSETS;
+        gbc.insets = MD3Spacing.insets(MD3Spacing.S, 0);
         gbc.fill = GridBagConstraints.BOTH;
 
         int count = 0;

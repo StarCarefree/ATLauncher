@@ -28,17 +28,24 @@ import java.awt.LayoutManager;
 import java.awt.Shape;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.accessibility.AccessibleContext;
+import javax.accessibility.AccessibleRole;
+import javax.swing.AbstractAction;
 import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.paint.MD3Focus;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -73,6 +80,7 @@ public class MD3ListItem extends JPanel {
 
     private boolean clickable;
     private MD3StateLayer stateLayer;
+    private MouseListener activationListener;
     private final List<ActionListener> actionListeners = new ArrayList<>();
 
     public MD3ListItem() {
@@ -207,18 +215,43 @@ public class MD3ListItem extends JPanel {
 
         if (clickable) {
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+            setFocusable(true);
             stateLayer = MD3StateLayer.install(this);
 
-            addMouseListener(new MouseAdapter() {
+            activationListener = new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (e.getButton() == MouseEvent.BUTTON1) {
+                        requestFocusInWindow();
                         fireActionPerformed();
                     }
                 }
-            });
+            };
+
+            addMouseListener(activationListener);
+
+            AbstractAction activate = new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    fireActionPerformed();
+                }
+            };
+
+            getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "md3.activate");
+            getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "md3.activate");
+            getActionMap().put("md3.activate", activate);
         } else {
             setCursor(Cursor.getDefaultCursor());
+            setFocusable(false);
+
+            if (activationListener != null) {
+                removeMouseListener(activationListener);
+                activationListener = null;
+            }
+
+            getInputMap(JComponent.WHEN_FOCUSED).remove(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0));
+            getInputMap(JComponent.WHEN_FOCUSED).remove(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0));
+            getActionMap().remove("md3.activate");
 
             if (stateLayer != null) {
                 stateLayer.uninstall();
@@ -240,6 +273,20 @@ public class MD3ListItem extends JPanel {
     }
 
     @Override
+    public AccessibleContext getAccessibleContext() {
+        if (accessibleContext == null) {
+            accessibleContext = new AccessibleJPanel() {
+                @Override
+                public AccessibleRole getAccessibleRole() {
+                    return clickable ? AccessibleRole.PUSH_BUTTON : super.getAccessibleRole();
+                }
+            };
+        }
+
+        return accessibleContext;
+    }
+
+    @Override
     protected void paintComponent(Graphics g) {
         if (stateLayer != null) {
             Graphics2D g2 = MD3Paint.setup(g);
@@ -247,6 +294,10 @@ public class MD3ListItem extends JPanel {
             try {
                 Shape shape = MD3Paint.shapeOf(this, MD3Shape.NONE);
                 stateLayer.paint(g2, shape, MD3Color.onSurface());
+
+                if (clickable && MD3Focus.isVisible(this)) {
+                    MD3Paint.focusRingInside(g2, shape, null);
+                }
             } finally {
                 g2.dispose();
             }
@@ -309,22 +360,34 @@ public class MD3ListItem extends JPanel {
             Insets insets = getInsets();
             int gap = UIScale.scale(MD3Spacing.L);
 
-            int x = insets.left;
+            boolean ltr = MD3Paint.isLeftToRight(parent);
+            int left = insets.left;
             int right = getWidth() - insets.right;
             int centreY = (insets.top + getHeight() - insets.bottom) / 2;
 
             if (leading != null) {
                 Dimension size = leading.getPreferredSize();
-                leading.setBounds(x, centreY - size.height / 2, size.width, size.height);
-                x += size.width + gap;
+                int leadX = ltr ? left : right - size.width;
+                leading.setBounds(leadX, centreY - size.height / 2, size.width, size.height);
+                if (ltr) {
+                    left += size.width + gap;
+                } else {
+                    right -= size.width + gap;
+                }
             }
 
             if (trailing != null) {
                 Dimension size = trailing.getPreferredSize();
-                right -= size.width;
-                trailing.setBounds(right, centreY - size.height / 2, size.width, size.height);
-                right -= gap;
+                int trailX = ltr ? right - size.width : left;
+                trailing.setBounds(trailX, centreY - size.height / 2, size.width, size.height);
+                if (ltr) {
+                    right -= size.width + gap;
+                } else {
+                    left += size.width + gap;
+                }
             }
+
+            int x = left;
 
             List<JLabel> labels = visibleLabels();
             int textHeight = 0;

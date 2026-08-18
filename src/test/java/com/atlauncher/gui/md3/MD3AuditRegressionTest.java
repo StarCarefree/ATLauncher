@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.button.MD3MenuButton;
 import com.atlauncher.gui.md3.container.MD3Card;
+import com.atlauncher.gui.md3.container.MD3ListItem;
 import com.atlauncher.gui.md3.nav.MD3Tabs;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.gui.md3.paint.MD3StateLayer;
@@ -227,6 +228,39 @@ public class MD3AuditRegressionTest {
      * outlined component with a stepped outer edge around each corner - which means the radius has to
      * come in with the box, or the corner it traces is not the corner it is tracing.
      */
+    @Test
+    public void testTurningAListItemsClickabilityOffAndOnDoesNotDoubleItsClicks() {
+        AtomicInteger clicks = new AtomicInteger();
+
+        MD3ListItem item = MD3ListItem.of("A setting");
+        item.addActionListener(e -> clicks.incrementAndGet());
+        item.setSize(200, 56);
+
+        item.setClickable(true);
+        item.setClickable(false);
+        item.setClickable(true);
+
+        click(item, 10);
+
+        assertEquals(1, clicks.get(), "one click on the row fired its action " + clicks.get() + " times");
+    }
+
+    @Test
+    public void testAListItemThatIsNoLongerClickableIgnoresClicks() {
+        AtomicInteger clicks = new AtomicInteger();
+
+        MD3ListItem item = MD3ListItem.of("A setting");
+        item.addActionListener(e -> clicks.incrementAndGet());
+        item.setSize(200, 56);
+
+        item.setClickable(true);
+        item.setClickable(false);
+
+        click(item, 10);
+
+        assertEquals(0, clicks.get(), "a row that is not clickable still fired its action");
+    }
+
     @Test
     public void testInsettingARoundedBoxBringsItsCornersInWithIt() {
         RoundRectangle2D inset = (RoundRectangle2D) MD3Paint

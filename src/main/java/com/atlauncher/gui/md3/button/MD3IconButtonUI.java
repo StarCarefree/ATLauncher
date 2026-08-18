@@ -90,7 +90,14 @@ public class MD3IconButtonUI extends MD3ButtonUI {
         float selected = selectedProgress(b);
 
         if (variant == MD3IconButton.Variant.STANDARD) {
-            return null;
+            if (selected <= 0f) {
+                return null;
+            }
+
+            Color fill = b.isEnabled() ? MD3Color.secondaryContainer()
+                    : MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
+
+            return MD3Color.withAlpha(fill, selected);
         }
 
         if (!b.isEnabled()) {
@@ -135,7 +142,7 @@ public class MD3IconButtonUI extends MD3ButtonUI {
                 return MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.inverseOnSurface(), selected);
             case STANDARD:
             default:
-                return MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.primary(), selected);
+                return MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.onSecondaryContainer(), selected);
         }
     }
 

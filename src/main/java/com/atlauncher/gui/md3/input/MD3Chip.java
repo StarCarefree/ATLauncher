@@ -17,7 +17,13 @@
  */
 package com.atlauncher.gui.md3.input;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 import javax.swing.Icon;
@@ -57,6 +63,8 @@ public class MD3Chip extends JToggleButton {
     private Variant variant;
     private Icon userIcon;
     private Supplier<JPopupMenu> menuSupplier;
+    private boolean removable;
+    private final List<ActionListener> removeListeners = new ArrayList<>();
 
     /** True while {@link #setSelected(boolean)} is applying a caller's decision. */
     private boolean applyingSelection;
@@ -81,6 +89,17 @@ public class MD3Chip extends JToggleButton {
         });
 
         addActionListener(e -> showMenu());
+
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (!removable || !isEnabled() || !MD3ChipUI.closeBounds(MD3Chip.this).contains(e.getPoint())) {
+                    return;
+                }
+
+                fireRemoved();
+            }
+        });
 
         updateUI();
     }
@@ -145,6 +164,39 @@ public class MD3Chip extends JToggleButton {
         return new MD3Chip(text, Variant.SUGGESTION);
     }
 
+    /**
+     * An input chip: a value the user entered, with a trailing close that removes it.
+     */
+    public static MD3Chip input(String text) {
+        MD3Chip chip = new MD3Chip(text, Variant.INPUT);
+        chip.setRemovable(true);
+
+        return chip;
+    }
+
+    public boolean isRemovable() {
+        return removable;
+    }
+
+    public void setRemovable(boolean removable) {
+        this.removable = removable;
+
+        revalidate();
+        repaint();
+    }
+
+    public void addRemoveListener(ActionListener listener) {
+        removeListeners.add(listener);
+    }
+
+    void fireRemoved() {
+        ActionEvent event = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "remove");
+
+        for (ActionListener listener : new ArrayList<>(removeListeners)) {
+            listener.actionPerformed(event);
+        }
+    }
+
     private void refreshSelectionIcon(boolean selected) {
         if (selected) {
             super.setIcon(MD3Icon.of(MD3Icons.CHECK));
@@ -195,11 +247,20 @@ public class MD3Chip extends JToggleButton {
     private final class ChipModel extends JToggleButton.ToggleButtonModel {
         @Override
         public void setSelected(boolean selected) {
-            if (menuSupplier != null && !applyingSelection) {
+            if (!applyingSelection && locksSelection()) {
                 return;
             }
 
             super.setSelected(selected);
+        }
+
+        /**
+         * Filter chips toggle. Assist and suggestion fire an action without staying on; an input
+         * chip is removed through its close, not selected; a menu chip is chosen by its menu.
+         */
+        private boolean locksSelection() {
+            return menuSupplier != null || variant == Variant.INPUT || variant == Variant.ASSIST
+                    || variant == Variant.SUGGESTION;
         }
     }
 }

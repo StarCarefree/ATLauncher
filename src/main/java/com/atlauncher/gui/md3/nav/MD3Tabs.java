@@ -204,20 +204,20 @@ public class MD3Tabs extends JPanel {
     }
 
     private void installKeyBindings() {
-        getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "md3.next");
-        getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "md3.previous");
+        getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "md3.right");
+        getInputMap(WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "md3.left");
 
-        getActionMap().put("md3.next", new AbstractAction() {
+        getActionMap().put("md3.right", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                move(1);
+                move(MD3Paint.isLeftToRight(MD3Tabs.this) ? 1 : -1);
             }
         });
 
-        getActionMap().put("md3.previous", new AbstractAction() {
+        getActionMap().put("md3.left", new AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                move(-1);
+                move(MD3Paint.isLeftToRight(MD3Tabs.this) ? -1 : 1);
             }
         });
     }

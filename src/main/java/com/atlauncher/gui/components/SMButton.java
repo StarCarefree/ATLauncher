@@ -22,9 +22,7 @@ import java.awt.Cursor;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JToolTip;
 
-import com.atlauncher.gui.HoverLineBorder;
 import com.atlauncher.utils.Utils;
 
 public class SMButton extends JButton {
@@ -40,12 +38,5 @@ public class SMButton extends JButton {
 
     public SMButton(String i, String t) {
         this(Utils.getIconImage(i), t);
-    }
-
-    @Override
-    public JToolTip createToolTip() {
-        JToolTip tip = super.createToolTip();
-        tip.setBorder(new HoverLineBorder());
-        return tip;
     }
 }

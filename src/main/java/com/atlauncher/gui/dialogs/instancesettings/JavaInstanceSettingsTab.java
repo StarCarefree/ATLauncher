@@ -28,10 +28,7 @@ import javax.annotation.Nullable;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
-import javax.swing.JTextArea;
-import javax.swing.ScrollPaneConstants;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.text.AbstractDocument;
@@ -51,13 +48,14 @@ import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3SettingsList;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3Spinner;
+import com.atlauncher.gui.md3.input.MD3TextArea;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.Java;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.javafinder.JavaInfo;
-import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
+
 
 public class JavaInstanceSettingsTab extends MD3SettingsList {
     private final Instance instance;
@@ -65,7 +63,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
     private MD3Spinner maximumMemory;
     private MD3Spinner permGen;
     private MD3TextField javaPath;
-    private JTextArea javaParameters;
+    private MD3TextArea javaParameters;
     private MD3ComboBox<ComboItem<String>> javaRuntimeOverride;
     private MD3ComboBox<ComboItem<Boolean>> useJavaProvidedByMinecraft;
     private MD3ComboBox<ComboItem<Boolean>> disableLegacyLaunching;
@@ -217,12 +215,9 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
 
         // Java Paramaters
 
-        JScrollPane javaParametersScrollPane = new JScrollPane(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        javaParametersScrollPane.setBorder(new FlatScrollPaneBorder());
+        javaParameters = new MD3TextArea(6, 40);
+        JComponent javaParametersScrollPane = javaParameters.contained(160);
         javaParametersScrollPane.setMaximumSize(new Dimension(1000, 200));
-
-        javaParameters = new JTextArea(6, 40);
         ((AbstractDocument) javaParameters.getDocument()).setDocumentFilter(
             new DocumentFilter() {
                 @Override
@@ -238,9 +233,7 @@ public class JavaInstanceSettingsTab extends MD3SettingsList {
                 }
             });
         javaParameters.setText(getIfNotNull(this.instance.launcher.javaArguments, App.settings.javaParameters));
-        javaParameters.setLineWrap(true);
-        javaParameters.setWrapStyleWord(true);
-        javaParametersScrollPane.setViewportView(javaParameters);
+
 
         MD3Button javaParametersResetButton = MD3Button.outlined(GetText.tr("Reset"));
         javaParametersResetButton.addActionListener(e -> javaParameters.setText(App.settings.javaParameters));

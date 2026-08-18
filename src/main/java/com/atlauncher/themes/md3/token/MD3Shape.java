@@ -48,7 +48,7 @@ public final class MD3Shape {
      * Inner corners of a connected button group. Small enough that the row reads as one control,
      * large enough that a segment does not look like it was clipped out of a stadium.
      */
-    public static final int BUTTON_GROUP_INNER = EXTRA_SMALL;
+    public static final int BUTTON_GROUP_INNER = SMALL;
     /** A checkbox's box: smaller than any step on the scale, and particular to it. */
     public static final int CHECKBOX = 2;
     public static final int CHIP = SMALL;

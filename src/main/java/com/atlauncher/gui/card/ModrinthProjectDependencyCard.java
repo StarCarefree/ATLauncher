@@ -1,6 +1,6 @@
 /*
  * ATLauncher - https://github.com/ATLauncher/ATLauncher
- * Copyright (C) 2013-2022 ATLauncher
+ * Copyright (C) 2013-2026 ATLauncher
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,100 +22,105 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.util.Optional;
 
-import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextArea;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
 
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.App;
 import com.atlauncher.data.ModManagement;
 import com.atlauncher.data.modrinth.ModrinthDependency;
 import com.atlauncher.data.modrinth.ModrinthDownloadMetadata;
 import com.atlauncher.data.modrinth.ModrinthProject;
 import com.atlauncher.gui.dialogs.ModrinthVersionSelectorDialog;
+import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.ModrinthApi;
+import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.workers.BackgroundImageWorker;
-
 import com.formdev.flatlaf.util.UIScale;
 
-public final class ModrinthProjectDependencyCard extends JPanel {
+public final class ModrinthProjectDependencyCard extends MD3Card {
     private final ModrinthVersionSelectorDialog parent;
     private final ModrinthDependency dependency;
     private final ModManagement instanceOrServer;
 
     public ModrinthProjectDependencyCard(ModrinthVersionSelectorDialog parent, ModrinthDependency dependency,
-        ModManagement instanceOrServer) {
+            ModManagement instanceOrServer) {
+        super(Variant.FILLED, new BorderLayout(0, MD3Spacing.scale(MD3Spacing.S)));
+
         this.parent = parent;
-
-        setLayout(new BorderLayout());
-        setPreferredSize(UIScale.scale(new Dimension(250, 180)));
-
         this.dependency = dependency;
         this.instanceOrServer = instanceOrServer;
+
+        setHoverElevation(true);
+        setPreferredSize(UIScale.scale(new Dimension(250, 180)));
 
         setupComponents();
     }
 
     private void setupComponents() {
         ModrinthProject mod = ModrinthApi.getProject(dependency.projectId);
-        String title = Optional.ofNullable(mod).map(m -> m.title).orElse("Unknown Project");
-        String description = Optional.ofNullable(mod).map(m -> m.description).orElse("Unknown Project");
-
-        JPanel summaryPanel = new JPanel(new BorderLayout());
-        JTextArea summary = new JTextArea();
-        summary.setText(description);
-        summary.setBorder(BorderFactory.createEmptyBorder(0, 5, 5, 5));
-        summary.setEditable(false);
-        summary.setHighlighter(null);
-        summary.setLineWrap(true);
-        summary.setWrapStyleWord(true);
-        summary.setEditable(false);
+        String titleText = Optional.ofNullable(mod).map(m -> m.title).orElse(GetText.tr("Unknown Project"));
+        String description = Optional.ofNullable(mod).map(m -> m.description).orElse(GetText.tr("Unknown Project"));
 
         JLabel icon = new JLabel(Utils.getIconImage("/assets/image/no-icon.png"));
-        icon.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
         icon.setVisible(false);
 
-        summaryPanel.add(icon, BorderLayout.WEST);
-        summaryPanel.add(summary, BorderLayout.CENTER);
-        summaryPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
+        JLabel title = new JLabel(titleText);
+        title.setFont(MD3Type.font(MD3Type.TITLE_SMALL, titleText));
+        title.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
+        title.setForeground(MD3Color.onSurface());
 
-        add(summaryPanel, BorderLayout.CENTER);
+        JLabel summary = new JLabel();
+        summary.setFont(MD3Type.font(MD3Type.BODY_SMALL, description));
+        summary.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
+        summary.setForeground(MD3Color.onSurfaceVariant());
+        summary.setText(MD3Text.wrapToLines(summary.getFontMetrics(summary.getFont()), description,
+                UIScale.scale(160), 3));
 
-        TitledBorder border = new TitledBorder(null, title, TitledBorder.DEFAULT_JUSTIFICATION,
-            TitledBorder.DEFAULT_POSITION, App.THEME.getBoldFont().deriveFont(12f));
-        setBorder(border);
+        JPanel text = new JPanel(new BorderLayout(0, MD3Spacing.scale(MD3Spacing.XS)));
+        text.setOpaque(false);
+        text.add(title, BorderLayout.NORTH);
+        text.add(summary, BorderLayout.CENTER);
 
-        if (mod != null) {
-            JPanel buttonsPanel = new JPanel(new FlowLayout());
-            MD3Button addButton = MD3Button.filled(GetText.tr("Add"));
-            MD3Button viewButton = MD3Button.outlined(GetText.tr("View"));
-            buttonsPanel.add(addButton);
-            buttonsPanel.add(viewButton);
+        JPanel body = new JPanel(new BorderLayout(MD3Spacing.scale(MD3Spacing.S), 0));
+        body.setOpaque(false);
+        body.add(icon, BorderLayout.WEST);
+        body.add(text, BorderLayout.CENTER);
 
-            addButton.addActionListener(e -> {
-                Analytics.trackEvent(AnalyticsEvent.forAddMod(mod));
-                ModrinthVersionSelectorDialog modrinthVersionSelectorDialog = new ModrinthVersionSelectorDialog(parent,
-                    mod,
-                    instanceOrServer,
-                    ModrinthDownloadMetadata.Reason.DEPENDENCY, parent.getSelectedVersionId());
-                modrinthVersionSelectorDialog.setVisible(true);
-                parent.reloadDependenciesPanel();
-            });
+        add(body, BorderLayout.CENTER);
 
-            viewButton.addActionListener(e -> String.format("https://modrinth.com/mod/%s", mod.slug));
-            add(buttonsPanel, BorderLayout.SOUTH);
+        if (mod == null) {
+            return;
+        }
 
-            if (mod.iconUrl != null && !mod.iconUrl.isEmpty()) {
-                new BackgroundImageWorker(icon, mod.iconUrl, 60, 60).execute();
-            }
+        JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEADING, MD3Spacing.scale(MD3Spacing.S), 0));
+        buttons.setOpaque(false);
+        MD3Button addButton = MD3Button.filled(GetText.tr("Add"));
+        MD3Button viewButton = MD3Button.outlined(GetText.tr("View"));
+        buttons.add(addButton);
+        buttons.add(viewButton);
+
+        addButton.addActionListener(e -> {
+            Analytics.trackEvent(AnalyticsEvent.forAddMod(mod));
+            new ModrinthVersionSelectorDialog(parent, mod, instanceOrServer, ModrinthDownloadMetadata.Reason.DEPENDENCY,
+                    parent.getSelectedVersionId()).setVisible(true);
+            parent.reloadDependenciesPanel();
+        });
+
+        viewButton.addActionListener(e -> OS.openWebBrowser(String.format("https://modrinth.com/mod/%s", mod.slug)));
+
+        add(buttons, BorderLayout.SOUTH);
+
+        if (mod.iconUrl != null && !mod.iconUrl.isEmpty()) {
+            new BackgroundImageWorker(icon, mod.iconUrl, 60, 60).execute();
         }
     }
 }

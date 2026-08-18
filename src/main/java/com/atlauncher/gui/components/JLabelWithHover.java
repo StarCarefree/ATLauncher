@@ -19,10 +19,7 @@ package com.atlauncher.gui.components;
 
 import javax.swing.Icon;
 import javax.swing.JLabel;
-import javax.swing.JToolTip;
 import javax.swing.border.Border;
-
-import com.atlauncher.gui.HoverLineBorder;
 
 public class JLabelWithHover extends JLabel {
     public JLabelWithHover(Icon icon, String tooltipText, Border border) {
@@ -36,12 +33,5 @@ public class JLabelWithHover extends JLabel {
         super(label);
         super.setIcon(icon);
         super.setToolTipText(tooltipText);
-    }
-
-    @Override
-    public JToolTip createToolTip() {
-        JToolTip tip = super.createToolTip();
-        tip.setBorder(new HoverLineBorder());
-        return tip;
     }
 }

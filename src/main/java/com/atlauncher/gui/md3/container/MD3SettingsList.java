@@ -175,7 +175,7 @@ public class MD3SettingsList extends JPanel implements Scrollable {
      * Puts controls in a row, for the settings that take a field and a button to go with it.
      */
     public static JPanel group(Component... components) {
-        JPanel panel = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(MD3Spacing.S), 0));
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.TRAILING, UIScale.scale(MD3Spacing.S), 0));
         panel.setOpaque(false);
 
         for (Component component : components) {

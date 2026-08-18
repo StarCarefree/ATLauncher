@@ -49,7 +49,8 @@ public class MD3TextWrapTest {
     }
 
     private static String[] linesOf(String html) {
-        return html.replaceAll("^<html>", "").replaceAll("</html>$", "").split("<br>", -1);
+        return html.replaceAll("(?i)^<html><body[^>]*>", "").replaceAll("(?i)</body></html>$", "")
+                .split("<br>", -1);
     }
 
     @Test
@@ -91,7 +92,7 @@ public class MD3TextWrapTest {
         FontMetrics metrics = metrics();
         String html = MD3Text.wrapToLines(metrics, CHINESE_DESCRIPTION, metrics.stringWidth(TEN_HAN), 1);
 
-        assertTrue(html.endsWith("…</html>"), "expected an ellipsis, got: " + html);
+        assertTrue(html.endsWith("…" + MD3Text.HTML_CLOSE), "expected an ellipsis, got: " + html);
     }
 
     @Test
@@ -114,7 +115,7 @@ public class MD3TextWrapTest {
         FontMetrics metrics = metrics();
         String html = MD3Text.wrapToLines(metrics, "安装", metrics.stringWidth(TEN_HAN), 2);
 
-        assertEquals("<html>安装</html>", html);
+        assertEquals(MD3Text.HTML_OPEN + "安装" + MD3Text.HTML_CLOSE, html);
     }
 
     @Test

@@ -365,4 +365,19 @@ public final class MD3Paint {
         return new Insets(UIScale.scale(insets.top), UIScale.scale(insets.left), UIScale.scale(insets.bottom),
                 UIScale.scale(insets.right));
     }
+
+    /**
+     * Writes leading/trailing padding into left/right, honouring the component's writing direction.
+     *
+     * @param leading  already-scaled padding on the start edge
+     * @param trailing already-scaled padding on the end edge
+     */
+    public static void setLeadingTrailing(Insets insets, Component c, int top, int leading, int bottom,
+            int trailing) {
+        if (isLeftToRight(c)) {
+            insets.set(top, leading, bottom, trailing);
+        } else {
+            insets.set(top, trailing, bottom, leading);
+        }
+    }
 }

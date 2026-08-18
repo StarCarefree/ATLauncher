@@ -98,7 +98,7 @@ public class MD3OverlayRenderTest {
                         + "worlds and screenshots. This cannot be undone.")
                 .dismiss("Keep it")
                 .action("Back up first", MD3Button.Variant.OUTLINED)
-                .confirm("Delete")
+                .destructive("Delete")
                 .build();
 
         java.awt.Container content = dialog.getContentPane();

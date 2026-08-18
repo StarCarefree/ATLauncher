@@ -125,6 +125,11 @@ public class MD3LinearProgressUI extends BasicProgressBarUI {
             float gap = UIScale.scale((float) GAP);
             float stop = UIScale.scale((float) STOP_DIAMETER);
 
+            if (!MD3Paint.isLeftToRight(c)) {
+                g2.translate(width, 0);
+                g2.scale(-1, 1);
+            }
+
             float fraction = fraction();
             float indicatorWidth = width * fraction;
 

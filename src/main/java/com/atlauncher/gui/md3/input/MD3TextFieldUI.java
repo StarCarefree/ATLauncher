@@ -48,6 +48,7 @@ import javax.swing.text.JTextComponent;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.paint.MD3Paint;
+import com.atlauncher.gui.md3.paint.MD3StateLayer;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.themes.md3.token.MD3Shape;
@@ -81,6 +82,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
     private DocumentListener documentListener;
     private PropertyChangeListener documentPropertyListener;
     private MouseListener clearListener;
+    private MD3StateLayer stateLayer;
 
     private float floatFraction;
     private float from;
@@ -111,6 +113,8 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
 
         floatFraction = shouldFloat() ? 1f : 0f;
         to = floatFraction;
+
+        stateLayer = MD3StateLayer.install(component);
     }
 
     @Override
@@ -224,6 +228,11 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
             animator = null;
         }
 
+        if (stateLayer != null) {
+            stateLayer.uninstall();
+            stateLayer = null;
+        }
+
         super.uninstallListeners();
     }
 
@@ -323,14 +332,22 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
 
     private Color accentColor(MD3TextField f) {
         if (!f.isEnabled()) {
-            return MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface());
+            return MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
         }
 
         if (f.isError()) {
             return MD3Color.error();
         }
 
-        return f.isFocusOwner() ? MD3Color.primary() : MD3Color.outline();
+        if (f.isFocusOwner()) {
+            return MD3Color.primary();
+        }
+
+        if (stateLayer != null && stateLayer.isHovered()) {
+            return MD3Color.onSurface();
+        }
+
+        return MD3Color.outline();
     }
 
     private Color labelColor(MD3TextField f) {
@@ -404,7 +421,9 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
                 : MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface()));
 
         if (f.isEnabled() && f.isFocusOwner()) {
-            MD3Paint.outline(g, container, f.isError() ? MD3Color.error() : MD3Color.primary(), 1f);
+            MD3Paint.outline(g, container, f.isError() ? MD3Color.error() : MD3Color.primary(), 2f);
+        } else if (f.isEnabled() && stateLayer != null && stateLayer.isHovered()) {
+            MD3Paint.outline(g, container, MD3Color.onSurface(), 1f);
         }
     }
 
@@ -483,7 +502,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         int size = UIScale.scale(MD3Spacing.ICON_SIZE);
         Rectangle box = boxBounds(c);
 
-        return new Rectangle(c.getWidth() - UIScale.scale(MD3Spacing.M) - size,
+        return new Rectangle(MD3Paint.mirrorX(c, c.getWidth() - UIScale.scale(MD3Spacing.M) - size, size),
                 box.y + (box.height - size) / 2, size, size);
     }
 
@@ -499,14 +518,14 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
                 .paintIcon(f, g, bounds.x, bounds.y);
     }
 
-    private int textLeftEdge(MD3TextField f) {
-        int left = UIScale.scale(MD3Spacing.L);
+    private int textLeading(MD3TextField f) {
+        int leading = UIScale.scale(MD3Spacing.L);
 
         if (f.getLeadingIcon() != null) {
-            left += f.getLeadingIcon().getIconWidth() + UIScale.scale(MD3Spacing.M);
+            leading += f.getLeadingIcon().getIconWidth() + UIScale.scale(MD3Spacing.M);
         }
 
-        return left;
+        return leading;
     }
 
     private void paintLeadingIcon(Graphics2D g, MD3TextField f, Rectangle box) {
@@ -516,7 +535,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
             return;
         }
 
-        int x = UIScale.scale(MD3Spacing.L);
+        int x = MD3Paint.mirrorX(f, UIScale.scale(MD3Spacing.L), icon.getIconWidth());
         int y = box.y + (box.height - icon.getIconHeight()) / 2;
 
         icon.withColor(f.isEnabled() ? MD3Color.onSurfaceVariant()
@@ -541,7 +560,10 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
 
         int y = Math.round(restingY + (floatedY - restingY) * floatFraction);
 
-        return new Rectangle(textLeftEdge(f), y, width, height);
+        int leading = textLeading(f);
+        int x = MD3Paint.isLeftToRight(f) ? leading : f.getWidth() - leading - width;
+
+        return new Rectangle(x, y, width, height);
     }
 
     private void paintLabel(Graphics2D g, MD3TextField f, Rectangle box) {
@@ -576,9 +598,20 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         FontMetrics metrics = f.getFontMetrics(font);
 
         g.setFont(font);
-        g.setColor(f.isError() ? MD3Color.error() : MD3Color.onSurfaceVariant());
-        g.drawString(text, UIScale.scale(MD3Spacing.L),
-                box.y + box.height + UIScale.scale(MD3Spacing.XS) + metrics.getAscent());
+        Color color;
+        if (!f.isEnabled()) {
+            color = MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface());
+        } else if (f.isError()) {
+            color = MD3Color.error();
+        } else {
+            color = MD3Color.onSurfaceVariant();
+        }
+
+        int textX = MD3Paint.isLeftToRight(f) ? UIScale.scale(MD3Spacing.L)
+                : f.getWidth() - UIScale.scale(MD3Spacing.L) - metrics.stringWidth(text);
+
+        g.setColor(color);
+        g.drawString(text, textX, box.y + box.height + UIScale.scale(MD3Spacing.XS) + metrics.getAscent());
     }
 
     /**
@@ -625,16 +658,17 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
 
             // the icon's width is already in device pixels, so it is added after scaling the
             // spacing rather than before
-            int left = UIScale.scale(MD3Spacing.L);
+            int leading = UIScale.scale(MD3Spacing.L);
 
             if (f != null && f.getLeadingIcon() != null) {
-                left += f.getLeadingIcon().getIconWidth() + UIScale.scale(MD3Spacing.M);
+                leading += f.getLeadingIcon().getIconWidth() + UIScale.scale(MD3Spacing.M);
             }
 
             // the clear icon is painted over the trailing edge, so the text stops short of it
-            int right = isClearable(c) ? MD3Spacing.M + MD3Spacing.ICON_SIZE + MD3Spacing.S : MD3Spacing.L;
+            int trailing = UIScale.scale(
+                    isClearable(c) ? MD3Spacing.M + MD3Spacing.ICON_SIZE + MD3Spacing.S : MD3Spacing.L);
 
-            insets.set(UIScale.scale(top), left, UIScale.scale(bottom), UIScale.scale(right));
+            MD3Paint.setLeadingTrailing(insets, c, UIScale.scale(top), leading, UIScale.scale(bottom), trailing);
 
             return insets;
         }

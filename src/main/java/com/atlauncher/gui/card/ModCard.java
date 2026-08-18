@@ -1,6 +1,6 @@
 /*
  * ATLauncher - https://github.com/ATLauncher/ATLauncher
- * Copyright (C) 2013-2022 ATLauncher
+ * Copyright (C) 2013-2026 ATLauncher
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,46 +17,54 @@
  */
 package com.atlauncher.gui.card;
 
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.BorderLayout;
 
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.mini2Dx.gettext.GetText;
+
 import com.atlauncher.data.json.Mod;
+import com.atlauncher.gui.md3.container.MD3Badge;
+import com.atlauncher.gui.md3.container.MD3Card;
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.OS;
 
-public final class ModCard extends JPanel {
+/**
+ * One pack mod in the "view mods" list: the name, whether it is required, and a click through to
+ * its site when it has one.
+ */
+public final class ModCard extends MD3Card {
     public final Mod mod;
 
     public ModCard(final Mod mod) {
-        Dimension dim = new Dimension(this.getPreferredSize().width, (int) (this.getPreferredSize().height * 1.5));
-        this.setPreferredSize(dim);
-        this.mod = mod;
-        if (this.mod.hasWebsite()) {
-            this.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        }
-        this.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-                if (ModCard.this.mod.hasWebsite()) {
-                    OS.openWebBrowser(mod.getWebsite());
-                }
-            }
-        });
-    }
+        super(Variant.FILLED, new BorderLayout());
 
-    @Override
-    public void paint(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g;
-        g2.drawString(this.mod.getName(), 10, 10);
-        g2.setColor(this.mod.isOptional() ? Color.GREEN : Color.RED);
-        g2.drawString(this.mod.isOptional() ? "Optional" : "Required",
-                g2.getFontMetrics().stringWidth(this.mod.getName()) + g2.getFontMetrics().charWidth('M') * 2, 10);
+        this.mod = mod;
+
+        setHoverElevation(true);
+        setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.M));
+
+        if (mod.hasWebsite()) {
+            setClickable(true);
+            addActionListener(e -> OS.openWebBrowser(mod.getWebsite()));
+        }
+
+        JLabel name = new JLabel(mod.getName());
+        name.setFont(MD3Type.font(MD3Type.TITLE_SMALL, mod.getName()));
+        name.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
+        name.setForeground(MD3Color.onSurface());
+
+        MD3Badge badge = mod.isOptional() ? MD3Badge.neutral(GetText.tr("Optional"))
+                : MD3Badge.notable(GetText.tr("Required"));
+
+        JPanel row = new JPanel(new BorderLayout(MD3Spacing.scale(MD3Spacing.S), 0));
+        row.setOpaque(false);
+        row.add(name, BorderLayout.CENTER);
+        row.add(badge, BorderLayout.EAST);
+
+        add(row, BorderLayout.CENTER);
     }
 }

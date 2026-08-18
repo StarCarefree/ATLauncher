@@ -34,6 +34,7 @@ import com.atlauncher.App;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.Constants;
 import com.atlauncher.constants.UIConstants;
+import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.data.curseforge.CurseForgeProject;
 import com.atlauncher.data.minecraft.VersionManifestVersion;
 import com.atlauncher.data.minecraft.VersionManifestVersionType;
@@ -76,7 +77,7 @@ public class CurseForgePacksPanel extends PackBrowserPlatformPanel {
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 1.0;
-        gbc.insets = UIConstants.FIELD_INSETS;
+        gbc.insets = MD3Spacing.insets(MD3Spacing.S, 0);
         gbc.fill = GridBagConstraints.BOTH;
 
         List<CurseForgePackCard> cards = packs.stream().map(CurseForgePackCard::new)

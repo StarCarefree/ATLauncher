@@ -185,10 +185,18 @@ public class MD3ComboBoxUI extends BasicComboBoxUI {
 
     private Color accentColor() {
         if (!comboBox.isEnabled()) {
-            return MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface());
+            return MD3State.disabledContainer(MD3Color.onSurface(), MD3Color.surface());
         }
 
-        return comboBox.isFocusOwner() || comboBox.isPopupVisible() ? MD3Color.primary() : MD3Color.outline();
+        if (comboBox.isFocusOwner() || comboBox.isPopupVisible()) {
+            return MD3Color.primary();
+        }
+
+        if (stateLayer != null && stateLayer.isHovered()) {
+            return MD3Color.onSurface();
+        }
+
+        return MD3Color.outline();
     }
 
     private Color contentColor() {
@@ -258,7 +266,7 @@ public class MD3ComboBoxUI extends BasicComboBoxUI {
 
     private void paintChevron(Graphics2D g) {
         int size = UIScale.scale(CHEVRON_SIZE);
-        int x = comboBox.getWidth() - UIScale.scale(MD3Spacing.M) - size;
+        int x = MD3Paint.mirrorX(comboBox, comboBox.getWidth() - UIScale.scale(MD3Spacing.M) - size, size);
         int y = (comboBox.getHeight() - size) / 2;
 
         MD3Icon.of(MD3Icons.CHEVRON_DOWN, CHEVRON_SIZE)
@@ -301,8 +309,8 @@ public class MD3ComboBoxUI extends BasicComboBoxUI {
         public Insets getBorderInsets(Component c, Insets insets) {
             int trailing = MD3Spacing.M + CHEVRON_SIZE + MD3Spacing.S;
 
-            insets.set(UIScale.scale(MD3Spacing.S), UIScale.scale(MD3Spacing.M), UIScale.scale(MD3Spacing.S),
-                    UIScale.scale(trailing));
+            MD3Paint.setLeadingTrailing(insets, c, UIScale.scale(MD3Spacing.S), UIScale.scale(MD3Spacing.M),
+                    UIScale.scale(MD3Spacing.S), UIScale.scale(trailing));
 
             return insets;
         }

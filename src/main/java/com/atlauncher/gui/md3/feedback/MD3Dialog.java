@@ -46,6 +46,7 @@ import javax.swing.KeyStroke;
 import javax.swing.RootPaneContainer;
 import javax.swing.SwingConstants;
 
+import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.paint.MD3Animated;
@@ -101,7 +102,8 @@ public class MD3Dialog extends JDialog {
             return text;
         }
 
-        return "<html><div style='width:" + maxWidth + "px'>" + escapeHtml(text) + "</div></html>";
+        return MD3Text.HTML_OPEN + "<div style='width:" + maxWidth + "px'>" + escapeHtml(text)
+                + "</div>" + MD3Text.HTML_CLOSE;
     }
 
     private static String escapeHtml(String text) {
@@ -493,7 +495,11 @@ public class MD3Dialog extends JDialog {
             this.maxWidth = builder.maxWidth;
 
             setOpaque(false);
-            setBorder(MD3Spacing.border(MD3Spacing.XL));
+
+            int room = rounded ? MD3Paint.shadowRoom(MD3Elevation.LEVEL3) : 0;
+            int roomBelow = rounded ? MD3Paint.shadowRoomBelow(MD3Elevation.LEVEL3) : 0;
+            setBorder(MD3Spacing.border(MD3Spacing.XL + room, MD3Spacing.XL + room,
+                    MD3Spacing.XL + roomBelow, MD3Spacing.XL + room));
 
             boolean centred = builder.icon != null;
 
@@ -543,7 +549,7 @@ public class MD3Dialog extends JDialog {
             }
 
             if (!builder.actions.isEmpty()) {
-                JPanel row = new JPanel(new FlowLayout(FlowLayout.RIGHT, UIScale.scale(MD3Spacing.S), 0));
+                JPanel row = new JPanel(new FlowLayout(FlowLayout.TRAILING, UIScale.scale(MD3Spacing.S), 0));
                 row.setOpaque(false);
                 row.setBorder(MD3Spacing.border(MD3Spacing.XL, 0, 0, 0));
 
@@ -583,8 +589,17 @@ public class MD3Dialog extends JDialog {
             Graphics2D g2 = MD3Paint.setup(g);
 
             try {
-                java.awt.Shape shape = rounded ? MD3Paint.shapeOf(this, MD3Shape.DIALOG)
-                        : MD3Paint.shapeOf(this, MD3Shape.NONE);
+                java.awt.Shape shape;
+
+                if (rounded) {
+                    float room = UIScale.scale((float) MD3Paint.shadowRoom(MD3Elevation.LEVEL3));
+                    float below = UIScale.scale((float) MD3Paint.shadowRoomBelow(MD3Elevation.LEVEL3));
+                    shape = MD3Shape.rounded(room, room, getWidth() - room * 2f, getHeight() - room - below,
+                            MD3Shape.DIALOG);
+                    MD3Paint.shadow(g2, shape, MD3Elevation.LEVEL3);
+                } else {
+                    shape = MD3Paint.shapeOf(this, MD3Shape.NONE);
+                }
 
                 MD3Paint.fill(g2, shape, MD3Elevation.surface(MD3Elevation.LEVEL3));
             } finally {

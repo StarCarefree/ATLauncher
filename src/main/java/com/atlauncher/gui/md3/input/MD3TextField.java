@@ -22,6 +22,7 @@ import javax.swing.UIManager;
 import javax.swing.plaf.TextUI;
 
 import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.icon.MD3Icons;
 
 /**
  * A Material 3 text field.
@@ -109,7 +110,10 @@ public class MD3TextField extends JTextField {
      * @param placeholder what the field searches, such as "Search packs"
      */
     public static MD3TextField search(String placeholder) {
-        return new MD3TextField(placeholder, Variant.SEARCH);
+        MD3TextField field = new MD3TextField(placeholder, Variant.SEARCH);
+        field.setLeadingIcon(MD3Icons.SEARCH);
+
+        return field;
     }
 
     public Variant getVariant() {

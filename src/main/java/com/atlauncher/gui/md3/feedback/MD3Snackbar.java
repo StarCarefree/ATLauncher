@@ -44,6 +44,7 @@ import javax.swing.RootPaneContainer;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
+import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -212,10 +213,16 @@ public final class MD3Snackbar {
             setBorder(MD3Spacing.border(MD3Spacing.S + ROOM, MD3Spacing.L + ROOM, MD3Spacing.S + ROOM_BELOW,
                     MD3Spacing.L + ROOM));
 
-            JLabel label = new JLabel(pending.message);
+            JLabel label = new JLabel();
             label.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
             label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
             label.setForeground(MD3Color.inverseOnSurface());
+
+            int actionRoom = pending.actionLabel == null || pending.actionLabel.isEmpty() ? 0
+                    : UIScale.scale(96);
+            int textWidth = UIScale.scale(MAX_WIDTH) - UIScale.scale(MD3Spacing.L) * 2 - actionRoom;
+            label.setText(MD3Text.wrapToLines(label.getFontMetrics(label.getFont()), pending.message, textWidth, 2));
+
             add(label, BorderLayout.CENTER);
 
             // a panel appearing in a layered pane is not something assistive technology looks for; an
@@ -224,8 +231,8 @@ public final class MD3Snackbar {
             getAccessibleContext().setAccessibleName(pending.message);
 
             if (pending.actionLabel != null && !pending.actionLabel.isEmpty()) {
-                MD3Button action = MD3Button.text(pending.actionLabel);
-                action.setForeground(MD3Color.get(MD3Color.INVERSE_PRIMARY));
+                MD3Button action = MD3Button.text(pending.actionLabel)
+                        .withContentOverride(MD3Color.get(MD3Color.INVERSE_PRIMARY));
                 action.addActionListener(e -> {
                     if (pending.action != null) {
                         pending.action.actionPerformed(e);
