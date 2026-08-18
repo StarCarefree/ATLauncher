@@ -105,6 +105,11 @@ public class Settings {
     // Mods
     public ModPlatform defaultModPlatform = ModPlatform.CURSEFORGE;
     public InstanceExportFormat defaultExportFormat = InstanceExportFormat.CURSEFORGE;
+    /**
+     * When true, export does not fingerprint files against CurseForge or Modrinth and
+     * uses only the project and file metadata already on the instance.
+     */
+    public boolean skipExportHashVerification = false;
     public AddModRestriction addModRestriction = AddModRestriction.STRICT;
     public boolean enableAddedModsByDefault = true;
     public boolean showFabricModsWhenSinytraInstalled = true;

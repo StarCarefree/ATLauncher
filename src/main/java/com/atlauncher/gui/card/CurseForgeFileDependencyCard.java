@@ -112,8 +112,7 @@ public final class CurseForgeFileDependencyCard extends MD3Card {
         add(buttons, BorderLayout.SOUTH);
 
         Optional<CurseForgeAttachment> attachment = mod.getLogo();
-        attachment.ifPresent(
-                curseForgeAttachment -> new BackgroundImageWorker(icon, curseForgeAttachment.thumbnailUrl, 60, 60)
-                        .execute());
+        attachment.filter(item -> item.thumbnailUrl != null && !item.thumbnailUrl.isEmpty())
+                .ifPresent(item -> new BackgroundImageWorker(icon, item.thumbnailUrl, 60, 60).execute());
     }
 }

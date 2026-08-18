@@ -82,6 +82,16 @@ public class ModsSettingsTab extends AbstractSettingsTab {
             GetText.tr("The default format to export instances to. Can also be changed at time of export."),
             defaultExportFormat);
 
+        MD3Switch skipExportHashVerification = new MD3Switch();
+        skipExportHashVerification.addItemListener(itemEvent -> viewModel
+            .setSkipExportHashVerification(itemEvent.getStateChange() == ItemEvent.SELECTED));
+        addDisposable(viewModel.getSkipExportHashVerification().subscribe(skipExportHashVerification::setSelected));
+
+        addRow(GetText.tr("Skip Hash Verification When Exporting?"),
+            GetText.tr(
+                "When exporting, do not fingerprint files against CurseForge or Modrinth. Only the project and file metadata already on the instance is used. Can also be changed at time of export."),
+            skipExportHashVerification);
+
         // Add Mod Restrictions
 
         MD3ComboBox<ComboItem<AddModRestriction>> addModRestriction = new MD3ComboBox<>();

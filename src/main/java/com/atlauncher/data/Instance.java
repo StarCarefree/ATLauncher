@@ -1241,6 +1241,11 @@ public class Instance extends MinecraftVersion implements ModManagement {
 
     public Pair<Path, String> export(String name, String version, String author, InstanceExportFormat format,
         String saveTo, List<String> overrides, boolean jointPackaging) {
+        return export(name, version, author, format, saveTo, overrides, jointPackaging, false);
+    }
+
+    public Pair<Path, String> export(String name, String version, String author, InstanceExportFormat format,
+        String saveTo, List<String> overrides, boolean jointPackaging, boolean skipHashVerification) {
         try {
             Path saveToPath = Paths.get(saveTo);
             if (!Files.isDirectory(saveToPath)) {
@@ -1252,15 +1257,19 @@ public class Instance extends MinecraftVersion implements ModManagement {
         }
 
         if (format == InstanceExportFormat.CURSEFORGE) {
-            return exportAsCurseForgeZip(name, version, author, saveTo, overrides, jointPackaging);
+            return exportAsCurseForgeZip(name, version, author, saveTo, overrides, jointPackaging,
+                skipHashVerification);
         } else if (format == InstanceExportFormat.MODRINTH) {
-            return exportAsModrinthZip(name, version, author, saveTo, overrides, jointPackaging);
+            return exportAsModrinthZip(name, version, author, saveTo, overrides, jointPackaging,
+                skipHashVerification);
         } else if (format == InstanceExportFormat.CURSEFORGE_AND_MODRINTH) {
-            if (exportAsCurseForgeZip(name, version, author, saveTo, overrides, jointPackaging).left() == null) {
+            if (exportAsCurseForgeZip(name, version, author, saveTo, overrides, jointPackaging,
+                skipHashVerification).left() == null) {
                 return new Pair<>(null, null);
             }
 
-            return exportAsModrinthZip(name, version, author, saveTo, overrides, jointPackaging);
+            return exportAsModrinthZip(name, version, author, saveTo, overrides, jointPackaging,
+                skipHashVerification);
         } else if (format == InstanceExportFormat.MULTIMC) {
             return exportAsMultiMcZip(name, version, author, saveTo, overrides);
         }
@@ -1582,62 +1591,71 @@ public class Instance extends MinecraftVersion implements ModManagement {
 
     public Pair<Path, String> exportAsCurseForgeZip(String name, String version, String author, String saveTo,
         List<String> overrides, boolean jointPackaging) {
+        return exportAsCurseForgeZip(name, version, author, saveTo, overrides, jointPackaging, false);
+    }
+
+    public Pair<Path, String> exportAsCurseForgeZip(String name, String version, String author, String saveTo,
+        List<String> overrides, boolean jointPackaging, boolean skipHashVerification) {
         String safePathName = name.replaceAll("[\\\"?:*<>|]", "");
         Path to = Paths.get(saveTo).resolve(String.format("%s %s.zip", safePathName, version));
         CurseForgeManifest manifest = new CurseForgeManifest();
 
-        // for any mods not from CurseForge, scan for them on CurseForge
-        Map<Long, DisableableMod> murmurHashes = new HashMap<>();
+        if (skipHashVerification) {
+            LogManager.info("Export is using stored CurseForge metadata only; file hashes were not checked");
+        } else {
+            // for any mods not from CurseForge, scan for them on CurseForge
+            Map<Long, DisableableMod> murmurHashes = new HashMap<>();
 
-        this.launcher.mods.stream()
-            .filter(m -> !m.disabled && m.type != com.atlauncher.data.Type.worlds)
-            .forEach(dm -> {
-                try {
-                    long hash = Hashing.murmur(dm.getFile(this.ROOT, this.id).toPath());
-                    murmurHashes.put(hash, dm);
-                } catch (IOException e) {
-                    LogManager.logStackTrace(e);
-                }
-            });
+            this.launcher.mods.stream()
+                .filter(m -> !m.disabled && m.type != com.atlauncher.data.Type.worlds)
+                .forEach(dm -> {
+                    try {
+                        long hash = Hashing.murmur(dm.getFile(this.ROOT, this.id).toPath());
+                        murmurHashes.put(hash, dm);
+                    } catch (IOException e) {
+                        LogManager.logStackTrace(e);
+                    }
+                });
 
-        if (!murmurHashes.isEmpty()) {
-            CurseForgeFingerprint fingerprintResponse = CurseForgeApi
-                .checkFingerprints(murmurHashes.keySet().stream().toArray(Long[]::new));
+            if (!murmurHashes.isEmpty()) {
+                CurseForgeFingerprint fingerprintResponse = CurseForgeApi
+                    .checkFingerprints(murmurHashes.keySet().stream().toArray(Long[]::new));
 
-            if (fingerprintResponse != null && fingerprintResponse.exactMatches != null) {
-                int[] projectIdsFound = fingerprintResponse.exactMatches.stream().mapToInt(em -> em.id)
-                    .toArray();
+                if (fingerprintResponse != null && fingerprintResponse.exactMatches != null) {
+                    int[] projectIdsFound = fingerprintResponse.exactMatches.stream().mapToInt(em -> em.id)
+                        .toArray();
 
-                if (projectIdsFound.length != 0) {
-                    Map<Integer, CurseForgeProject> foundProjects = CurseForgeApi
-                        .getProjectsAsMap(projectIdsFound);
+                    if (projectIdsFound.length != 0) {
+                        Map<Integer, CurseForgeProject> foundProjects = CurseForgeApi
+                            .getProjectsAsMap(projectIdsFound);
 
-                    if (foundProjects != null) {
-                        fingerprintResponse.exactMatches.stream()
-                            .filter(em -> em != null && em.file != null
-                                && murmurHashes.containsKey(em.file.packageFingerprint))
-                            .forEach(foundMod -> {
-                                DisableableMod dm = murmurHashes
-                                    .get(foundMod.file.packageFingerprint);
+                        if (foundProjects != null) {
+                            fingerprintResponse.exactMatches.stream()
+                                .filter(em -> em != null && em.file != null
+                                    && murmurHashes.containsKey(em.file.packageFingerprint))
+                                .forEach(foundMod -> {
+                                    DisableableMod dm = murmurHashes
+                                        .get(foundMod.file.packageFingerprint);
 
-                                CurseForgeProject curseForgeProject = foundProjects
-                                    .get(foundMod.id);
+                                    CurseForgeProject curseForgeProject = foundProjects
+                                        .get(foundMod.id);
 
-                                if (curseForgeProject != null && curseForgeProject.status == 4) {
-                                    dm.curseForgeProjectId = foundMod.id;
-                                    dm.curseForgeFile = foundMod.file;
-                                    dm.curseForgeFileId = foundMod.file.id;
-                                    dm.curseForgeProject = curseForgeProject;
+                                    if (curseForgeProject != null && curseForgeProject.status == 4) {
+                                        dm.curseForgeProjectId = foundMod.id;
+                                        dm.curseForgeFile = foundMod.file;
+                                        dm.curseForgeFileId = foundMod.file.id;
+                                        dm.curseForgeProject = curseForgeProject;
 
-                                    LogManager.debug("Found matching mod from CurseForge called "
-                                        + dm.curseForgeFile.displayName);
-                                }
-                            });
+                                        LogManager.debug("Found matching mod from CurseForge called "
+                                            + dm.curseForgeFile.displayName);
+                                    }
+                                });
+                        }
                     }
                 }
             }
+            this.save();
         }
-        this.save();
 
         CurseForgeMinecraft minecraft = new CurseForgeMinecraft();
 
@@ -1821,40 +1839,49 @@ public class Instance extends MinecraftVersion implements ModManagement {
 
     public Pair<Path, String> exportAsModrinthZip(String name, String version, String author, String saveTo,
         List<String> overrides, boolean jointPackaging) {
+        return exportAsModrinthZip(name, version, author, saveTo, overrides, jointPackaging, false);
+    }
+
+    public Pair<Path, String> exportAsModrinthZip(String name, String version, String author, String saveTo,
+        List<String> overrides, boolean jointPackaging, boolean skipHashVerification) {
         String safePathName = name.replaceAll("[\\\"?:*<>|]", "");
         Path to = Paths.get(saveTo).resolve(String.format("%s %s.mrpack", safePathName, version));
         ModrinthModpackManifest manifest = new ModrinthModpackManifest();
 
-        // for any mods not from Modrinth, scan for them on Modrinth
-        List<DisableableMod> nonModrinthMods = this.launcher.mods.parallelStream()
-            .filter(m -> !m.disabled && !m.isFromModrinth() && m.getFile(this).exists())
-            .collect(Collectors.toList());
+        if (skipHashVerification) {
+            LogManager.info("Export is using stored Modrinth metadata only; file hashes were not checked");
+        } else {
+            // for any mods not from Modrinth, scan for them on Modrinth
+            List<DisableableMod> nonModrinthMods = this.launcher.mods.parallelStream()
+                .filter(m -> !m.disabled && !m.isFromModrinth() && m.getFile(this).exists())
+                .collect(Collectors.toList());
 
-        String[] sha1Hashes = nonModrinthMods.parallelStream()
-            .map(m -> Hashing.sha1(m.getFile(this).toPath()).toString()).toArray(String[]::new);
+            String[] sha1Hashes = nonModrinthMods.parallelStream()
+                .map(m -> Hashing.sha1(m.getFile(this).toPath()).toString()).toArray(String[]::new);
 
-        Map<String, ModrinthVersion> modrinthVersions = ModrinthApi.getVersionsFromSha1Hashes(sha1Hashes);
+            Map<String, ModrinthVersion> modrinthVersions = ModrinthApi.getVersionsFromSha1Hashes(sha1Hashes);
 
-        if (!modrinthVersions.isEmpty()) {
-            Map<String, ModrinthProject> modrinthProjects = ModrinthApi.getProjectsAsMap(
-                modrinthVersions.values().parallelStream().map(mv -> mv.projectId).toArray(String[]::new));
+            if (!modrinthVersions.isEmpty()) {
+                Map<String, ModrinthProject> modrinthProjects = ModrinthApi.getProjectsAsMap(
+                    modrinthVersions.values().parallelStream().map(mv -> mv.projectId).toArray(String[]::new));
 
-            nonModrinthMods.parallelStream().forEach(mod -> {
-                String hash = Hashing.sha1(mod.getFile(this).toPath()).toString();
+                nonModrinthMods.parallelStream().forEach(mod -> {
+                    String hash = Hashing.sha1(mod.getFile(this).toPath()).toString();
 
-                if (modrinthVersions.containsKey(hash)) {
-                    ModrinthVersion modrinthVersion = modrinthVersions.get(hash);
+                    if (modrinthVersions.containsKey(hash)) {
+                        ModrinthVersion modrinthVersion = modrinthVersions.get(hash);
 
-                    mod.modrinthVersion = modrinthVersion;
+                        mod.modrinthVersion = modrinthVersion;
 
-                    LogManager.debug("Found matching version from Modrinth called " + mod.modrinthVersion.name);
+                        LogManager.debug("Found matching version from Modrinth called " + mod.modrinthVersion.name);
 
-                    if (modrinthProjects.containsKey(modrinthVersions.get(hash).projectId)) {
-                        mod.modrinthProject = modrinthProjects.get(modrinthVersion.projectId);
+                        if (modrinthProjects.containsKey(modrinthVersions.get(hash).projectId)) {
+                            mod.modrinthProject = modrinthProjects.get(modrinthVersion.projectId);
+                        }
                     }
-                }
-            });
-            this.save();
+                });
+                this.save();
+            }
         }
 
         // when joint packaging, declare mods only available on CurseForge as external downloads
@@ -1878,9 +1905,7 @@ public class Instance extends MinecraftVersion implements ModManagement {
                     ModrinthModpackFile file = new ModrinthModpackFile();
                     file.path = this.ROOT.relativize(modPath).toString().replace("\\", "/");
 
-                    file.hashes = new HashMap<>();
-                    file.hashes.put("sha1", Hashing.sha1(modPath).toString());
-                    file.hashes.put("sha512", Hashing.sha512(modPath).toString());
+                    file.hashes = hashesForModpackFile(modPath, mod, skipHashVerification);
 
                     file.env = new HashMap<>();
                     file.env.put("client", "required");
@@ -1922,11 +1947,8 @@ public class Instance extends MinecraftVersion implements ModManagement {
                             ModrinthModpackFile file = new ModrinthModpackFile();
                             file.path = this.ROOT.relativize(modPath).toString().replace("\\", "/");
 
-                            String sha1Hash = Hashing.sha1(modPath).toString();
-
-                            file.hashes = new HashMap<>();
-                            file.hashes.put("sha1", sha1Hash);
-                            file.hashes.put("sha512", Hashing.sha512(modPath).toString());
+                            file.hashes = hashesForModpackFile(modPath, mod, skipHashVerification);
+                            String sha1Hash = file.hashes.get("sha1");
 
                             file.env = new HashMap<>();
                             // mods are always required on the client ALWAYS ALWAYS ALWAYS (for now)
@@ -1949,8 +1971,11 @@ public class Instance extends MinecraftVersion implements ModManagement {
                                 file.downloads.add(mod.curseForgeFile.downloadUrl);
                             }
 
-                            file.downloads.add(HttpUrl.get(mod.modrinthVersion.getFileBySha1(sha1Hash).url)
-                                .toString());
+                            String downloadUrl = modrinthDownloadUrl(mod, sha1Hash, skipHashVerification);
+
+                            if (downloadUrl != null) {
+                                file.downloads.add(HttpUrl.get(downloadUrl).toString());
+                            }
 
                             return file;
                         })
@@ -2050,6 +2075,62 @@ public class Instance extends MinecraftVersion implements ModManagement {
         FileUtils.deleteDirectory(tempDir);
 
         return new Pair<>(to, overridesForPermissions.toString());
+    }
+
+    /**
+     * Hashes for a Modrinth index entry. When hash verification is skipped, stored
+     * platform metadata is used first so a file that no longer matches its original
+     * fingerprint can still be exported.
+     */
+    private Map<String, String> hashesForModpackFile(Path modPath, DisableableMod mod, boolean skipHashVerification) {
+        Map<String, String> hashes = new HashMap<>();
+
+        if (skipHashVerification) {
+            if (mod.modrinthVersion != null && mod.modrinthVersion.files != null
+                && !mod.modrinthVersion.files.isEmpty()) {
+                ModrinthFile source = mod.modrinthVersion.getPrimaryFile();
+
+                if (source != null && source.hashes != null) {
+                    if (source.hashes.get("sha1") != null) {
+                        hashes.put("sha1", source.hashes.get("sha1"));
+                    }
+
+                    if (source.hashes.get("sha512") != null) {
+                        hashes.put("sha512", source.hashes.get("sha512"));
+                    }
+                }
+            }
+
+            if (mod.curseForgeFile != null && mod.curseForgeFile.hashes != null) {
+                for (CurseForgeFileHash hash : mod.curseForgeFile.hashes) {
+                    if (hash.isSha1() && !hashes.containsKey("sha1") && hash.value != null) {
+                        hashes.put("sha1", hash.value);
+                    }
+                }
+            }
+        }
+
+        if (!hashes.containsKey("sha1")) {
+            hashes.put("sha1", Hashing.sha1(modPath).toString());
+        }
+
+        if (!hashes.containsKey("sha512")) {
+            hashes.put("sha512", Hashing.sha512(modPath).toString());
+        }
+
+        return hashes;
+    }
+
+    private String modrinthDownloadUrl(DisableableMod mod, String sha1Hash, boolean skipHashVerification) {
+        if (mod.modrinthVersion == null) {
+            return null;
+        }
+
+        ModrinthFile source = skipHashVerification
+            ? mod.modrinthVersion.getPrimaryFile()
+            : mod.modrinthVersion.getFileBySha1(sha1Hash);
+
+        return source != null ? source.url : null;
     }
 
     public boolean rename(String newName) {

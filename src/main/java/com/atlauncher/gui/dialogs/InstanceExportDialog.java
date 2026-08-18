@@ -214,6 +214,27 @@ public class InstanceExportDialog extends JDialog {
         format.addActionListener(e -> updateJointPackagingState.run());
         updateJointPackagingState.run();
 
+        // Hash verification
+        gbc.gridx = 0;
+        gbc.gridy++;
+        gbc.insets = UIConstants.LABEL_INSETS;
+        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
+
+        JLabelWithHover skipHashLabel = new JLabelWithHover(GetText.tr("Hash Verification") + ":", HELP_ICON,
+            GetText.tr(
+                "By default, export fingerprints every file against CurseForge and Modrinth so mods without stored IDs can still be listed. Skip that lookup to export using only the project and file metadata already on the instance. Use this when files have been changed or hash lookup fails."));
+        topPanel.add(skipHashLabel, gbc);
+
+        gbc.gridx++;
+        gbc.insets = UIConstants.LABEL_INSETS;
+        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
+        final MD3Checkbox skipHashVerification = new MD3Checkbox(GetText.tr("Skip hash check, use metadata only"));
+        boolean skipHashDefault = instance.launcher.lastExportSkipHashVerification != null
+            ? instance.launcher.lastExportSkipHashVerification
+            : App.settings.skipExportHashVerification;
+        skipHashVerification.setSelected(skipHashDefault);
+        topPanel.add(skipHashVerification, gbc);
+
         // Export File
         gbc.gridx = 0;
         gbc.gridy++;
@@ -346,13 +367,15 @@ public class InstanceExportDialog extends JDialog {
 
                 Pair<Path, String> exportResult = instance.export(name.getText(), version.getText(),
                     author.getText(),
-                    exportFormat, saveTo.getText(), overrides, jointPackaging.isSelected());
+                    exportFormat, saveTo.getText(), overrides, jointPackaging.isSelected(),
+                    skipHashVerification.isSelected());
 
                 if (exportResult.left() != null) {
                     instance.launcher.lastExportName = name.getText();
                     instance.launcher.lastExportVersion = version.getText();
                     instance.launcher.lastExportAuthor = author.getText();
                     instance.launcher.lastExportSaveTo = saveTo.getText();
+                    instance.launcher.lastExportSkipHashVerification = skipHashVerification.isSelected();
                     instance.save();
 
                     if ((exportFormat == InstanceExportFormat.MODRINTH

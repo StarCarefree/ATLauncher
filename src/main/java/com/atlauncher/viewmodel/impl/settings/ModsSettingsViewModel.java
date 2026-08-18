@@ -46,7 +46,8 @@ public class ModsSettingsViewModel implements SettingsListener {
             _doNotCheckModsOnCurseForge = BehaviorSubject.create(),
             _doNotCheckModsOnModrinth = BehaviorSubject.create(),
             allowCurseForgeAlphaBetaFiles = BehaviorSubject.create(),
-            scanModsOnLaunch = BehaviorSubject.create();
+            scanModsOnLaunch = BehaviorSubject.create(),
+            _skipExportHashVerification = BehaviorSubject.create();
 
     public ModsSettingsViewModel() {
         onSettingsSaved();
@@ -65,6 +66,7 @@ public class ModsSettingsViewModel implements SettingsListener {
         _doNotCheckModsOnCurseForge.onNext(App.settings.dontCheckModsOnCurseForge);
         _doNotCheckModsOnModrinth.onNext(App.settings.dontCheckModsOnModrinth);
         allowCurseForgeAlphaBetaFiles.onNext(App.settings.allowCurseForgeAlphaBetaFiles);
+        _skipExportHashVerification.onNext(App.settings.skipExportHashVerification);
     }
 
     public Observable<Integer> getDefaultModPlatform() {
@@ -127,6 +129,15 @@ public class ModsSettingsViewModel implements SettingsListener {
 
     public void setDefaultExportFormat(InstanceExportFormat exportFormat) {
         App.settings.defaultExportFormat = exportFormat;
+        SettingsManager.post();
+    }
+
+    public Observable<Boolean> getSkipExportHashVerification() {
+        return _skipExportHashVerification.observeOn(SwingSchedulers.edt());
+    }
+
+    public void setSkipExportHashVerification(boolean skip) {
+        App.settings.skipExportHashVerification = skip;
         SettingsManager.post();
     }
 

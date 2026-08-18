@@ -180,9 +180,9 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
     private static final class Cover extends JLabel {
         Cover(String url) {
             setHorizontalAlignment(SwingConstants.CENTER);
-            setVisible(url == null);
+            setVisible(url == null || url.isEmpty());
 
-            if (url != null) {
+            if (url != null && !url.isEmpty()) {
                 new BackgroundImageWorker(this, url, UIScale.scale(MAX_CARD_WIDTH),
                         UIScale.scale(coverHeight(MAX_CARD_WIDTH))).execute();
             }

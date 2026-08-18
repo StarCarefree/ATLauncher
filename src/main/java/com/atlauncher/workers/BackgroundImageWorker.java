@@ -20,6 +20,7 @@ package com.atlauncher.workers;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.ExecutionException;
@@ -30,6 +31,7 @@ import javax.swing.JLabel;
 import javax.swing.SwingWorker;
 
 import com.atlauncher.FileSystem;
+import com.atlauncher.managers.LogManager;
 import com.atlauncher.network.Download;
 import com.atlauncher.network.DownloadException;
 
@@ -48,54 +50,98 @@ public class BackgroundImageWorker extends SwingWorker<ImageIcon, Object> {
 
     @Override
     protected ImageIcon doInBackground() throws Exception {
-        Path path = FileSystem.REMOTE_IMAGE_CACHE.resolve(this.url.replaceAll("[^A-Za-z0-9]", ""));
+        Path path = cacheFile(this.url);
 
-        Download download = Download.build().setUrl(this.url).ignoreFailures().downloadTo(path);
+        // an empty or punctuation-only URL used to resolve to the cache folder itself.
+        // Windows then throws AccessDeniedException when that directory is opened as a file
+        if (path == null) {
+            return null;
+        }
 
-        if (!Files.exists(path)) {
+        if (!Files.isRegularFile(path)) {
             try {
-                download.downloadFile();
+                Download.build().setUrl(this.url).ignoreFailures().downloadTo(path).downloadFile();
             } catch (DownloadException ignored) {
                 // ignored
             }
         }
 
-        if (Files.exists(path)) {
-            try (BufferedInputStream inputStream = new BufferedInputStream(Files.newInputStream(path))) {
-                BufferedImage sourceImage = ImageIO.read(inputStream);
-                if (sourceImage != null) {
-                    int newWidth = width;
-                    int newHeight = height;
-
-                    // Compute scales to maintain the aspect ratio
-                    if (sourceImage.getWidth() > sourceImage.getHeight()) {
-                        newHeight = (sourceImage.getHeight() * width) / sourceImage.getWidth();
-                    } else {
-                        newWidth = (sourceImage.getWidth() * height) / sourceImage.getHeight();
-                    }
-
-                    BufferedImage scaledImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
-                    Graphics2D g2d = scaledImage.createGraphics();
-                    g2d.drawImage(sourceImage, 0, 0, newWidth, newHeight, null);
-                    g2d.dispose();
-                    sourceImage.flush(); // Immediately discard large source image buffer
-                    return new ImageIcon(scaledImage);
-                }
-            }
+        if (!Files.isRegularFile(path)) {
+            return null;
         }
 
-        return null;
+        try (BufferedInputStream inputStream = new BufferedInputStream(Files.newInputStream(path))) {
+            BufferedImage sourceImage = ImageIO.read(inputStream);
+
+            if (sourceImage == null) {
+                return null;
+            }
+
+            int newWidth = width;
+            int newHeight = height;
+
+            // Compute scales to maintain the aspect ratio
+            if (sourceImage.getWidth() > sourceImage.getHeight()) {
+                newHeight = (sourceImage.getHeight() * width) / sourceImage.getWidth();
+            } else {
+                newWidth = (sourceImage.getWidth() * height) / sourceImage.getHeight();
+            }
+
+            BufferedImage scaledImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g2d = scaledImage.createGraphics();
+            g2d.drawImage(sourceImage, 0, 0, newWidth, newHeight, null);
+            g2d.dispose();
+            sourceImage.flush();
+
+            return new ImageIcon(scaledImage);
+        } catch (IOException e) {
+            LogManager.debug("Failed to read cached image " + path);
+
+            return null;
+        }
+    }
+
+    /**
+     * @return a file inside the image cache, or null when the URL would land on the cache
+     *         directory itself
+     */
+    static Path cacheFile(String url) {
+        if (url == null) {
+            return null;
+        }
+
+        String key = url.replaceAll("[^A-Za-z0-9]", "");
+
+        if (key.isEmpty()) {
+            return null;
+        }
+
+        if (key.length() > 120) {
+            key = key.substring(0, 88) + Integer.toHexString(url.hashCode());
+        }
+
+        Path path = FileSystem.REMOTE_IMAGE_CACHE.resolve(key);
+
+        if (Files.isDirectory(path)) {
+            return null;
+        }
+
+        return path;
     }
 
     @Override
     protected void done() {
         try {
             ImageIcon icon = get();
+
             if (icon != null) {
                 label.setIcon(icon);
             }
-        } catch (InterruptedException | ExecutionException e) {
-            e.printStackTrace();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            LogManager.logStackTrace("Failed to load remote image", cause, false);
         } finally {
             label.setVisible(true);
         }

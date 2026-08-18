@@ -1624,6 +1624,21 @@ msgstr "包含仅单平台发布的模组"
 msgid "Also include mods that are only published on the other platform. For Modrinth exports they are added as external download entries, for CurseForge exports they are kept in overrides and listed in modlist.html. You may need distribution permission from the mod authors to publish the exported pack."
 msgstr "同时包含仅在另一平台发布的模组。导出为 Modrinth 时会作为外部下载项加入；导出为 CurseForge 时会放入 overrides，并写入 modlist.html。公开发布导出的整合包前，你可能需要获得模组作者的分发许可。"
 
+msgid "Hash Verification"
+msgstr "Hash 校验"
+
+msgid "Skip hash check, use metadata only"
+msgstr "不校验 Hash，仅用元数据导出"
+
+msgid "By default, export fingerprints every file against CurseForge and Modrinth so mods without stored IDs can still be listed. Skip that lookup to export using only the project and file metadata already on the instance. Use this when files have been changed or hash lookup fails."
+msgstr "默认会用文件指纹向 CurseForge 和 Modrinth 查询，以便没有保存 ID 的模组也能列入清单。跳过查询则只使用实例里已有的项目与文件元数据。文件被改过或指纹查询失败时用这项。"
+
+msgid "Skip Hash Verification When Exporting?"
+msgstr "导出时跳过 Hash 校验？"
+
+msgid "When exporting, do not fingerprint files against CurseForge or Modrinth. Only the project and file metadata already on the instance is used. Can also be changed at time of export."
+msgstr "导出时不通过文件指纹向 CurseForge 或 Modrinth 查询，只使用实例里已保存的项目与文件元数据。导出时也可以再改。"
+
 msgid "Exported Instance Successfully"
 msgstr "实例导出成功"
 
