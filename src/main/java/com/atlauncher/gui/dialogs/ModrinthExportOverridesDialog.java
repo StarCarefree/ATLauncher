@@ -32,6 +32,7 @@ import javax.swing.JPanel;
 
 import org.mini2Dx.gettext.GetText;
 
+import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.container.MD3ListContainer;
@@ -72,15 +73,16 @@ public class ModrinthExportOverridesDialog extends JDialog {
         String supporting = GetText.tr(
                 "Your exported instance contains mods not on Modrinth and were included in the overrides folder. If you're uploading this to Modrinth, you will need to make sure you have permissions to distribute the below mods, else your modpack will get denied on Modrinth.");
 
-        JLabel headline = new JLabel(GetText.tr("Overrides included"));
-        headline.setFont(MD3Type.font(MD3Type.TITLE_LARGE));
+        JLabel headline = new JLabel(GetText.tr("Overrides Included"));
+        headline.setFont(MD3Type.font(MD3Type.TITLE_LARGE, headline.getText()));
         headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
         headline.setForeground(MD3Color.onSurface());
 
-        JLabel body = new JLabel("<html><body style='width:480px'>" + supporting + "</body></html>");
-        body.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
+        JLabel body = new JLabel();
+        body.setFont(MD3Type.font(MD3Type.BODY_MEDIUM, supporting));
         body.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
         body.setForeground(MD3Color.onSurfaceVariant());
+        body.setText(MD3Text.wrapToLines(body.getFontMetrics(body.getFont()), supporting, UIScale.scale(480), 8));
 
         JPanel header = new JPanel();
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));

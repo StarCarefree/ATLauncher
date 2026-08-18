@@ -20,6 +20,7 @@ package com.atlauncher.gui.dialogs;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.FontMetrics;
 import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -44,6 +45,8 @@ import com.atlauncher.App;
 import com.atlauncher.data.Instance;
 import com.atlauncher.data.InstanceExportFormat;
 import com.atlauncher.data.MicrosoftAccount;
+import com.atlauncher.gui.md3.MD3FittingLabel;
+import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.gui.md3.container.MD3Divider;
@@ -79,6 +82,8 @@ public class InstanceExportDialog extends JDialog {
     private static final int HEIGHT = 640;
     private static final int FORM_WIDTH = 420;
     private static final int FIELD_COLUMNS = 16;
+    /** How many lines of help a row may show before the rest lives in the tooltip. */
+    private static final int SUPPORTING_LINES = 2;
 
     private final Instance instance;
     private final List<String> overrides = new ArrayList<>();
@@ -153,7 +158,7 @@ public class InstanceExportDialog extends JDialog {
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
-        top.setBorder(MD3Spacing.border(MD3Spacing.XL, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+        top.setBorder(MD3Spacing.border(MD3Spacing.L, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
         top.add(headline, BorderLayout.CENTER);
 
         return top;
@@ -179,6 +184,9 @@ public class InstanceExportDialog extends JDialog {
         form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
         form.setOpaque(false);
         form.setBorder(MD3Spacing.border(0, 0, MD3Spacing.L, MD3Spacing.S));
+        // the scroll pane is FORM_WIDTH; without this a long path or a row of three fields
+        // grows the form and the viewport clips the switches and Browse
+        form.setMaximumSize(new Dimension(UIScale.scale(FORM_WIDTH), Integer.MAX_VALUE));
 
         name = field(Optional.ofNullable(instance.launcher.lastExportName).orElse(instance.launcher.name));
         version = field(Optional.ofNullable(instance.launcher.lastExportVersion).orElse(instance.launcher.version));
@@ -187,9 +195,7 @@ public class InstanceExportDialog extends JDialog {
                 .orElse(selectedAccount == null ? "" : selectedAccount.minecraftUsername));
 
         form.add(sectionHeading(GetText.tr("Pack")));
-        form.add(sectionCard(stackedField(GetText.tr("Name"), GetText.tr("The name of the instance"), name),
-                stackedField(GetText.tr("Version"), GetText.tr("The version of this instance"), version),
-                stackedField(GetText.tr("Author"), GetText.tr("Your name"), author)));
+        form.add(sectionCard(identityRow(name, version, author)));
 
         format = new MD3ComboBox<>();
         format.addItem(new ComboItem<>(InstanceExportFormat.CURSEFORGE, "CurseForge"));
@@ -200,8 +206,13 @@ public class InstanceExportDialog extends JDialog {
         stretch(format);
 
         jointPackaging = new MD3Switch();
-        jointPackagingRow = switchRow(GetText.tr("Joint packaging"), GetText.tr(
-                "Also include mods that are only published on the other platform. For Modrinth exports they are added as external download entries, for CurseForge exports they are kept in overrides and listed in modlist.html. You may need distribution permission from the mod authors to publish the exported pack."),
+        // these titles have to be the msgids the po file already holds. The first rewrite
+        // shortened them, gettext answered with the English, and a Chinese session showed a
+        // half-translated form
+        jointPackagingRow = switchRow(GetText.tr("Joint Packaging"),
+                GetText.tr("Include single-platform mods"),
+                GetText.tr(
+                        "Also include mods that are only published on the other platform. For Modrinth exports they are added as external download entries, for CurseForge exports they are kept in overrides and listed in modlist.html. You may need distribution permission from the mod authors to publish the exported pack."),
                 jointPackaging);
         skipHashVerification = new MD3Switch();
         boolean skipHashDefault = instance.launcher.lastExportSkipHashVerification != null
@@ -209,12 +220,13 @@ public class InstanceExportDialog extends JDialog {
                 : App.settings != null && App.settings.skipExportHashVerification;
         skipHashVerification.setSelected(skipHashDefault);
 
+        format.setToolTipText(GetText.tr("Which format to export this instance as"));
+
         form.add(sectionHeading(GetText.tr("Format")));
-        form.add(sectionCard(stackedField(GetText.tr("Format"),
-                GetText.tr("Which format to export this instance as"), format),
-                jointPackagingRow,
-                switchRow(GetText.tr("Skip hash check"), GetText.tr(
-                        "By default, export fingerprints every file against CurseForge and Modrinth so mods without stored IDs can still be listed. Skip that lookup to export using only the project and file metadata already on the instance. Use this when files have been changed or hash lookup fails."),
+        form.add(sectionCard(format, jointPackagingRow,
+                switchRow(GetText.tr("Skip hash check, use metadata only"), null,
+                        GetText.tr(
+                                "By default, export fingerprints every file against CurseForge and Modrinth so mods without stored IDs can still be listed. Skip that lookup to export using only the project and file metadata already on the instance. Use this when files have been changed or hash lookup fails."),
                         skipHashVerification)));
 
         format.addActionListener(e -> updateJointPackagingState());
@@ -230,10 +242,10 @@ public class InstanceExportDialog extends JDialog {
         MD3Button resetButton = MD3Button.text(GetText.tr("Reset"));
         resetButton.addActionListener(e -> saveTo.setText(instance.getRoot().toAbsolutePath().toString()));
 
+        saveTo.setToolTipText(GetText.tr("Select the folder you wish to export the instance to"));
+
         form.add(sectionHeading(GetText.tr("Destination")));
-        form.add(sectionCard(stackedField(GetText.tr("Save to"),
-                GetText.tr("Select the folder you wish to export the instance to"),
-                destinationControls(saveTo, browseButton, resetButton))));
+        form.add(sectionCard(destinationControls(saveTo, browseButton, resetButton)));
 
         return form;
     }
@@ -252,7 +264,7 @@ public class InstanceExportDialog extends JDialog {
         label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
         label.setForeground(MD3Color.onSurfaceVariant());
         label.setAlignmentX(LEFT_ALIGNMENT);
-        label.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.XS, MD3Spacing.S, MD3Spacing.XS));
+        label.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.XS, MD3Spacing.XS, MD3Spacing.XS));
 
         return label;
     }
@@ -261,11 +273,11 @@ public class InstanceExportDialog extends JDialog {
         MD3Card card = new MD3Card(MD3Card.Variant.FILLED);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setAlignmentX(LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        card.setMaximumSize(new Dimension(UIScale.scale(FORM_WIDTH), Integer.MAX_VALUE));
 
         for (int i = 0; i < rows.length; i++) {
             if (i > 0) {
-                card.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.M)));
+                card.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
             }
 
             card.add(rows[i]);
@@ -274,7 +286,42 @@ public class InstanceExportDialog extends JDialog {
         return card;
     }
 
-    private static JPanel stackedField(String title, String help, JComponent control) {
+    /**
+     * Name on its own row, version and author sharing the next. Three fields in a 420dp column
+     * clipped the author and everything to the right of it - the switches, Browse, Reset.
+     */
+    private static JPanel identityRow(MD3TextField name, MD3TextField version, MD3TextField author) {
+        JPanel column = new JPanel();
+        column.setOpaque(false);
+        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
+        column.setAlignmentX(LEFT_ALIGNMENT);
+
+        JPanel nameBlock = stackedField(GetText.tr("Name"), GetText.tr("The name of the instance"), name, false);
+        JPanel versionBlock = stackedField(GetText.tr("Version"), GetText.tr("The version of this instance"), version,
+                false);
+        JPanel authorBlock = stackedField(GetText.tr("Author"), GetText.tr("Your name"), author, false);
+        stretch(nameBlock);
+        stretch(versionBlock);
+        stretch(authorBlock);
+
+        JPanel second = new JPanel();
+        second.setOpaque(false);
+        second.setLayout(new BoxLayout(second, BoxLayout.X_AXIS));
+        second.setAlignmentX(LEFT_ALIGNMENT);
+        second.add(versionBlock);
+        second.add(Box.createHorizontalStrut(UIScale.scale(MD3Spacing.S)));
+        second.add(authorBlock);
+        stretch(second);
+
+        column.add(nameBlock);
+        column.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
+        column.add(second);
+        stretch(column);
+
+        return column;
+    }
+
+    private static JPanel stackedField(String title, String help, JComponent control, boolean showHelp) {
         JPanel block = new JPanel();
         block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
         block.setOpaque(false);
@@ -288,15 +335,9 @@ public class InstanceExportDialog extends JDialog {
         headline.setToolTipText(help);
         block.add(headline);
 
-        if (help != null && help.length() < 80) {
-            JLabel supporting = new JLabel(help);
-            supporting.setFont(MD3Type.font(MD3Type.BODY_SMALL));
-            supporting.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
-            supporting.setForeground(MD3Color.onSurfaceVariant());
-            supporting.setAlignmentX(LEFT_ALIGNMENT);
-            supporting.setToolTipText(help);
+        if (showHelp && help != null && !help.isEmpty()) {
             block.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.XS)));
-            block.add(supporting);
+            block.add(supportingLabel(help, UIScale.scale(FORM_WIDTH - MD3Spacing.XL * 2)));
         }
 
         block.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
@@ -307,12 +348,20 @@ public class InstanceExportDialog extends JDialog {
         return block;
     }
 
-    private JPanel switchRow(String title, String help, MD3Switch toggle) {
-        JLabel headline = new JLabel(title);
+    /**
+     * @param summary one line under the title, already a gettext msgid of its own. Null when the
+     *                title is the whole story
+     * @param help    the long explanation; always the tooltip, never a third line on the row
+     */
+    private JPanel switchRow(String title, String summary, String help, MD3Switch toggle) {
+        int textWidth = UIScale.scale(FORM_WIDTH - MD3Spacing.XL * 3);
+
+        MD3FittingLabel headline = new MD3FittingLabel(title, 2);
         headline.setFont(MD3Type.font(MD3Type.BODY_LARGE, title));
         headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_LARGE);
         headline.setForeground(MD3Color.onSurface());
         headline.setToolTipText(help);
+        headline.fitTo(textWidth);
 
         JPanel text = new JPanel();
         text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
@@ -320,13 +369,9 @@ public class InstanceExportDialog extends JDialog {
         headline.setAlignmentX(LEFT_ALIGNMENT);
         text.add(headline);
 
-        if (help != null && help.length() < 80) {
-            JLabel supporting = new JLabel(help);
-            supporting.setFont(MD3Type.font(MD3Type.BODY_SMALL));
-            supporting.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
-            supporting.setForeground(MD3Color.onSurfaceVariant());
+        if (summary != null && !summary.isEmpty()) {
+            JLabel supporting = supportingLabel(summary, textWidth);
             supporting.setToolTipText(help);
-            supporting.setAlignmentX(LEFT_ALIGNMENT);
             text.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.XS)));
             text.add(supporting);
         }
@@ -338,6 +383,25 @@ public class InstanceExportDialog extends JDialog {
         row.add(toggle, BorderLayout.EAST);
 
         return row;
+    }
+
+    /**
+     * Wraps in both scripts. Splitting on spaces used to take a Chinese sentence for one word and
+     * then hide it behind the 80-character cutoff the first layout used.
+     */
+    private static JLabel supportingLabel(String help, int width) {
+        JLabel supporting = new JLabel();
+        supporting.setOpaque(false);
+        supporting.setFont(MD3Type.font(MD3Type.BODY_SMALL, help));
+        supporting.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
+        supporting.setForeground(MD3Color.onSurfaceVariant());
+        supporting.setAlignmentX(LEFT_ALIGNMENT);
+        supporting.setToolTipText(help);
+
+        FontMetrics metrics = supporting.getFontMetrics(supporting.getFont());
+        supporting.setText(MD3Text.wrapToLines(metrics, help, width, SUPPORTING_LINES));
+
+        return supporting;
     }
 
     private static void stretch(JComponent component) {
@@ -389,14 +453,20 @@ public class InstanceExportDialog extends JDialog {
     }
 
     private static JPanel destinationControls(MD3TextField saveTo, MD3Button browse, MD3Button reset) {
+        // a long path must not set the row's preferred width, or Browse and Reset are clipped
+        Dimension fieldPref = saveTo.getPreferredSize();
+        saveTo.setPreferredSize(new Dimension(UIScale.scale(80), fieldPref.height));
+
         JPanel row = new JPanel();
         row.setOpaque(false);
         row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        row.setAlignmentX(LEFT_ALIGNMENT);
         row.add(saveTo);
         row.add(Box.createHorizontalStrut(UIScale.scale(MD3Spacing.S)));
         row.add(browse);
         row.add(Box.createHorizontalStrut(UIScale.scale(MD3Spacing.XS)));
         row.add(reset);
+        stretch(row);
 
         return row;
     }
@@ -409,15 +479,13 @@ public class InstanceExportDialog extends JDialog {
         JPanel column = new JPanel(new BorderLayout());
         column.setOpaque(false);
 
-        JLabel heading = new JLabel(GetText.tr("Folders to export"));
+        JLabel heading = new JLabel(GetText.tr("Folders To Export"));
         heading.setFont(MD3Type.font(MD3Type.TITLE_SMALL, heading.getText()));
         heading.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
         heading.setForeground(MD3Color.onSurfaceVariant());
 
-        JLabel supporting = new JLabel(GetText.tr("Select the folders you wish to include for this export"));
-        supporting.setFont(MD3Type.font(MD3Type.BODY_SMALL));
-        supporting.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
-        supporting.setForeground(MD3Color.onSurfaceVariant());
+        String foldersHelp = GetText.tr("Select the folders you wish to include for this export");
+        JLabel supporting = supportingLabel(foldersHelp, UIScale.scale(400));
 
         JPanel header = new JPanel();
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
@@ -433,10 +501,10 @@ public class InstanceExportDialog extends JDialog {
         selection.setOpaque(false);
         selection.setAlignmentX(LEFT_ALIGNMENT);
 
-        MD3Button selectAll = MD3Button.text(GetText.tr("Select all"));
+        MD3Button selectAll = MD3Button.text(GetText.tr("Select All"));
         selectAll.addActionListener(e -> setAllFolders(true));
 
-        MD3Button selectNone = MD3Button.text(GetText.tr("Select none"));
+        MD3Button selectNone = MD3Button.text(GetText.tr("Select None"));
         selectNone.addActionListener(e -> setAllFolders(false));
 
         selection.add(selectAll);
@@ -472,7 +540,7 @@ public class InstanceExportDialog extends JDialog {
 
         if (folderBoxes.isEmpty()) {
             JLabel empty = new JLabel(GetText.tr("No extra folders found in this instance."));
-            empty.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
+            empty.setFont(MD3Type.font(MD3Type.BODY_MEDIUM, empty.getText()));
             empty.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
             empty.setForeground(MD3Color.onSurfaceVariant());
             empty.setAlignmentX(LEFT_ALIGNMENT);

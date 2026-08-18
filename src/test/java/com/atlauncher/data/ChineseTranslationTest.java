@@ -98,6 +98,25 @@ public class ChineseTranslationTest {
     }
 
     @Test
+    public void exportLabelsMatchThePoFile() {
+        assertEquals("导出", GetText.tr(ZH_CN, "Export"));
+        assertEquals("导出 All the Mods 9", GetText.tr(ZH_CN, "Export {0}", "All the Mods 9"));
+        assertEquals("联合打包", GetText.tr(ZH_CN, "Joint Packaging"));
+        assertEquals("包含仅单平台发布的模组", GetText.tr(ZH_CN, "Include single-platform mods"));
+        assertEquals("不校验 Hash，仅用元数据导出", GetText.tr(ZH_CN, "Skip hash check, use metadata only"));
+        assertEquals("要导出的文件夹", GetText.tr(ZH_CN, "Folders To Export"));
+        assertEquals("保存到", GetText.tr(ZH_CN, "Save To"));
+        assertEquals("整合包", GetText.tr(ZH_CN, "Pack"));
+        assertEquals("导出位置", GetText.tr(ZH_CN, "Destination"));
+        assertEquals("全选", GetText.tr(ZH_CN, "Select All"));
+        assertEquals("全不选", GetText.tr(ZH_CN, "Select None"));
+        assertEquals("包含的覆盖文件", GetText.tr(ZH_CN, "Overrides Included"));
+        assertEquals("导入实例", GetText.tr(ZH_CN, "Import Instance"));
+        assertEquals("导入", GetText.tr(ZH_CN, "Import"));
+        assertEquals("整合包导出（.zip、.mrpack）", GetText.tr(ZH_CN, "Modpack Export (.zip, .mrpack)"));
+    }
+
+    @Test
     public void anythingNotTranslatedYetFallsBackToEnglish() {
         String untranslated = "Reinstalling Mods";
 

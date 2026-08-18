@@ -1615,6 +1615,18 @@ msgstr "导出失败"
 msgid "Export {0}"
 msgstr "导出 {0}"
 
+msgid "Pack"
+msgstr "整合包"
+
+msgid "Destination"
+msgstr "导出位置"
+
+msgid "Select None"
+msgstr "全不选"
+
+msgid "No extra folders found in this instance."
+msgstr "此实例中没有可导出的额外文件夹。"
+
 msgid "Joint Packaging"
 msgstr "联合打包"
 
@@ -1751,6 +1763,9 @@ msgstr "忽略此更新"
 
 msgid "Import Instance"
 msgstr "导入实例"
+
+msgid "Modpack Export (.zip, .mrpack)"
+msgstr "整合包导出（.zip、.mrpack）"
 
 #. {0} is the folder the files must be saved to for the launcher to find them
 msgid "In order to continue downloading this modpack, you must manually download the following mods.<br/>Simply click the Open button to open them in your browser, or alternatively you can copy the url to your clipboard to open in another browser.<br/><br/>Please download all files to <b>{0}</b> in order for the launcher to detect them."
