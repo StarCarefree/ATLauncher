@@ -577,6 +577,11 @@ public final class MD3Gallery {
         captioned.setPreferredSize(new Dimension(180, captioned.getPreferredSize().height));
         linear.add(captioned);
 
+        MD3LinearProgress waiting = new MD3LinearProgress();
+        waiting.setIndeterminate(true);
+        waiting.setPreferredSize(new Dimension(160, waiting.getPreferredSize().height));
+        linear.add(waiting);
+
         JPanel circular = flow();
         circular.add(tag("CIRCULAR"));
 
@@ -585,6 +590,9 @@ public final class MD3Gallery {
             ring.setValue(value);
             circular.add(ring);
         }
+
+        circular.add(MD3CircularProgress.indeterminate());
+        circular.add(MD3CircularProgress.inline());
 
         panel.add(linear);
         panel.add(circular);

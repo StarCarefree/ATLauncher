@@ -23,15 +23,17 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
+import java.awt.geom.RoundRectangle2D;
 
 import javax.swing.JComponent;
 import javax.swing.JProgressBar;
+import javax.swing.Timer;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicProgressBarUI;
 
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
-import com.atlauncher.themes.md3.token.MD3Shape;
+import com.atlauncher.themes.md3.token.MD3Motion;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
 import com.formdev.flatlaf.util.UIScale;
@@ -40,21 +42,20 @@ import com.formdev.flatlaf.util.UIScale;
  * Paints {@link MD3LinearProgress}.
  *
  * <p>
- * The Material 3 shape: a 4dp rounded track, a rounded active indicator, a gap between the two, and
- * a stop dot at the far end. The gap and the dot are what make a nearly-full bar readable - without
- * them the indicator merges into the track and "98%" looks identical to "done".
- *
- * <p>
- * A 4dp bar has no room for a caption, so a bar with {@code stringPainted} set grows to make space
- * above itself rather than trying to print inside the track.
+ * Determinate is Material's current anatomy: a rounded active indicator, a gap, the remaining
+ * track, and a stop at the trailing end so a bar at 98% cannot be mistaken for one that has
+ * finished. Indeterminate is the two-segment disjoint travel Material ships, driven by elapsed
+ * time rather than by Swing's frame counter.
  */
 public class MD3LinearProgressUI extends BasicProgressBarUI {
     private static final int TRACK_HEIGHT = MD3Spacing.PROGRESS_TRACK_HEIGHT;
     private static final int GAP = MD3Spacing.XS;
     private static final int STOP_DIAMETER = MD3Spacing.XS;
+    private static final int FRAME_MS = 1000 / 60;
 
-    /** Fraction of the track the travelling segment covers while indeterminate. */
-    private static final float SWEEP_WIDTH = 0.35f;
+    private Timer timer;
+    private long startedAtNanos;
+    private final float[] segments = new float[4];
 
     public static ComponentUI createUI(JComponent c) {
         return new MD3LinearProgressUI();
@@ -69,6 +70,53 @@ public class MD3LinearProgressUI extends BasicProgressBarUI {
         progressBar.setBorder(null);
         progressBar.setFont(MD3Type.font(MD3Type.BODY_SMALL));
         progressBar.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
+    }
+
+    @Override
+    public void uninstallUI(JComponent c) {
+        stopAnimationTimer();
+        super.uninstallUI(c);
+    }
+
+    @Override
+    protected void startAnimationTimer() {
+        if (MD3Motion.isReduced()) {
+            if (progressBar != null) {
+                progressBar.repaint();
+            }
+
+            return;
+        }
+
+        startedAtNanos = System.nanoTime();
+
+        if (timer == null) {
+            timer = new Timer(FRAME_MS, e -> {
+                if (progressBar != null) {
+                    progressBar.repaint();
+                }
+            });
+            timer.setRepeats(true);
+        }
+
+        if (!timer.isRunning()) {
+            timer.start();
+        }
+    }
+
+    @Override
+    protected void stopAnimationTimer() {
+        if (timer != null) {
+            timer.stop();
+        }
+    }
+
+    private float elapsedMs() {
+        if (MD3Motion.isReduced() || startedAtNanos == 0L) {
+            return 0f;
+        }
+
+        return (System.nanoTime() - startedAtNanos) / 1_000_000f;
     }
 
     private boolean hasCaption() {
@@ -100,16 +148,34 @@ public class MD3LinearProgressUI extends BasicProgressBarUI {
         return new Dimension(Integer.MAX_VALUE, UIScale.scale(TRACK_HEIGHT) + captionHeight());
     }
 
-    private void paintCaption(Graphics2D g) {
+    private void paintCaption(Graphics2D g, JComponent c) {
         if (!hasCaption()) {
             return;
         }
 
         FontMetrics metrics = progressBar.getFontMetrics(MD3Type.font(MD3Type.BODY_SMALL));
+        String text = progressBar.getString();
+        int x = MD3Paint.isLeftToRight(c) ? 0 : c.getWidth() - metrics.stringWidth(text);
 
         g.setFont(MD3Type.font(MD3Type.BODY_SMALL));
         g.setColor(MD3Color.onSurfaceVariant());
-        g.drawString(progressBar.getString(), 0, metrics.getAscent());
+        g.drawString(text, x, metrics.getAscent());
+    }
+
+    private static Color trackColor() {
+        return MD3Color.secondaryContainer();
+    }
+
+    private static Color indicatorColor() {
+        return MD3Color.primary();
+    }
+
+    private static void fillBar(Graphics2D g, float x, float y, float width, float height, Color color) {
+        if (width <= 0f || height <= 0f || color == null) {
+            return;
+        }
+
+        MD3Paint.fill(g, new RoundRectangle2D.Float(x, y, width, height, height, height), color);
     }
 
     @Override
@@ -117,43 +183,51 @@ public class MD3LinearProgressUI extends BasicProgressBarUI {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
-            paintCaption(g2);
-
-            float height = UIScale.scale((float) TRACK_HEIGHT);
-            float y = captionHeight();
-            float width = c.getWidth();
-            float gap = UIScale.scale((float) GAP);
-            float stop = UIScale.scale((float) STOP_DIAMETER);
-
-            if (!MD3Paint.isLeftToRight(c)) {
-                g2.translate(width, 0);
-                g2.scale(-1, 1);
-            }
-
-            float fraction = fraction();
-            float indicatorWidth = width * fraction;
-
-            Color track = MD3Color.surfaceContainerHighest();
-            Color indicator = MD3Color.primary();
-
-            // the track resumes after a gap rather than running under the indicator, so the two
-            // never blur into one another at high values
-            float trackStart = Math.min(width, indicatorWidth + gap);
-
-            if (trackStart < width) {
-                MD3Paint.fill(g2, MD3Shape.rounded(trackStart, y, width - trackStart, height, MD3Shape.FULL), track);
-            }
-
-            if (indicatorWidth > 0f) {
-                MD3Paint.fill(g2, MD3Shape.rounded(0, y, indicatorWidth, height, MD3Shape.FULL), indicator);
-            }
-
-            // the stop dot marks where "complete" is, so a bar at 98% still reads as unfinished
-            if (fraction < 1f) {
-                MD3Paint.fill(g2, new Ellipse2D.Float(width - stop, y + (height - stop) / 2f, stop, stop), indicator);
-            }
+            paintCaption(g2, c);
+            paintDeterminateBar(g2, c, captionHeight());
         } finally {
             g2.dispose();
+        }
+    }
+
+    private void paintDeterminateBar(Graphics2D g, JComponent c, float y) {
+        float height = UIScale.scale((float) TRACK_HEIGHT);
+        float width = c.getWidth();
+        float gap = UIScale.scale((float) GAP);
+        float stop = UIScale.scale((float) STOP_DIAMETER);
+        boolean ltr = MD3Paint.isLeftToRight(c);
+        float fraction = fraction();
+
+        float stopRoom = fraction >= 1f ? 0f : stop + gap;
+        float indicatorWidth = width * fraction;
+
+        if (fraction > 0f && fraction < 1f) {
+            indicatorWidth = Math.max(indicatorWidth, height);
+        }
+
+        indicatorWidth = Math.min(indicatorWidth, Math.max(0f, width - stopRoom));
+
+        float indicatorStart = ltr ? 0f : width - indicatorWidth;
+        float trackStart;
+        float trackWidth;
+
+        if (fraction >= 1f) {
+            trackStart = 0f;
+            trackWidth = 0f;
+        } else if (ltr) {
+            trackStart = Math.min(width, indicatorWidth + (indicatorWidth > 0f ? gap : 0f));
+            trackWidth = Math.max(0f, width - stop - gap / 2f - trackStart);
+        } else {
+            trackWidth = Math.max(0f, width - indicatorWidth - (indicatorWidth > 0f ? gap : 0f) - stop - gap / 2f);
+            trackStart = stop + gap / 2f;
+        }
+
+        fillBar(g, trackStart, y, trackWidth, height, trackColor());
+        fillBar(g, indicatorStart, y, indicatorWidth, height, indicatorColor());
+
+        if (fraction < 1f) {
+            float stopX = ltr ? width - stop : 0f;
+            MD3Paint.fill(g, new Ellipse2D.Float(stopX, y + (height - stop) / 2f, stop, stop), indicatorColor());
         }
     }
 
@@ -162,32 +236,42 @@ public class MD3LinearProgressUI extends BasicProgressBarUI {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
-            paintCaption(g2);
+            paintCaption(g2, c);
 
             float height = UIScale.scale((float) TRACK_HEIGHT);
             float y = captionHeight();
             float width = c.getWidth();
+            boolean ltr = MD3Paint.isLeftToRight(c);
 
-            MD3Paint.fill(g2, MD3Shape.rounded(0, y, width, height, MD3Shape.FULL),
-                    MD3Color.surfaceContainerHighest());
+            fillBar(g2, 0, y, width, height, trackColor());
 
-            int frameCount = Math.max(1, getFrameCount());
-            float cycle = (getAnimationIndex() % frameCount) / (float) frameCount;
+            if (MD3Motion.isReduced()) {
+                float segment = width * 0.4f;
+                float x = (width - segment) / 2f;
+                fillBar(g2, x, y, segment, height, indicatorColor());
 
-            // travel the full width plus the segment's own length, so it enters and leaves cleanly
-            // instead of appearing and vanishing at the edges
-            float segment = width * SWEEP_WIDTH;
-            float x = -segment + (width + segment) * cycle;
-            float start = Math.max(0f, x);
-            float end = Math.min(width, x + segment);
-
-            if (end > start) {
-                MD3Paint.fill(g2, MD3Shape.rounded(start, y, end - start, height, MD3Shape.FULL),
-                        MD3Color.primary());
+                return;
             }
+
+            float cycle = (elapsedMs() / MD3ProgressMotion.LINEAR_PERIOD_MS)
+                    - (float) Math.floor(elapsedMs() / MD3ProgressMotion.LINEAR_PERIOD_MS);
+            MD3ProgressMotion.linearSegments(cycle, segments);
+
+            drawSegment(g2, width, y, height, segments[0], segments[1], ltr);
+            drawSegment(g2, width, y, height, segments[2], segments[3], ltr);
         } finally {
             g2.dispose();
         }
+    }
+
+    private static void drawSegment(Graphics2D g, float width, float y, float height, float start, float end,
+            boolean ltr) {
+        if (end - start <= 0.001f) {
+            return;
+        }
+
+        float left = ltr ? start * width : (1f - end) * width;
+        fillBar(g, left, y, (end - start) * width, height, indicatorColor());
     }
 
     private float fraction() {

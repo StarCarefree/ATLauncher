@@ -24,33 +24,34 @@ import java.awt.Graphics2D;
 import java.awt.geom.Arc2D;
 
 import javax.swing.JComponent;
+import javax.swing.Timer;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicProgressBarUI;
 
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Motion;
 import com.formdev.flatlaf.util.UIScale;
 
 /**
  * Paints {@link MD3CircularProgress}.
  *
  * <p>
- * Both the sweep and the rotation advance while indeterminate, at different rates - that is what
- * gives the Material spinner its characteristic stretch and recoil instead of a mechanical
- * constant-speed arc.
+ * Determinate is a track with an active arc growing clockwise from twelve o'clock. Indeterminate
+ * is Material's expand-and-collapse spinner, timed in milliseconds so it does not change speed
+ * with the frame rate. Reduced motion parks the arc at 270° - the shape of a wait - instead of
+ * freezing the first 20° frame, which read as a dash.
  */
 public class MD3CircularProgressUI extends BasicProgressBarUI {
     private static final int SIZE = 48;
     private static final int STROKE = 4;
+    private static final int FRAME_MS = 1000 / 60;
+    /** Gap, in degrees, kept between the active arc and the track so they never fuse. */
+    private static final float GAP_DEGREES = 12f;
 
-    /** Degrees the arc spans at its longest while indeterminate. */
-    private static final float MAX_SWEEP = 270f;
-    /** Degrees the arc spans at its shortest. */
-    private static final float MIN_SWEEP = 20f;
-    /** Full rotations the arc makes per animation cycle. */
-    private static final float ROTATIONS_PER_CYCLE = 2f;
-    /** Stretch-and-recoil cycles per animation cycle. */
-    private static final float SWEEPS_PER_CYCLE = 3f;
+    private Timer timer;
+    private long startedAtNanos;
+    private final float[] startSweep = new float[2];
 
     public static ComponentUI createUI(JComponent c) {
         return new MD3CircularProgressUI();
@@ -65,10 +66,53 @@ public class MD3CircularProgressUI extends BasicProgressBarUI {
         progressBar.setBorder(null);
     }
 
-    /**
-     * The unscaled diameter this spinner was asked for, or the default when it was not asked for
-     * anything.
-     */
+    @Override
+    public void uninstallUI(JComponent c) {
+        stopAnimationTimer();
+        super.uninstallUI(c);
+    }
+
+    @Override
+    protected void startAnimationTimer() {
+        if (MD3Motion.isReduced()) {
+            if (progressBar != null) {
+                progressBar.repaint();
+            }
+
+            return;
+        }
+
+        startedAtNanos = System.nanoTime();
+
+        if (timer == null) {
+            timer = new Timer(FRAME_MS, e -> {
+                if (progressBar != null) {
+                    progressBar.repaint();
+                }
+            });
+            timer.setRepeats(true);
+        }
+
+        if (!timer.isRunning()) {
+            timer.start();
+        }
+    }
+
+    @Override
+    protected void stopAnimationTimer() {
+        if (timer != null) {
+            timer.stop();
+        }
+    }
+
+    private float elapsedMs() {
+        if (MD3Motion.isReduced() || startedAtNanos == 0L) {
+            return 0f;
+        }
+
+        return (System.nanoTime() - startedAtNanos) / 1_000_000f;
+    }
+
     private static int diameterOf(JComponent c) {
         Object requested = c.getClientProperty(MD3CircularProgress.DIAMETER_KEY);
 
@@ -79,10 +123,6 @@ public class MD3CircularProgressUI extends BasicProgressBarUI {
         return SIZE;
     }
 
-    /**
-     * The stroke keeps its proportion of the diameter, so a spinner sized to sit on a toolbar line
-     * is a thinner ring rather than a small disc with a hole in it.
-     */
     private static float strokeOf(JComponent c) {
         return Math.max(UIScale.scale(1.5f), UIScale.scale(STROKE * diameterOf(c) / (float) SIZE));
     }
@@ -113,25 +153,44 @@ public class MD3CircularProgressUI extends BasicProgressBarUI {
         return new Arc2D.Float(x, y, size, size, start, extent, Arc2D.OPEN);
     }
 
+    private void stroke(Graphics2D g, JComponent c) {
+        g.setStroke(new BasicStroke(strokeOf(c), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+    }
+
     @Override
     protected void paintDeterminate(Graphics g, JComponent c) {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
-            g2.setStroke(new BasicStroke(strokeOf(c), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            stroke(g2, c);
 
             int span = progressBar.getMaximum() - progressBar.getMinimum();
             float fraction = span <= 0 ? 0f
                     : Math.max(0f, Math.min(1f, (progressBar.getValue() - progressBar.getMinimum()) / (float) span));
 
-            g2.setColor(MD3Color.surfaceContainerHighest());
-            g2.draw(arcOf(c, 90, 360));
+            if (fraction <= 0f) {
+                g2.setColor(MD3Color.secondaryContainer());
+                g2.draw(arcOf(c, 90, 360));
 
-            if (fraction > 0f) {
-                g2.setColor(MD3Color.primary());
-                // negative extent so progress runs clockwise from twelve o'clock
-                g2.draw(arcOf(c, 90, -360f * fraction));
+                return;
             }
+
+            if (fraction >= 1f) {
+                g2.setColor(MD3Color.primary());
+                g2.draw(arcOf(c, 90, -360));
+
+                return;
+            }
+
+            float active = 360f * fraction;
+            float gap = Math.min(GAP_DEGREES, (360f - active) / 2f);
+            float rest = 360f - active - gap * 2f;
+
+            g2.setColor(MD3Color.secondaryContainer());
+            g2.draw(arcOf(c, 90f - active - gap, -rest));
+
+            g2.setColor(MD3Color.primary());
+            g2.draw(arcOf(c, 90f, -active));
         } finally {
             g2.dispose();
         }
@@ -142,17 +201,10 @@ public class MD3CircularProgressUI extends BasicProgressBarUI {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
-            g2.setStroke(new BasicStroke(strokeOf(c), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-
-            int frameCount = Math.max(1, getFrameCount());
-            float cycle = (getAnimationIndex() % frameCount) / (float) frameCount;
-
-            float rotation = 360f * ROTATIONS_PER_CYCLE * cycle;
-            float breathe = (float) (1 - Math.cos(cycle * SWEEPS_PER_CYCLE * 2 * Math.PI)) / 2f;
-            float sweep = MIN_SWEEP + (MAX_SWEEP - MIN_SWEEP) * breathe;
-
+            stroke(g2, c);
+            MD3ProgressMotion.circularArc(elapsedMs(), startSweep);
             g2.setColor(MD3Color.primary());
-            g2.draw(arcOf(c, 90 - rotation, -sweep));
+            g2.draw(arcOf(c, startSweep[0], startSweep[1]));
         } finally {
             g2.dispose();
         }
