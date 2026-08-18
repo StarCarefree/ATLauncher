@@ -24,7 +24,6 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
-import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -48,7 +47,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
-import com.atlauncher.gui.md3.MD3Text;
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.paint.MD3Animated;
@@ -593,15 +592,13 @@ public class MD3NavigationRail extends JPanel {
                 FontMetrics metrics = getFontMetrics(getFont());
                 int textPad = UIScale.scale(LABEL_INSET);
                 int maxTextWidth = Math.max(0, getWidth() - textPad * 2);
-                String shown = MD3Text.fitToWidth(metrics, label, maxTextWidth);
-                int textWidth = metrics.stringWidth(shown);
+                String shown = MD3MixedText.fitToWidth(getFont(), label, maxTextWidth);
+                int textWidth = MD3MixedText.width(getFont(), shown);
 
-                g2.setFont(getFont());
-                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
-                        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
                 g2.setColor(MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.onSurface(), active));
-                g2.drawString(shown, (getWidth() - textWidth) / 2,
-                        indicatorY + indicatorHeight + UIScale.scale(LABEL_GAP) + metrics.getAscent());
+                MD3MixedText.draw(g2, shown, (getWidth() - textWidth) / 2,
+                        indicatorY + indicatorHeight + UIScale.scale(LABEL_GAP) + metrics.getAscent(),
+                        getFont());
 
                 // the rail is one tab stop and the arrow keys move the selection within it, so the
                 // ring goes on the destination that is selected - the same thing MD3Tabs does.

@@ -46,6 +46,7 @@ import javax.swing.KeyStroke;
 import javax.swing.RootPaneContainer;
 import javax.swing.SwingConstants;
 
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.icon.MD3Icon;
@@ -96,18 +97,12 @@ public class MD3Dialog extends JDialog {
      * Short text is left unwrapped so a two-word dialog does not stretch to the full 560dp.
      */
     private static String wrap(String text, int maxWidth, java.awt.Font font) {
-        java.awt.FontMetrics metrics = new JLabel().getFontMetrics(font);
-
-        if (metrics.stringWidth(text) <= maxWidth) {
+        if (MD3MixedText.width(font, text) <= maxWidth) {
             return text;
         }
 
-        return MD3Text.HTML_OPEN + "<div style='width:" + maxWidth + "px'>" + escapeHtml(text)
+        return MD3Text.HTML_OPEN + "<div style='width:" + maxWidth + "px'>" + MD3MixedText.toHtml(font, text)
                 + "</div>" + MD3Text.HTML_CLOSE;
-    }
-
-    private static String escapeHtml(String text) {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     private final DialogPanel panel;

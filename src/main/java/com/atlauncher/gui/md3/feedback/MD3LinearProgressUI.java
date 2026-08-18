@@ -19,6 +19,7 @@ package com.atlauncher.gui.md3.feedback;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -31,6 +32,7 @@ import javax.swing.Timer;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicProgressBarUI;
 
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Motion;
@@ -153,13 +155,13 @@ public class MD3LinearProgressUI extends BasicProgressBarUI {
             return;
         }
 
-        FontMetrics metrics = progressBar.getFontMetrics(MD3Type.font(MD3Type.BODY_SMALL));
+        Font font = MD3Type.font(MD3Type.BODY_SMALL);
+        FontMetrics metrics = progressBar.getFontMetrics(font);
         String text = progressBar.getString();
-        int x = MD3Paint.isLeftToRight(c) ? 0 : c.getWidth() - metrics.stringWidth(text);
+        int x = MD3Paint.isLeftToRight(c) ? 0 : c.getWidth() - MD3MixedText.width(font, text);
 
-        g.setFont(MD3Type.font(MD3Type.BODY_SMALL));
         g.setColor(MD3Color.onSurfaceVariant());
-        g.drawString(text, x, metrics.getAscent());
+        MD3MixedText.draw(g, text, x, metrics.getAscent(), font);
     }
 
     private static Color trackColor() {

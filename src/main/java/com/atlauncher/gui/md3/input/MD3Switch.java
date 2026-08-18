@@ -94,6 +94,11 @@ public class MD3Switch extends JCheckBox {
     }
 
     @Override
+    public void updateUI() {
+        setUI(new MD3MixedCheckBoxUI());
+    }
+
+    @Override
     public AccessibleContext getAccessibleContext() {
         if (accessibleContext == null) {
             accessibleContext = new AccessibleJCheckBox() {

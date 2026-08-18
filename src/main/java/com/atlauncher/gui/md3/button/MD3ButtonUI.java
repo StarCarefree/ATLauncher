@@ -38,6 +38,7 @@ import javax.swing.event.ChangeListener;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicButtonUI;
 
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Focus;
@@ -49,7 +50,7 @@ import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3State;
 import com.atlauncher.themes.md3.token.MD3Type;
-import com.formdev.flatlaf.ui.FlatUIUtils;
+
 import com.formdev.flatlaf.util.UIScale;
 
 /**
@@ -434,8 +435,7 @@ public class MD3ButtonUI extends BasicButtonUI {
         FontMetrics metrics = b.getFontMetrics(b.getFont());
 
         g.setColor(contentColor(b));
-        FlatUIUtils.drawStringUnderlineCharAt(b, g, text, b.getDisplayedMnemonicIndex(), textRect.x,
-                textRect.y + metrics.getAscent());
+        MD3MixedText.draw((Graphics2D) g, text, textRect.x, textRect.y + metrics.getAscent(), b.getFont());
     }
 
     @Override

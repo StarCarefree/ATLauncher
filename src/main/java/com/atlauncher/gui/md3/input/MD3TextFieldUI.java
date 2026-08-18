@@ -43,8 +43,12 @@ import javax.swing.event.DocumentListener;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicTextFieldUI;
 import javax.swing.text.Document;
+import javax.swing.text.Element;
 import javax.swing.text.JTextComponent;
+import javax.swing.text.View;
 
+import com.atlauncher.gui.md3.MD3MixedPlainView;
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.paint.MD3Paint;
@@ -115,6 +119,11 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         to = floatFraction;
 
         stateLayer = MD3StateLayer.install(component);
+    }
+
+    @Override
+    public View create(Element elem) {
+        return MD3MixedPlainView.field(elem);
     }
 
     @Override
@@ -551,7 +560,7 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         Font current = floatFraction > 0.5f ? floated : resting;
 
         FontMetrics metrics = f.getFontMetrics(current);
-        int width = metrics.stringWidth(f.getLabel() == null ? "" : f.getLabel());
+        int width = MD3MixedText.width(current, f.getLabel() == null ? "" : f.getLabel());
         int height = metrics.getHeight();
 
         int restingY = box.y + (box.height - height) / 2;
@@ -582,9 +591,8 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         Rectangle bounds = labelBounds(f, box);
         FontMetrics metrics = f.getFontMetrics(font);
 
-        g.setFont(font);
         g.setColor(labelColor(f));
-        g.drawString(label, bounds.x, bounds.y + metrics.getAscent());
+        MD3MixedText.draw(g, label, bounds.x, bounds.y + metrics.getAscent(), font);
     }
 
     private void paintSupportingText(Graphics2D g, MD3TextField f, Rectangle box) {
@@ -608,10 +616,11 @@ public class MD3TextFieldUI extends BasicTextFieldUI {
         }
 
         int textX = MD3Paint.isLeftToRight(f) ? UIScale.scale(MD3Spacing.L)
-                : f.getWidth() - UIScale.scale(MD3Spacing.L) - metrics.stringWidth(text);
+                : f.getWidth() - UIScale.scale(MD3Spacing.L) - MD3MixedText.width(font, text);
 
         g.setColor(color);
-        g.drawString(text, textX, box.y + box.height + UIScale.scale(MD3Spacing.XS) + metrics.getAscent());
+        MD3MixedText.draw(g, text, textX, box.y + box.height + UIScale.scale(MD3Spacing.XS) + metrics.getAscent(),
+                font);
     }
 
     /**

@@ -53,6 +53,7 @@ import javax.swing.text.ViewFactory;
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.evnt.LogEvent.LogType;
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Type;
 
@@ -516,12 +517,13 @@ public final class Console extends JTextPane {
         try {
             g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
                     RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            g2.setFont(MD3Type.font(MD3Type.BODY_MEDIUM, message));
+            java.awt.Font font = MD3Type.font(MD3Type.BODY_MEDIUM);
             g2.setColor(MD3Color.onSurfaceVariant());
 
-            FontMetrics metrics = g2.getFontMetrics();
-            g2.drawString(message, (getWidth() - metrics.stringWidth(message)) / 2,
-                    getHeight() / 2 + metrics.getAscent() / 2);
+            FontMetrics metrics = g2.getFontMetrics(font);
+            int width = MD3MixedText.width(font, message);
+            MD3MixedText.draw(g2, message, (getWidth() - width) / 2,
+                    getHeight() / 2 + metrics.getAscent() / 2, font);
         } finally {
             g2.dispose();
         }

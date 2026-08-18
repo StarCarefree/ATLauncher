@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import com.atlauncher.gui.md3.button.MD3Fab;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.nav.MD3NavigationRail;
+import com.atlauncher.themes.UiFonts;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.formdev.flatlaf.util.UIScale;
@@ -152,7 +153,7 @@ public class NavigationRailRenderTest {
         Component destination = rail.getComponentCount() > 0 ? findDestination(rail) : null;
 
         assertTrue(destination != null, "the destination was not added");
-        assertTrue(destination.getFont().canDisplayUpTo("实例") < 0,
+        assertTrue(UiFonts.faceFor(destination.getFont(), "实".codePointAt(0)).canDisplayUpTo("实例") < 0,
                 "the rail label is still on a face that cannot draw Chinese");
     }
 

@@ -100,6 +100,11 @@ public class MD3Checkbox extends JCheckBox {
         setForeground(MD3Color.onSurface());
     }
 
+    @Override
+    public void updateUI() {
+        setUI(new MD3MixedCheckBoxUI());
+    }
+
     public boolean isCompact() {
         return compact;
     }

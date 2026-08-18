@@ -40,6 +40,7 @@ import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.CheckState;
 import com.atlauncher.data.LauncherTheme;
 import com.atlauncher.gui.components.JLabelWithHover;
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
 import com.atlauncher.gui.md3.input.MD3Switch;
@@ -368,6 +369,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
                     if (family != null && !family.isEmpty()) {
                         setFont(new Font(family, Font.PLAIN, getFont().getSize()));
+                        putClientProperty(MD3MixedText.KEEP_FACE_KEY, Boolean.TRUE);
                     }
                 }
 

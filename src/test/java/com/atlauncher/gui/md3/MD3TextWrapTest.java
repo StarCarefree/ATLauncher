@@ -53,6 +53,10 @@ public class MD3TextWrapTest {
                 .split("<br>", -1);
     }
 
+    private static String visible(String html) {
+        return html.replaceAll("(?i)<[^>]+>", "");
+    }
+
     @Test
     public void chineseFillsEveryLineItWasGivenRoomFor() {
         FontMetrics metrics = metrics();
@@ -72,7 +76,7 @@ public class MD3TextWrapTest {
         int width = metrics.stringWidth(TEN_HAN);
 
         for (String line : linesOf(MD3Text.wrapToLines(metrics, CHINESE_DESCRIPTION, width, 3))) {
-            assertTrue(metrics.stringWidth(line) <= width, "line wider than its box: " + line);
+            assertTrue(metrics.stringWidth(visible(line)) <= width, "line wider than its box: " + line);
         }
     }
 
@@ -82,7 +86,9 @@ public class MD3TextWrapTest {
 
         for (String line : linesOf(MD3Text.wrapToLines(metrics, CHINESE_DESCRIPTION,
                 metrics.stringWidth(TEN_HAN), 3))) {
-            assertFalse("，。）：；".indexOf(line.charAt(0)) >= 0,
+            String visibleLine = visible(line);
+
+            assertFalse(visibleLine.isEmpty() || "，。）：；".indexOf(visibleLine.charAt(0)) >= 0,
                     "a line may not open with a closing mark: " + line);
         }
     }
@@ -92,7 +98,7 @@ public class MD3TextWrapTest {
         FontMetrics metrics = metrics();
         String html = MD3Text.wrapToLines(metrics, CHINESE_DESCRIPTION, metrics.stringWidth(TEN_HAN), 1);
 
-        assertTrue(html.endsWith("…" + MD3Text.HTML_CLOSE), "expected an ellipsis, got: " + html);
+        assertTrue(visible(html).endsWith("…"), "expected an ellipsis, got: " + html);
     }
 
     @Test

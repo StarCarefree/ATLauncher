@@ -36,8 +36,6 @@ import java.util.List;
  * line it will fit is marked with an ellipsis rather than silently dropped.
  */
 public final class MD3Text {
-    private static final String ELLIPSIS = "…";
-
     private MD3Text() {
     }
 
@@ -74,7 +72,7 @@ public final class MD3Text {
                 html.append("<br>");
             }
 
-            html.append(escapeHtml(lines.get(i)));
+            html.append(toHtml(metrics.getFont(), lines.get(i)));
         }
 
         return html.append(HTML_CLOSE).toString();
@@ -133,7 +131,8 @@ public final class MD3Text {
         for (int end = breaks.following(0); end != BreakIterator.DONE; end = breaks.following(end)) {
             // a run with no break opportunity inside it is wider than the box on its own; it still
             // gets a line to itself and is truncated below rather than left to push the layout out
-            if (lineEnd == lineStart || metrics.stringWidth(flat.substring(lineStart, end).trim()) <= width) {
+            if (lineEnd == lineStart
+                    || MD3MixedText.width(metrics.getFont(), flat.substring(lineStart, end).trim()) <= width) {
                 lineEnd = end;
 
                 continue;
@@ -157,7 +156,7 @@ public final class MD3Text {
 
         if (consumed < flat.length() && !lines.isEmpty()) {
             int last = lines.size() - 1;
-            lines.set(last, truncateToWidth(metrics, lines.get(last), width));
+            lines.set(last, MD3MixedText.ellipsisToWidth(metrics.getFont(), lines.get(last), width));
         }
 
         return lines;
@@ -185,32 +184,33 @@ public final class MD3Text {
         return html.replaceAll("(?i)<br\\s*/?>", " ").replaceAll("\\s+", " ").trim();
     }
 
+    private static String toHtml(java.awt.Font font, String line) {
+        return MD3MixedText.toHtml(font, line);
+    }
+
     /**
      * The text as-is when it fits, otherwise the same truncation {@link #truncateToWidth} does.
      */
     public static String fitToWidth(FontMetrics metrics, String text, int width) {
-        if (text == null || text.isEmpty() || metrics.stringWidth(text) <= width) {
+        if (metrics == null) {
             return text == null ? "" : text;
         }
 
-        return truncateToWidth(metrics, text, width);
+        return MD3MixedText.fitToWidth(metrics.getFont(), text, width);
     }
 
     /**
      * Trims text until it and an ellipsis fit.
      */
     public static String truncateToWidth(FontMetrics metrics, String text, int width) {
-        String candidate = text + ELLIPSIS;
-
-        while (candidate.length() > ELLIPSIS.length() + 1 && metrics.stringWidth(candidate) > width) {
-            text = text.substring(0, text.length() - 1);
-            candidate = text + ELLIPSIS;
+        if (metrics == null) {
+            return text == null ? "" : text;
         }
 
-        return candidate;
+        return MD3MixedText.ellipsisToWidth(metrics.getFont(), text, width);
     }
 
     public static String escapeHtml(String text) {
-        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+        return MD3MixedText.escapeHtml(text);
     }
 }

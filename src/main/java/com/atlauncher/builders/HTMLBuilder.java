@@ -21,6 +21,7 @@ import java.awt.Font;
 import java.util.Optional;
 
 import com.atlauncher.App;
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.themes.ATLauncherLaf;
 
 public final class HTMLBuilder {
@@ -70,17 +71,36 @@ public final class HTMLBuilder {
     public String build() {
         String start = "";
         String end = "";
-
-        if (center) {
-            Font font = Optional.ofNullable(App.THEME)
+        Font font = Optional.ofNullable(App.THEME)
                 .map(ATLauncherLaf::getNormalFont)
                 .orElse(new Font("Arial", Font.PLAIN, 12));
-            
-            start += "<p style=\"padding: 0;font-family: " + font.getFamily() + ";font-size: " + font.getSize()
-                + "pt;\" align=\"center\">";
+
+        if (center) {
+            start += "<p style=\"padding: 0;font-size: " + font.getSize() + "pt;\" align=\"center\">";
             end += "</p>";
         }
 
-        return String.format("<html>%s%s%s</html>", start, getText(), end);
+        return String.format("<html>%s%s%s</html>", start, mixedBody(font), end);
+    }
+
+    private String mixedBody(Font font) {
+        String body = getText();
+
+        if (body == null) {
+            return "";
+        }
+
+        String[] parts = body.split("(?i)<br\\s*/?>");
+        StringBuilder html = new StringBuilder();
+
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) {
+                html.append("<br/>");
+            }
+
+            html.append(MD3MixedText.toHtml(font, parts[i]));
+        }
+
+        return html.toString();
     }
 }

@@ -54,10 +54,13 @@ public class MD3TypeFallbackTest {
     @Test
     public void testTextTheThemeCannotDrawFallsBack() {
         String chinese = "僵尸入侵 100 天";
-        Font font = MD3Type.font(MD3Type.TITLE_MEDIUM, chinese);
+        Font base = MD3Type.font(MD3Type.TITLE_MEDIUM, chinese);
+        Font cjk = com.atlauncher.themes.UiFonts.faceFor(base, chinese.codePointAt(0));
 
-        assertTrue(font.canDisplayUpTo(chinese) < 0,
-                "the font chosen for this text still cannot draw it, so the card shows empty boxes");
+        assertTrue(cjk.canDisplayUpTo("僵尸入侵") < 0,
+                "the Chinese face still cannot draw it, so the card shows empty boxes");
+        assertEquals(base, MD3Type.font(MD3Type.TITLE_MEDIUM, chinese),
+                "a mixed string replaced the English UI face instead of drawing both");
     }
 
     /**
@@ -71,8 +74,10 @@ public class MD3TypeFallbackTest {
 
         MD3Type.ensureCanDisplay(languages);
 
-        assertTrue(languages.getFont().canDisplayUpTo("中文") < 0,
-                "the language list still cannot draw its own entries, so they show as empty boxes");
+        Font item = com.atlauncher.themes.UiFonts.faceFor(languages.getFont(), "中".codePointAt(0));
+
+        assertTrue(item.canDisplayUpTo("中文") < 0,
+                "the Chinese face still cannot draw the language list, so the names show as empty boxes");
     }
 
     @Test

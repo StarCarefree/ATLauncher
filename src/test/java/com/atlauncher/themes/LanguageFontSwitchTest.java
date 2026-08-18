@@ -181,10 +181,37 @@ public class LanguageFontSwitchTest {
 
         assertEquals(latin, App.THEME.getNormalFont().getFamily(),
                 "the English setting did not become the UI face");
-        assertEquals(cjk, MD3Type.font(MD3Type.BODY_LARGE, CHINESE).getFamily(),
-                "Chinese text did not take the Chinese setting");
-        assertEquals(latin, MD3Type.font(MD3Type.BODY_LARGE, "Launcher").getFamily(),
-                "a Latin string was pushed onto the Chinese face");
+        assertEquals(cjk, UiFonts.faceFor(App.THEME.getNormalFont(), CHINESE.codePointAt(0)).getFamily(),
+                "Chinese characters did not take the Chinese setting");
+        assertEquals(latin, UiFonts.faceFor(App.THEME.getNormalFont(), 'L').getFamily(),
+                "a Latin character was pushed onto the Chinese face");
+        assertEquals(latin, MD3Type.font(MD3Type.BODY_LARGE, "僵尸入侵 100").getFamily(),
+                "a mixed string replaced the English UI face instead of drawing both");
+    }
+
+    /**
+     * A Chinese UI still swaps the default onto a face that can draw it, so leftover Swing
+     * controls are not empty boxes. Latin in a mixed string must stay on the English face
+     * anyway - otherwise picking 微软雅黑 as the Chinese font paints "100" with it too.
+     */
+    @Test
+    public void chineseLocaleKeepsLatinOnTheEnglishFace() {
+        startUpIn(ZH_CN);
+
+        List<String> chinese = UiFonts.familiesForChinese();
+
+        assertTrue(!chinese.isEmpty(), "this machine has no Chinese face to prove the split with");
+
+        App.settings.uiEnglishFontFamily = "";
+        App.settings.uiChineseFontFamily = chinese.get(0);
+        App.THEME.updateUIFonts();
+
+        Font ui = UIManager.getFont("defaultFont");
+
+        assertEquals(UiFonts.themeLatinFamily(), UiFonts.faceFor(ui, 'A').getFamily(),
+                "Latin followed the UI onto the Chinese face");
+        assertEquals(chinese.get(0), UiFonts.faceFor(ui, CHINESE.codePointAt(0)).getFamily(),
+                "Chinese characters did not take the Chinese setting");
     }
 
     private static String firstThatCannotDraw(List<String> families, String sample) {

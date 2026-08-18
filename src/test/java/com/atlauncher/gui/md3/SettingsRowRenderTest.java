@@ -34,7 +34,6 @@ import javax.imageio.ImageIO;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextArea;
 import javax.swing.UIManager;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -154,18 +153,20 @@ public class SettingsRowRenderTest {
         return section;
     }
 
-    private static JTextArea supportingOf(Container row) {
+    private static JLabel supportingOf(Container row) {
+        JLabel found = null;
+
         for (Component c : row.getComponents()) {
             if (c instanceof Container) {
                 for (Component text : ((Container) c).getComponents()) {
-                    if (text instanceof JTextArea) {
-                        return (JTextArea) text;
+                    if (text instanceof JLabel) {
+                        found = (JLabel) text;
                     }
                 }
             }
         }
 
-        return null;
+        return found;
     }
 
     private static boolean containsCard(Component c) {
@@ -217,7 +218,7 @@ public class SettingsRowRenderTest {
     @Test
     public void testTheWholeDescriptionStaysReachable() {
         Section section = buildSection();
-        JTextArea supporting = supportingOf(section.verboseRow);
+        JLabel supporting = supportingOf(section.verboseRow);
 
         assertNotNull(supporting, "the row lost its description");
         assertTrue(supporting.getText().contains("…"),

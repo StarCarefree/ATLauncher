@@ -66,6 +66,11 @@ public class MD3TextArea extends JTextArea {
         setDisabledTextColor(MD3State.disabledContent(MD3Color.onSurface(), MD3Color.surface()));
     }
 
+    @Override
+    public void updateUI() {
+        setUI(new MD3TextAreaUI());
+    }
+
     /**
      * The field inside a rounded container of a given height, ready to drop into a settings row.
      *

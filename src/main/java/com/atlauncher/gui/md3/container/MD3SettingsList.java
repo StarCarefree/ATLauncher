@@ -18,7 +18,6 @@
 package com.atlauncher.gui.md3.container;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
@@ -32,7 +31,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextArea;
 import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
 
@@ -220,7 +218,7 @@ public class MD3SettingsList extends JPanel implements Scrollable {
      */
     public static final class Row extends JPanel {
         private final JLabel headline;
-        private final JTextArea supporting;
+        private final JLabel supporting;
         private final String help;
         private final boolean wide;
 
@@ -248,16 +246,9 @@ public class MD3SettingsList extends JPanel implements Scrollable {
             setLabel(label);
             text.add(headline);
 
-            supporting = new JTextArea();
-            supporting.setEditable(false);
+            supporting = new JLabel();
             supporting.setOpaque(false);
-            supporting.setFocusable(false);
-            supporting.setLineWrap(true);
-            supporting.setWrapStyleWord(true);
-            supporting.setHighlighter(null);
-            supporting.setBorder(null);
-            supporting.setBackground(new Color(0, 0, 0, 0));
-            supporting.setFont(MD3Type.font(MD3Type.BODY_SMALL, help));
+            supporting.setFont(MD3Type.font(MD3Type.BODY_SMALL));
             supporting.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
             supporting.setForeground(MD3Color.onSurfaceVariant());
             supporting.setAlignmentX(LEFT_ALIGNMENT);
@@ -339,18 +330,7 @@ public class MD3SettingsList extends JPanel implements Scrollable {
             supportingWidth = width;
 
             FontMetrics metrics = supporting.getFontMetrics(supporting.getFont());
-            String plain = MD3Text.wrapToPlainLines(metrics, help, width, SUPPORTING_LINES);
-            supporting.setText(plain);
-
-            int lines = 1;
-
-            for (int i = 0; i < plain.length(); i++) {
-                if (plain.charAt(i) == '\n') {
-                    lines++;
-                }
-            }
-
-            supporting.setRows(lines);
+            supporting.setText(MD3Text.wrapToLines(metrics, help, width, SUPPORTING_LINES));
         }
 
         /**

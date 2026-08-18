@@ -28,6 +28,7 @@ import java.awt.geom.RoundRectangle2D;
 
 import javax.swing.JButton;
 
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Focus;
@@ -257,14 +258,13 @@ public class MD3Fab extends JButton {
             MD3Icon.of(painter, MD3Spacing.ICON_SIZE_LARGE).withColor(content).paintIcon(this, g2, iconX, iconY);
 
             if (extended && label != null && !label.isEmpty()) {
-                g2.setFont(getFont());
                 g2.setColor(content);
 
-                FontMetrics metrics = g2.getFontMetrics();
+                FontMetrics metrics = getFontMetrics(getFont());
                 int textX = iconX + box + UIScale.scale(MD3Spacing.M);
                 int textY = (getHeight() + metrics.getAscent() - metrics.getDescent()) / 2;
 
-                g2.drawString(label, textX, textY);
+                MD3MixedText.draw(g2, label, textX, textY, getFont());
             }
         } finally {
             g2.dispose();
@@ -280,8 +280,7 @@ public class MD3Fab extends JButton {
             return new Dimension(height, height);
         }
 
-        FontMetrics metrics = getFontMetrics(getFont());
-        int text = label == null ? 0 : metrics.stringWidth(label);
+        int text = label == null ? 0 : MD3MixedText.width(getFont(), label);
         int width = room * 2 + UIScale.scale(MD3Spacing.L) + UIScale.scale(MD3Spacing.ICON_SIZE_LARGE)
                 + UIScale.scale(MD3Spacing.M) + text + UIScale.scale(20);
 

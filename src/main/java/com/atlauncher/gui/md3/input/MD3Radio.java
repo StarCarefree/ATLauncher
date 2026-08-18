@@ -77,6 +77,11 @@ public class MD3Radio extends JRadioButton {
         setForeground(MD3Color.onSurface());
     }
 
+    @Override
+    public void updateUI() {
+        setUI(new MD3MixedRadioUI());
+    }
+
     public boolean isCompact() {
         return compact;
     }

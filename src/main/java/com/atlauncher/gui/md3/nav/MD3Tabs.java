@@ -46,6 +46,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.paint.MD3Focus;
 import com.atlauncher.gui.md3.paint.MD3Paint;
@@ -649,7 +650,7 @@ public class MD3Tabs extends JPanel {
         }
 
         int labelWidth() {
-            return getFontMetrics(getFont()).stringWidth(label) + UIScale.scale(MD3Spacing.S);
+            return MD3MixedText.width(getFont(), label) + UIScale.scale(MD3Spacing.S);
         }
 
         private boolean isActive() {
@@ -693,9 +694,9 @@ public class MD3Tabs extends JPanel {
                     textY = (getHeight() - metrics.getHeight()) / 2 + metrics.getAscent();
                 }
 
-                g2.setFont(getFont());
                 g2.setColor(content);
-                g2.drawString(label, (getWidth() - metrics.stringWidth(label)) / 2, textY);
+                int textWidth = MD3MixedText.width(getFont(), label);
+                MD3MixedText.draw(g2, label, (getWidth() - textWidth) / 2, textY, getFont());
 
                 if (isActive() && MD3Focus.isVisible(MD3Tabs.this)) {
                     MD3Paint.focusRing(g2, this, MD3Shape.NONE);

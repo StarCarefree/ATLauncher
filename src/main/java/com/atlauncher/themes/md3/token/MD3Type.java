@@ -21,22 +21,14 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Font;
 import java.awt.font.TextAttribute;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import javax.swing.AbstractButton;
-import javax.swing.ComboBoxModel;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
-import javax.swing.text.JTextComponent;
 
-import com.atlauncher.themes.UiFonts;
 import com.formdev.flatlaf.util.UIScale;
 
 /**
@@ -186,15 +178,10 @@ public final class MD3Type {
      * @param text what the component will draw, or null to skip the check
      */
     public static Font font(Role role, String text) {
-        Font font = font(role);
-
-        if (text == null || text.isEmpty() || font.canDisplayUpTo(text) < 0) {
-            return font;
-        }
-
-        // the Chinese face Settings named, or the platform's, which is chosen for having the
-        // coverage the English UI face lacks
-        return UiFonts.fallbackFor(font, text);
+        // the component keeps the English / type-scale face. CJK in the same string is drawn
+        // with the Chinese setting by {@link com.atlauncher.gui.md3.MD3MixedText}, so a mixed
+        // label does not have to abandon one script to keep the other
+        return font(role);
     }
 
     /**
@@ -212,60 +199,14 @@ public final class MD3Type {
             return;
         }
 
-        Font font = component.getFont();
-
-        if (font != null && !canDisplay(font, textOf(component))) {
-            String sample = firstUndisplayable(font, textOf(component));
-            component.setFont(UiFonts.fallbackFor(font, sample));
-        }
+        // do not replace the component font: a swap would paint English and Chinese with the
+        // same face. Labels and buttons draw mixed scripts through MD3MixedText.
 
         if (component instanceof Container) {
             for (Component child : ((Container) component).getComponents()) {
                 ensureCanDisplay(child);
             }
         }
-    }
-
-    private static boolean canDisplay(Font font, List<String> texts) {
-        return firstUndisplayable(font, texts) == null;
-    }
-
-    private static String firstUndisplayable(Font font, List<String> texts) {
-        for (String text : texts) {
-            if (text != null && !text.isEmpty() && font.canDisplayUpTo(text) >= 0) {
-                return text;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Everything a component will draw. A combo box is asked for every item, not just the selected
-     * one - the list it opens has to be legible too.
-     */
-    private static List<String> textOf(Component component) {
-        List<String> texts = new ArrayList<>();
-
-        if (component instanceof JLabel) {
-            texts.add(((JLabel) component).getText());
-        } else if (component instanceof AbstractButton) {
-            texts.add(((AbstractButton) component).getText());
-        } else if (component instanceof JTextComponent) {
-            texts.add(((JTextComponent) component).getText());
-        } else if (component instanceof JComboBox) {
-            ComboBoxModel<?> model = ((JComboBox<?>) component).getModel();
-
-            for (int i = 0; i < model.getSize(); i++) {
-                Object item = model.getElementAt(i);
-
-                if (item != null) {
-                    texts.add(item.toString());
-                }
-            }
-        }
-
-        return texts;
     }
 
     /**

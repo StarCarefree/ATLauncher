@@ -19,12 +19,16 @@ package com.atlauncher.themes;
 
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
+import java.awt.font.TextAttribute;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import com.atlauncher.App;
+import com.atlauncher.utils.Resources;
 
 /**
  * How the launcher picks faces from the ones the operating system already has.
@@ -116,15 +120,90 @@ public final class UiFonts {
      * the English UI face runs out of glyphs.
      */
     public static Font fallbackFor(Font preferred, String text) {
-        int style = preferred.getStyle();
-        float size = preferred.getSize2D();
-        Font chinese = chineseFace(style, size);
-
-        if (text == null || text.isEmpty() || chinese.canDisplayUpTo(text) < 0) {
-            return chinese;
+        if (text != null && !text.isEmpty()) {
+            return faceFor(preferred, text.codePointAt(0));
         }
 
-        return new Font(SYSTEM, style, Math.round(size)).deriveFont(style, size);
+        return cjkFace(preferred);
+    }
+
+    /**
+     * The English face at {@code base}'s size, weight and tracking.
+     *
+     * <p>
+     * Automatic English is the theme's Latin face (Open Sans), never the component's own font. A
+     * Chinese locale still swaps the UI default onto a face that can draw CJK so unmigrated Swing
+     * controls are not empty boxes - but that default must not steal Latin glyphs from the English
+     * setting. Mixed painting asks here for each character.
+     */
+    public static Font latinFace(Font base) {
+        String family = explicitEnglishFamily();
+
+        if (family == null) {
+            family = themeLatinFace(base == null ? Font.PLAIN : base.getStyle(),
+                    base == null ? 12f : base.getSize2D()).getFamily();
+        }
+
+        return sameCut(base, family);
+    }
+
+    /**
+     * The Chinese face at {@code base}'s size, weight and tracking.
+     */
+    public static Font cjkFace(Font base) {
+        String family = explicitChineseFamily();
+
+        if (family == null) {
+            family = SYSTEM;
+        }
+
+        return sameCut(base, family);
+    }
+
+    /**
+     * The bundled English family the theme uses when Settings left English on automatic.
+     */
+    public static String themeLatinFamily() {
+        return themeLatinFace(Font.PLAIN, 12f).getFamily();
+    }
+
+    /**
+     * CJK code points always use the Chinese setting, even when the English face could draw
+     * them (微软雅黑 as the English pick would otherwise swallow the Chinese pick). Everything
+     * else uses the English face, falling back to the Chinese one only for a glyph it cannot
+     * draw - Arabic on a Latin theme face, for example.
+     */
+    public static Font faceFor(Font base, int codePoint) {
+        if (isCjk(codePoint)) {
+            return cjkFace(base);
+        }
+
+        Font latin = latinFace(base);
+
+        if (latin.canDisplay(codePoint)) {
+            return latin;
+        }
+
+        Font cjk = cjkFace(base);
+
+        if (cjk.canDisplay(codePoint)) {
+            return cjk;
+        }
+
+        return latin;
+    }
+
+    public static boolean isCjk(int codePoint) {
+        return (codePoint >= 0x3000 && codePoint <= 0x303F)
+                || (codePoint >= 0x3040 && codePoint <= 0x30FF)
+                || (codePoint >= 0x31C0 && codePoint <= 0x31EF)
+                || (codePoint >= 0x3200 && codePoint <= 0x33FF)
+                || (codePoint >= 0x3400 && codePoint <= 0x4DBF)
+                || (codePoint >= 0x4E00 && codePoint <= 0x9FFF)
+                || (codePoint >= 0xAC00 && codePoint <= 0xD7AF)
+                || (codePoint >= 0xF900 && codePoint <= 0xFAFF)
+                || (codePoint >= 0xFF00 && codePoint <= 0xFFEF)
+                || (codePoint >= 0x20000 && codePoint <= 0x2FA1F);
     }
 
     public static List<String> familiesForEnglish() {
@@ -167,6 +246,53 @@ public final class UiFonts {
 
     private static Font face(String family, int style, float size) {
         return new Font(family, style, Math.round(size)).deriveFont(style, size);
+    }
+
+    private static Font themeLatinFace(int style, float size) {
+        if (App.settings != null && App.settings.disableCustomFonts) {
+            return face(SYSTEM, style, size);
+        }
+
+        String bundled = (style & Font.BOLD) != 0 ? "OpenSans-Bold" : "OpenSans-Regular";
+
+        return Resources.makeFont(bundled).deriveFont(style, size);
+    }
+
+    /**
+     * Same size, weight and tracking as {@code base}, but on {@code family}.
+     *
+     * <p>
+     * {@code Font.deriveFont} with a new {@code FAMILY} does not actually switch a physical face
+     * onto another - it stays put or falls through to Dialog. The English bundled file and a
+     * {@code new Font(family, ...)} for a system face are what really change the glyphs.
+     */
+    private static Font sameCut(Font base, String family) {
+        if (base == null) {
+            return namedFace(family, Font.PLAIN, 12f);
+        }
+
+        if (family.equals(base.getFamily())) {
+            return base;
+        }
+
+        Font cut = namedFace(family, base.getStyle(), base.getSize2D());
+        Object tracking = base.getAttributes().get(TextAttribute.TRACKING);
+
+        if (tracking instanceof Number && Math.abs(((Number) tracking).floatValue()) >= 0.005f) {
+            Map<TextAttribute, Object> attributes = new HashMap<TextAttribute, Object>();
+            attributes.put(TextAttribute.TRACKING, tracking);
+            cut = cut.deriveFont(attributes);
+        }
+
+        return cut;
+    }
+
+    private static Font namedFace(String family, int style, float size) {
+        if (family.equals(themeLatinFace(style, size).getFamily())) {
+            return themeLatinFace(style, size);
+        }
+
+        return face(family, style, size);
     }
 
     private static String firstSet(String primary, String fallback) {

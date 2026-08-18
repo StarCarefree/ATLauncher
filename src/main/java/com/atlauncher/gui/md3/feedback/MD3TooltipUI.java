@@ -32,6 +32,7 @@ import javax.swing.plaf.basic.BasicHTML;
 import javax.swing.plaf.basic.BasicToolTipUI;
 import javax.swing.text.View;
 
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.paint.MD3Paint;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Shape;
@@ -80,15 +81,14 @@ public class MD3TooltipUI extends BasicToolTipUI {
                     c.getWidth() - insets.left - insets.right, c.getHeight() - insets.top - insets.bottom);
 
             g2.setColor(MD3Color.inverseOnSurface());
-            g2.setFont(c.getFont());
 
             View view = (View) c.getClientProperty(BasicHTML.propertyKey);
 
             if (view != null) {
                 view.paint(g2, area);
             } else {
-                FontMetrics metrics = g2.getFontMetrics();
-                g2.drawString(text, area.x, area.y + metrics.getAscent());
+                FontMetrics metrics = c.getFontMetrics(c.getFont());
+                MD3MixedText.draw(g2, text, area.x, area.y + metrics.getAscent(), c.getFont());
             }
         } finally {
             g2.dispose();
@@ -103,6 +103,22 @@ public class MD3TooltipUI extends BasicToolTipUI {
             size.width = Math.max(size.width, 1);
             size.height = Math.max(size.height, 1);
         }
+
+        if (!(c instanceof JToolTip) || size == null) {
+            return size;
+        }
+
+        String text = ((JToolTip) c).getTipText();
+
+        if (text == null || text.regionMatches(true, 0, "<html>", 0, 6)) {
+            return size;
+        }
+
+        FontMetrics metrics = c.getFontMetrics(c.getFont());
+        int mixed = MD3MixedText.width(c.getFont(), text);
+        int single = metrics.stringWidth(text);
+
+        size.width += Math.max(0, mixed - single);
 
         return size;
     }

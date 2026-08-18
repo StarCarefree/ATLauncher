@@ -24,6 +24,7 @@ import java.util.List;
 
 import javax.swing.UIDefaults;
 
+import com.atlauncher.gui.md3.MD3LabelUI;
 import com.atlauncher.gui.md3.feedback.MD3TooltipUI;
 import com.atlauncher.themes.md3.hct.Hct;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -135,6 +136,7 @@ public final class MD3Bridge {
         defaults.put("Popup.borderCornerRadius", MD3Shape.EXTRA_SMALL);
         defaults.put("ToolTip.borderCornerRadius", MD3Shape.EXTRA_SMALL);
         defaults.put("ToolTipUI", MD3TooltipUI.class.getName());
+        defaults.put("LabelUI", MD3LabelUI.class.getName());
 
         // Material's focus indicator is a visible ring, not a subtle tint. The base theme had
         // switched this off entirely, which left keyboard users with nothing to follow.
