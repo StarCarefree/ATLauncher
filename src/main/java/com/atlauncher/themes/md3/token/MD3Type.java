@@ -36,6 +36,7 @@ import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.text.JTextComponent;
 
+import com.atlauncher.themes.UiFonts;
 import com.formdev.flatlaf.util.UIScale;
 
 /**
@@ -191,8 +192,9 @@ public final class MD3Type {
             return font;
         }
 
-        // the platform's own face, which is chosen for having the coverage this one lacks
-        return new Font(Font.SANS_SERIF, font.getStyle(), font.getSize()).deriveFont(font.getSize2D());
+        // the Chinese face Settings named, or the platform's, which is chosen for having the
+        // coverage the English UI face lacks
+        return UiFonts.fallbackFor(font, text);
     }
 
     /**
@@ -213,8 +215,8 @@ public final class MD3Type {
         Font font = component.getFont();
 
         if (font != null && !canDisplay(font, textOf(component))) {
-            component.setFont(new Font(Font.SANS_SERIF, font.getStyle(), font.getSize())
-                    .deriveFont(font.getSize2D()));
+            String sample = firstUndisplayable(font, textOf(component));
+            component.setFont(UiFonts.fallbackFor(font, sample));
         }
 
         if (component instanceof Container) {
@@ -225,13 +227,17 @@ public final class MD3Type {
     }
 
     private static boolean canDisplay(Font font, List<String> texts) {
+        return firstUndisplayable(font, texts) == null;
+    }
+
+    private static String firstUndisplayable(Font font, List<String> texts) {
         for (String text : texts) {
             if (text != null && !text.isEmpty() && font.canDisplayUpTo(text) >= 0) {
-                return false;
+                return text;
             }
         }
 
-        return true;
+        return null;
     }
 
     /**

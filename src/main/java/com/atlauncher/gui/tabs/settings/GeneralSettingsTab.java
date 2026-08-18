@@ -17,10 +17,17 @@
  */
 package com.atlauncher.gui.tabs.settings;
 
+import java.awt.Component;
+import java.awt.Font;
 import java.awt.event.ItemEvent;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.function.Consumer;
+
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JList;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -39,11 +46,15 @@ import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.listener.DelayedSavingKeyListener;
 import com.atlauncher.managers.DialogManager;
+import com.atlauncher.themes.UiFonts;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.utils.sort.InstanceSortingStrategies;
 import com.atlauncher.viewmodel.impl.settings.GeneralSettingsViewModel;
+
+import io.reactivex.rxjava3.core.Observable;
 
 public class GeneralSettingsTab extends AbstractSettingsTab {
     private final GeneralSettingsViewModel viewModel;
@@ -91,6 +102,16 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         addRow(GetText.tr("Theme"), GetText.tr("This sets the theme that the launcher will use."), theme);
 
+        addRow(GetText.tr("English Font"), GetText.tr(
+                "The typeface used for English and other Latin text. Auto follows the theme, and switches to a system face when the language needs characters the theme cannot draw."),
+                fontPicker(viewModel.getEnglishFontOptions(), viewModel.getEnglishFont(),
+                        viewModel::setEnglishFontFamily));
+
+        addRow(GetText.tr("Chinese Font"), GetText.tr(
+                "The typeface used for Chinese. Auto uses the system face that has those glyphs. English text keeps the English font."),
+                fontPicker(viewModel.getChineseFontOptions(), viewModel.getChineseFont(),
+                        viewModel::setChineseFontFamily));
+
         // Date Format
 
         MD3ComboBox<ComboItem<String>> dateFormat = new MD3ComboBox<>();
@@ -129,18 +150,6 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
 
         addRow(GetText.tr("Instance Title Format"),
             GetText.tr("This controls the format that instances titles are shown as."), instanceTitleFormat);
-
-        // Disable custom fonts
-
-        MD3Switch disableCustomFonts = new MD3Switch();
-        disableCustomFonts.addItemListener(itemEvent -> {
-            viewModel.setDisableCustomFonts(itemEvent.getStateChange() == ItemEvent.SELECTED);
-        });
-        addDisposable(viewModel.getDisableCustomFonts().subscribe(disableCustomFonts::setSelected));
-
-        addRow(GetText.tr("Disable Custom Fonts?"), GetText.tr(
-                "This will disable custom fonts used by themes. If your system has issues with font display not looking right, you can disable this to switch to a default compatible font."),
-            disableCustomFonts);
 
         // Reduce animations
 
@@ -337,6 +346,47 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
         addRow(GetText.tr("Use Recycle Bin/Trash?"), GetText.tr(
                 "This will use your operating systems recycle bin/trash where possible when deleting files/instances/servers instead of just deleting them entirely, allowing you to recover files if you make a mistake or want to get them back."),
             useRecycleBin);
+    }
+
+    private MD3ComboBox<ComboItem<String>> fontPicker(List<ComboItem<String>> options,
+            Observable<Integer> selected, Consumer<String> onPick) {
+        MD3ComboBox<ComboItem<String>> combo = new MD3ComboBox<ComboItem<String>>();
+
+        for (int i = 0; i < options.size(); i++) {
+            combo.addItem(options.get(i));
+        }
+
+        combo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                    boolean cellHasFocus) {
+                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+
+                if (value instanceof ComboItem) {
+                    Object familyValue = ((ComboItem<?>) value).getValue();
+                    String family = familyValue instanceof String ? (String) familyValue : UiFonts.AUTO;
+
+                    if (family != null && !family.isEmpty()) {
+                        setFont(new Font(family, Font.PLAIN, getFont().getSize()));
+                    }
+                }
+
+                return this;
+            }
+        });
+
+        addDisposable(selected.subscribe(combo::setSelectedIndex));
+
+        combo.addItemListener(itemEvent -> {
+            if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
+                ComboItem<String> item = (ComboItem<String>) itemEvent.getItem();
+                onPick.accept(item.getValue());
+            }
+        });
+
+        MD3Type.ensureCanDisplay(combo);
+
+        return combo;
     }
 
     @Override

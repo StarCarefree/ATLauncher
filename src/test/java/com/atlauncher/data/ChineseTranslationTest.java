@@ -72,6 +72,14 @@ public class ChineseTranslationTest {
         assertEquals("整合包", GetText.tr(ZH_CN, "Packs"));
         assertEquals("服务器", GetText.tr(ZH_CN, "Servers"));
         assertEquals("设置", GetText.tr(ZH_CN, "Settings"));
+        assertEquals("字体", GetText.tr(ZH_CN, "Font"));
+        assertEquals("英文字体", GetText.tr(ZH_CN, "English Font"));
+        assertEquals("中文字体", GetText.tr(ZH_CN, "Chinese Font"));
+        assertEquals("自动（主题）", GetText.tr(ZH_CN, "Auto (theme)"));
+        assertEquals("自动（系统）", GetText.tr(ZH_CN, "Auto (system)"));
+        assertEquals("系统默认", GetText.tr(ZH_CN, "System default"));
+        assertEquals("可选", GetText.tr(ZH_CN, "Optional"));
+        assertEquals("必需", GetText.tr(ZH_CN, "Required"));
     }
 
     @Test

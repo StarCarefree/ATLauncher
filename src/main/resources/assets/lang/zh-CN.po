@@ -755,6 +755,33 @@ msgstr "禁用自定义字体？"
 msgid "This will disable custom fonts used by themes. If your system has issues with font display not looking right, you can disable this to switch to a default compatible font."
 msgstr "禁用主题所使用的自定义字体。如果你的系统上字体显示不正常，可以开启此项以换用默认的兼容字体。"
 
+msgid "Font"
+msgstr "字体"
+
+msgid "The typeface used for the launcher. Auto follows the theme, and switches to a system face when the language needs characters the theme cannot draw. Pick a system font to use that face everywhere."
+msgstr "启动器使用的字体。自动会跟随主题，并在当前语言需要主题无法绘制的字符时改用系统字体。也可直接选择一款系统字体，用于整个界面。"
+
+msgid "English Font"
+msgstr "英文字体"
+
+msgid "The typeface used for English and other Latin text. Auto follows the theme, and switches to a system face when the language needs characters the theme cannot draw."
+msgstr "用于英文和其他拉丁文字的字体。自动会跟随主题，并在当前语言需要主题无法绘制的字符时改用系统字体。"
+
+msgid "Chinese Font"
+msgstr "中文字体"
+
+msgid "The typeface used for Chinese. Auto uses the system face that has those glyphs. English text keeps the English font."
+msgstr "用于中文的字体。自动使用系统中带有这些字形的字体。英文仍使用英文字体。"
+
+msgid "Auto (theme)"
+msgstr "自动（主题）"
+
+msgid "Auto (system)"
+msgstr "自动（系统）"
+
+msgid "System default"
+msgstr "系统默认"
+
 msgid "Reduce Animations?"
 msgstr "减少动画？"
 
@@ -1588,6 +1615,15 @@ msgstr "导出失败"
 msgid "Export {0}"
 msgstr "导出 {0}"
 
+msgid "Joint Packaging"
+msgstr "联合打包"
+
+msgid "Include single-platform mods"
+msgstr "包含仅单平台发布的模组"
+
+msgid "Also include mods that are only published on the other platform. For Modrinth exports they are added as external download entries, for CurseForge exports they are kept in overrides and listed in modlist.html. You may need distribution permission from the mod authors to publish the exported pack."
+msgstr "同时包含仅在另一平台发布的模组。导出为 Modrinth 时会作为外部下载项加入；导出为 CurseForge 时会放入 overrides，并写入 modlist.html。公开发布导出的整合包前，你可能需要获得模组作者的分发许可。"
+
 msgid "Exported Instance Successfully"
 msgstr "实例导出成功"
 
@@ -1950,6 +1986,12 @@ msgstr "正在整理依赖库"
 msgid "Organising Resources"
 msgstr "正在整理资源"
 
+msgid "Optional"
+msgstr "可选"
+
+msgid "Required"
+msgstr "必需"
+
 msgid "Overrides Included"
 msgstr "包含的覆盖文件"
 
@@ -2269,6 +2311,9 @@ msgstr "更新失败。请点击“确定”关闭启动器并打开下载页面
 
 msgid "Updated"
 msgstr "已更新"
+
+msgid "Unknown Project"
+msgstr "未知项目"
 
 msgid "Updating"
 msgstr "正在更新"

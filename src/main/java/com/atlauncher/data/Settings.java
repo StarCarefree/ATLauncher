@@ -83,6 +83,20 @@ public class Settings {
     public boolean enableFeralGamemode = OS.isLinux() && Utils.executableInPath("gamemoderun");
     private boolean disableAddModRestrictions = false;
     public boolean disableCustomFonts = false;
+    /**
+     * Previous single UI face. Still read as the English face so a config written before English
+     * and Chinese were split does not forget what it picked.
+     */
+    public String uiFontFamily = "";
+    /**
+     * Family for Latin UI. Empty is automatic (theme face, or the platform's when the language
+     * needs glyphs the theme does not have). {@code SansSerif} is the system default.
+     */
+    public String uiEnglishFontFamily = "";
+    /**
+     * Family for Chinese (and other CJK) UI. Empty is the platform face that has those glyphs.
+     */
+    public String uiChineseFontFamily = "";
     public boolean reduceAnimations = false;
     public boolean useNativeFilePicker = OS.isMac();
     public boolean useRecycleBin = true;

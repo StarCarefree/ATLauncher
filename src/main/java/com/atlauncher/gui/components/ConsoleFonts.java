@@ -29,6 +29,7 @@ import javax.swing.text.StyledDocument;
 
 import com.atlauncher.App;
 import com.atlauncher.themes.ATLauncherLaf;
+import com.atlauncher.themes.UiFonts;
 
 /**
  * The two faces the console draws with: JetBrains Mono Medium for everything it
@@ -203,12 +204,23 @@ public final class ConsoleFonts {
 
     private static String cacheKey() {
         boolean customDisabled = App.settings != null && App.settings.disableCustomFonts;
+        String chinese = App.settings != null ? App.settings.uiChineseFontFamily : "";
         Object theme = App.THEME;
 
-        return String.valueOf(theme) + '|' + size() + '|' + customDisabled;
+        return String.valueOf(theme) + '|' + size() + '|' + customDisabled + '|' + chinese;
     }
 
     private static Font pickFallback(int style, int size) {
+        String chosen = UiFonts.explicitChineseFamily();
+
+        if (chosen != null) {
+            Font font = new Font(chosen, style, size);
+
+            if (font.canDisplayUpTo(CJK_SAMPLE) < 0) {
+                return font;
+            }
+        }
+
         for (String family : FALLBACK_FAMILIES) {
             Font font = new Font(family, style, size);
 

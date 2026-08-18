@@ -87,27 +87,42 @@ public class ATLauncherLaf extends FlatLaf {
     }
 
     public Font getNormalFont() {
-        if (useBaseFont()) {
-            return Resources.makeFont("sansserif").deriveFont(Font.PLAIN, 12f);
-        } else {
-            return Resources.makeFont(defaultFontName).deriveFont(Font.PLAIN, 12f);
-        }
+        return uiFace(Font.PLAIN, 12f);
     }
 
     public Font getBoldFont() {
-        if (useBaseFont()) {
-            return Resources.makeFont("sansserif").deriveFont(Font.BOLD, 12f);
-        } else {
-            return Resources.makeFont(defaultFontName).deriveFont(Font.BOLD, 12f);
-        }
+        return uiFace(Font.BOLD, 12f);
     }
 
     public Font getTitleFont() {
-        if (useBaseFont()) {
-            return Resources.makeFont("sansserif").deriveFont(Font.BOLD, 18f);
-        } else {
-            return Resources.makeFont(defaultFontName).deriveFont(Font.BOLD, 18f);
+        return uiFace(Font.BOLD, 18f);
+    }
+
+    /**
+     * The English face Settings asked for, or the theme / locale fallback when it asked for
+     * nothing. A Chinese locale with no English pick uses the Chinese face if one was named, so the
+     * whole UI is not stuck on a Latin theme face that cannot draw it.
+     */
+    private Font uiFace(int style, float size) {
+        Font english = UiFonts.englishFace(style, size);
+
+        if (english != null) {
+            return english;
         }
+
+        if (useBaseFont()) {
+            String chinese = UiFonts.explicitChineseFamily();
+
+            if (chinese != null) {
+                return new Font(chinese, style, Math.round(size)).deriveFont(style, size);
+            }
+
+            return Resources.makeFont("sansserif").deriveFont(style, size);
+        }
+
+        String bundled = style == Font.BOLD ? defaultBoldFontName : defaultFontName;
+
+        return Resources.makeFont(bundled).deriveFont(style, size);
     }
 
     /**
@@ -125,11 +140,23 @@ public class ATLauncherLaf extends FlatLaf {
     }
 
     public Font getTabFont() {
-        if (useTabFont()) {
-            return Resources.makeFont("sansserif").deriveFont(Font.PLAIN, 32f);
-        } else {
-            return Resources.makeFont(tabFontName).deriveFont(Font.PLAIN, 32f);
+        Font english = UiFonts.englishFace(Font.PLAIN, 32f);
+
+        if (english != null) {
+            return english;
         }
+
+        if (useTabFont()) {
+            String chinese = UiFonts.explicitChineseFamily();
+
+            if (chinese != null) {
+                return new Font(chinese, Font.PLAIN, 32).deriveFont(32f);
+            }
+
+            return Resources.makeFont("sansserif").deriveFont(Font.PLAIN, 32f);
+        }
+
+        return Resources.makeFont(tabFontName).deriveFont(Font.PLAIN, 32f);
     }
 
     public void registerFonts() {
@@ -314,6 +341,7 @@ public class ATLauncherLaf extends FlatLaf {
         EventQueue.invokeLater(() -> {
             for (Window w : Window.getWindows()) {
                 updateFontInComponentTree(w);
+                MD3Type.ensureCanDisplay(w);
             }
         });
     }

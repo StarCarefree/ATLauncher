@@ -20,6 +20,8 @@ package com.atlauncher.themes;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.awt.Font;
+import java.util.List;
 import java.util.Locale;
 
 import javax.swing.UIManager;
@@ -63,6 +65,10 @@ public class LanguageFontSwitchTest {
     @AfterEach
     public void restoreLanguage() {
         Language.selectedLocale = before;
+        App.settings.uiFontFamily = "";
+        App.settings.uiEnglishFontFamily = "";
+        App.settings.uiChineseFontFamily = "";
+        App.settings.disableCustomFonts = false;
 
         // the fonts live in UIManager, which outlives this test - put them back for the next one
         App.THEME.updateUIFonts();
@@ -127,6 +133,104 @@ public class LanguageFontSwitchTest {
 
         assertTrue(name.contains("jetbrains"),
                 "the console followed the UI onto the locale fallback, so the log is no longer monospaced");
+    }
+
+    @Test
+    public void pickingASystemFontUsesThatFace() {
+        startUpIn(Locale.ENGLISH);
+
+        App.settings.uiEnglishFontFamily = Font.SANS_SERIF;
+        App.THEME.updateUIFonts();
+
+        assertEquals(Font.SANS_SERIF, App.THEME.getNormalFont().getFamily(),
+                "picking the system face left the theme's face in place");
+
+        List<String> families = UiFonts.familiesForEnglish();
+
+        assertTrue(!families.isEmpty(), "the machine has no usable UI font, so there is nothing to switch to");
+
+        App.settings.uiEnglishFontFamily = families.get(0);
+        App.THEME.updateUIFonts();
+
+        assertEquals(families.get(0), App.THEME.getNormalFont().getFamily(),
+                "picking an installed family did not change the UI face");
+    }
+
+    /**
+     * The two settings are independent. Picking an English face must not steal the Chinese
+     * fallback, and picking a Chinese face must not move Latin off the English one.
+     */
+    @Test
+    public void englishAndChineseFacesAreAppliedSeparately() {
+        startUpIn(Locale.ENGLISH);
+
+        List<String> english = UiFonts.familiesForEnglish();
+        List<String> chinese = UiFonts.familiesForChinese();
+
+        assertTrue(!english.isEmpty() && !chinese.isEmpty(),
+                "this machine has no pair of faces to prove the split with");
+
+        String latin = firstThatCannotDraw(english, CHINESE);
+        String cjk = chinese.get(0);
+
+        assertTrue(latin != null, "every English face on this machine also draws Chinese, so the split is untestable");
+
+        App.settings.uiEnglishFontFamily = latin;
+        App.settings.uiChineseFontFamily = cjk;
+        App.THEME.updateUIFonts();
+
+        assertEquals(latin, App.THEME.getNormalFont().getFamily(),
+                "the English setting did not become the UI face");
+        assertEquals(cjk, MD3Type.font(MD3Type.BODY_LARGE, CHINESE).getFamily(),
+                "Chinese text did not take the Chinese setting");
+        assertEquals(latin, MD3Type.font(MD3Type.BODY_LARGE, "Launcher").getFamily(),
+                "a Latin string was pushed onto the Chinese face");
+    }
+
+    private static String firstThatCannotDraw(List<String> families, String sample) {
+        for (int i = 0; i < families.size(); i++) {
+            Font font = new Font(families.get(i), Font.PLAIN, 12);
+
+            if (font.canDisplayUpTo(sample) >= 0) {
+                return families.get(i);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A Chinese UI must still offer Latin faces. Filtering the list to glyphs the language
+     * needs hid Arial and Segoe UI the moment someone picked 简体中文.
+     */
+    @Test
+    public void englishFacesStayOnTheListWhenTheUiIsChinese() {
+        Language.selectedLocale = ZH_CN;
+
+        List<String> families = UiFonts.familiesForEnglish();
+        String[] latin = { "Arial", "Segoe UI", "Calibri", "Tahoma", "Verdana", "Times New Roman",
+                "Georgia", "Calibri Light" };
+        boolean installed = false;
+        boolean listed = false;
+
+        for (int i = 0; i < latin.length; i++) {
+            Font font = new Font(latin[i], Font.PLAIN, 12);
+
+            if (!latin[i].equals(font.getFamily())) {
+                continue;
+            }
+
+            installed = true;
+
+            if (families.contains(latin[i])) {
+                listed = true;
+
+                break;
+            }
+        }
+
+        assertTrue(installed, "this machine has no ordinary English face to prove the list with");
+        assertTrue(listed, "the font list dropped every Latin-only face once the UI language was Chinese");
     }
 
     @Test

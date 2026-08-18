@@ -20,6 +20,7 @@ package com.atlauncher.viewmodel.impl.settings;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
 import com.atlauncher.FileSystem;
@@ -45,7 +47,9 @@ import com.atlauncher.managers.ConfigManager;
 import com.atlauncher.managers.SettingsValidityManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
+import com.atlauncher.themes.UiFonts;
 import com.atlauncher.themes.md3.token.MD3Motion;
+import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.utils.sort.InstanceSortingStrategies;
@@ -67,6 +71,8 @@ public class GeneralSettingsViewModel implements SettingsListener {
 
     private final BehaviorSubject<Integer> _addOnSelectedLanguage = BehaviorSubject.create(),
             _selectedTheme = BehaviorSubject.create(),
+            _uiEnglishFont = BehaviorSubject.create(),
+            _uiChineseFont = BehaviorSubject.create(),
             _dateFormat = BehaviorSubject.create(),
             _addOnInstanceFormat = BehaviorSubject.create(),
             _addOnSelectedTabOnStartup = BehaviorSubject.create(),
@@ -110,6 +116,8 @@ public class GeneralSettingsViewModel implements SettingsListener {
         _enableTrayMenu.onNext(App.settings.enableTrayMenu);
         _enableFeralGameMode.onNext(App.settings.enableFeralGamemode);
         _disableCustomFonts.onNext(App.settings.disableCustomFonts);
+        _uiEnglishFont.onNext(indexOfFont(currentEnglishFontFamily(), getEnglishFontOptions()));
+        _uiChineseFont.onNext(indexOfFont(currentChineseFontFamily(), getChineseFontOptions()));
         _reduceAnimations.onNext(App.settings.reduceAnimations);
         _rememberWindowSizePosition.onNext(App.settings.rememberWindowSizePosition);
         _useNativeFilePicker.onNext(App.settings.useNativeFilePicker);
@@ -506,7 +514,133 @@ public class GeneralSettingsViewModel implements SettingsListener {
 
     public void setDisableCustomFonts(boolean b) {
         App.settings.disableCustomFonts = b;
+        if (b) {
+            App.settings.uiEnglishFontFamily = UiFonts.SYSTEM;
+        } else if (UiFonts.SYSTEM.equalsIgnoreCase(App.settings.uiEnglishFontFamily)
+                || UiFonts.SYSTEM.equalsIgnoreCase(App.settings.uiFontFamily)) {
+            App.settings.uiEnglishFontFamily = UiFonts.AUTO;
+            App.settings.uiFontFamily = UiFonts.AUTO;
+        }
         SettingsManager.post();
+        App.THEME.updateUIFonts();
+    }
+
+    public List<ComboItem<String>> getEnglishFontOptions() {
+        return fontOptions(GetText.tr("Auto (theme)"), GetText.tr("System default"),
+                UiFonts.familiesForEnglish());
+    }
+
+    public List<ComboItem<String>> getChineseFontOptions() {
+        return fontOptions(GetText.tr("Auto (system)"), null, UiFonts.familiesForChinese());
+    }
+
+    private static List<ComboItem<String>> fontOptions(String autoLabel, String systemLabel,
+            List<String> families) {
+        List<ComboItem<String>> options = new ArrayList<ComboItem<String>>();
+
+        options.add(new ComboItem<String>(UiFonts.AUTO, autoLabel));
+
+        if (systemLabel != null) {
+            options.add(new ComboItem<String>(UiFonts.SYSTEM, systemLabel));
+        }
+
+        for (int i = 0; i < families.size(); i++) {
+            String family = families.get(i);
+
+            if (UiFonts.SYSTEM.equalsIgnoreCase(family)) {
+                continue;
+            }
+
+            options.add(new ComboItem<String>(family, family));
+        }
+
+        return options;
+    }
+
+    public Observable<Integer> getEnglishFont() {
+        return _uiEnglishFont.observeOn(SwingSchedulers.edt());
+    }
+
+    public Observable<Integer> getChineseFont() {
+        return _uiChineseFont.observeOn(SwingSchedulers.edt());
+    }
+
+    /**
+     * Applied as it is set rather than on save, so picking a face is visible on the settings page
+     * itself.
+     */
+    public void setEnglishFontFamily(String family) {
+        if (family == null) {
+            family = UiFonts.AUTO;
+        }
+
+        if (family.equals(currentEnglishFontFamily())) {
+            return;
+        }
+
+        App.settings.uiEnglishFontFamily = family;
+        App.settings.uiFontFamily = family;
+        App.settings.disableCustomFonts = UiFonts.SYSTEM.equalsIgnoreCase(family);
+        SettingsManager.post();
+        App.THEME.updateUIFonts();
+    }
+
+    public void setChineseFontFamily(String family) {
+        if (family == null) {
+            family = UiFonts.AUTO;
+        }
+
+        if (family.equals(currentChineseFontFamily())) {
+            return;
+        }
+
+        App.settings.uiChineseFontFamily = family;
+        SettingsManager.post();
+        App.THEME.updateUIFonts();
+    }
+
+    private String currentEnglishFontFamily() {
+        String family = firstSet(App.settings.uiEnglishFontFamily, App.settings.uiFontFamily);
+
+        if (family != null) {
+            return family;
+        }
+
+        return App.settings.disableCustomFonts ? UiFonts.SYSTEM : UiFonts.AUTO;
+    }
+
+    private String currentChineseFontFamily() {
+        String family = firstSet(App.settings.uiChineseFontFamily, null);
+
+        return family != null ? family : UiFonts.AUTO;
+    }
+
+    private static String firstSet(String primary, String fallback) {
+        if (primary != null && !primary.trim().isEmpty()) {
+            return primary.trim();
+        }
+
+        if (fallback != null && !fallback.trim().isEmpty()) {
+            return fallback.trim();
+        }
+
+        return null;
+    }
+
+    private static int indexOfFont(String current, List<ComboItem<String>> options) {
+        for (int i = 0; i < options.size(); i++) {
+            String value = options.get(i).getValue();
+
+            if (value == null) {
+                value = UiFonts.AUTO;
+            }
+
+            if (value.equalsIgnoreCase(current)) {
+                return i;
+            }
+        }
+
+        return 0;
     }
 
     public Observable<Boolean> getReduceAnimations() {
