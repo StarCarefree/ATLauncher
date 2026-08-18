@@ -202,6 +202,20 @@ public final class MD3Icons {
     public static final MD3Icon.Painter HOME = g -> stroke(g,
             path(3.5f, 11.5f, 12, 4.5f, 20.5f, 11.5f), path(5.8f, 10.5f, 5.8f, 19.5f, 18.2f, 19.5f, 18.2f, 10.5f));
 
+    /** A folded article - news, rather than a house that does not say what the page is. */
+    public static final MD3Icon.Painter ARTICLE = g -> stroke(g,
+            new RoundRectangle2D.Float(5, 3.5f, 14, 17, 2, 2),
+            new Line2D.Float(8, 8, 16, 8), new Line2D.Float(8, 12, 16, 12),
+            new Line2D.Float(8, 16, 13, 16));
+
+    /** Two stacked machines - a server list, rather than a generic list view. */
+    public static final MD3Icon.Painter DNS = g -> {
+        stroke(g, new RoundRectangle2D.Float(4, 3.5f, 16, 7.5f, 2, 2),
+                new RoundRectangle2D.Float(4, 13, 16, 7.5f, 2, 2));
+        g.fill(dot(7.2f, 7.25f, 1.15f));
+        g.fill(dot(7.2f, 16.75f, 1.15f));
+    };
+
     public static final MD3Icon.Painter PACKAGE = g -> stroke(g,
             path(12, 3.5f, 20, 7.75f, 20, 16.25f, 12, 20.5f, 4, 16.25f, 4, 7.75f, 12, 3.5f),
             new Line2D.Float(4, 7.75f, 12, 12), new Line2D.Float(20, 7.75f, 12, 12),

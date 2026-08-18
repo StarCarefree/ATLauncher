@@ -186,6 +186,17 @@ public final class MD3Text {
     }
 
     /**
+     * The text as-is when it fits, otherwise the same truncation {@link #truncateToWidth} does.
+     */
+    public static String fitToWidth(FontMetrics metrics, String text, int width) {
+        if (text == null || text.isEmpty() || metrics.stringWidth(text) <= width) {
+            return text == null ? "" : text;
+        }
+
+        return truncateToWidth(metrics, text, width);
+    }
+
+    /**
      * Trims text until it and an ellipsis fit.
      */
     public static String truncateToWidth(FontMetrics metrics, String text, int width) {

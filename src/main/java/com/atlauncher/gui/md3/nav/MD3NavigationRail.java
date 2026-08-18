@@ -23,6 +23,8 @@ import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.RenderingHints;
 import java.awt.Shape;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -39,10 +41,15 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import com.atlauncher.gui.md3.MD3Text;
+import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.paint.MD3Animated;
 import com.atlauncher.gui.md3.paint.MD3Focus;
@@ -80,11 +87,18 @@ import com.formdev.flatlaf.util.UIScale;
  */
 public class MD3NavigationRail extends JPanel {
     private static final int INDICATOR_WIDTH = 56;
-    private static final int ITEM_HEIGHT = 56;
+
+    /** Room above the pill inside a destination. Kept short so eight destinations still fit. */
+    private static final int INDICATOR_TOP = MD3Spacing.XS;
+
+    private static final int LABEL_GAP = MD3Spacing.XS;
+    private static final int ITEM_BOTTOM = MD3Spacing.S;
+    private static final int LABEL_INSET = MD3Spacing.XS;
 
     private final List<Destination> destinations = new ArrayList<>();
     private final List<ChangeListener> changeListeners = new ArrayList<>();
     private final JPanel items = new JPanel();
+    private final JScrollPane scroller;
 
     /** How far along the pill is between the destination it left and the one it is heading to. */
     private final MD3Animated slide = new MD3Animated(this, 1f, MD3Motion.NAVIGATION,
@@ -103,20 +117,41 @@ public class MD3NavigationRail extends JPanel {
     public MD3NavigationRail() {
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setOpaque(true);
-        // a shade off the content it sits beside; the rail and the page are both surface in the
-        // spec, which leaves the launcher's primary navigation with no edge at all
-        setBackground(MD3Color.surfaceContainer());
-        setBorder(MD3Spacing.border(MD3Spacing.S, 0));
+        applyChrome();
         setFocusable(true);
 
         items.setLayout(new BoxLayout(items, BoxLayout.Y_AXIS));
         items.setOpaque(false);
-        items.setAlignmentX(CENTER_ALIGNMENT);
 
-        add(items);
-        add(Box.createVerticalGlue());
+        scroller = new JScrollPane(items, JScrollPane.VERTICAL_SCROLLBAR_NEVER,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroller.setBorder(null);
+        scroller.setOpaque(false);
+        scroller.getViewport().setOpaque(false);
+        scroller.setAlignmentX(CENTER_ALIGNMENT);
+        scroller.setMaximumSize(new Dimension(UIScale.scale(MD3Spacing.NAV_RAIL_WIDTH), Integer.MAX_VALUE));
+        scroller.getVerticalScrollBar().setUnitIncrement(UIScale.scale(MD3Spacing.S));
+        scroller.setWheelScrollingEnabled(true);
+
+        add(scroller);
 
         installKeyBindings();
+    }
+
+    private void applyChrome() {
+        // a shade off the content it sits beside; the rail and the page are both surface in the
+        // spec, which leaves the launcher's primary navigation with no edge at all
+        setBackground(MD3Color.surfaceContainer());
+        setBorder(MD3Spacing.border(MD3Spacing.S, 0));
+    }
+
+    @Override
+    public void updateUI() {
+        super.updateUI();
+
+        if (scroller != null) {
+            applyChrome();
+        }
     }
 
     private void installKeyBindings() {
@@ -192,7 +227,19 @@ public class MD3NavigationRail extends JPanel {
      * A visual break between groups of destinations - primary above, utility below.
      */
     public void addSeparator() {
-        items.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.L)));
+        MD3Divider divider = new MD3Divider(SwingConstants.HORIZONTAL);
+        divider.setInsets(MD3Spacing.L, MD3Spacing.L);
+
+        JPanel wrap = new JPanel();
+        wrap.setLayout(new BoxLayout(wrap, BoxLayout.Y_AXIS));
+        wrap.setOpaque(false);
+        wrap.setAlignmentX(CENTER_ALIGNMENT);
+        wrap.setBorder(MD3Spacing.border(MD3Spacing.S, 0));
+        wrap.add(divider);
+        wrap.setMaximumSize(new Dimension(UIScale.scale(MD3Spacing.NAV_RAIL_WIDTH),
+                wrap.getPreferredSize().height));
+
+        items.add(wrap);
     }
 
     public int getSelectedIndex() {
@@ -284,7 +331,17 @@ public class MD3NavigationRail extends JPanel {
             return Float.NaN;
         }
 
-        return items.getY() + destinations.get(index).getY() + UIScale.scale(MD3Spacing.S);
+        Destination destination = destinations.get(index);
+
+        if (destination.getParent() == null) {
+            return Float.NaN;
+        }
+
+        // convert rather than add the nest of Ys by hand: destinations live in a scroll pane, and
+        // a resize or a scroll would otherwise leave the pill where the item used to be
+        Point onRail = SwingUtilities.convertPoint(destination, 0, UIScale.scale(INDICATOR_TOP), this);
+
+        return onRail.y;
     }
 
     @Override
@@ -307,11 +364,28 @@ public class MD3NavigationRail extends JPanel {
         Graphics2D g2 = MD3Paint.setup(g);
 
         try {
+            paintTrailingEdge(g2);
+
+            // the pill is painted on the rail, the destinations scroll inside it - clip so a
+            // destination that has been scrolled off does not leave its indicator on the FAB
+            g2.clipRect(scroller.getX(), scroller.getY(), scroller.getWidth(), scroller.getHeight());
+
             MD3Paint.fill(g2, MD3Shape.rounded((getWidth() - width) / 2f, y, width, height,
                     MD3Shape.NAV_INDICATOR), MD3Color.get(MD3Color.SECONDARY_CONTAINER, alpha));
         } finally {
             g2.dispose();
         }
+    }
+
+    /**
+     * A hairline on the trailing edge, so the rail is a column rather than a stain on the page.
+     */
+    private void paintTrailingEdge(Graphics2D g2) {
+        int thickness = UIScale.scale(MD3Spacing.DIVIDER_THICKNESS);
+        int x = MD3Paint.mirrorX(this, getWidth() - thickness, thickness);
+
+        g2.setColor(MD3Color.outlineVariant());
+        g2.fillRect(x, 0, thickness, getHeight());
     }
 
     public void addChangeListener(ChangeListener listener) {
@@ -389,8 +463,8 @@ public class MD3NavigationRail extends JPanel {
             setOpaque(false);
             setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             setToolTipText(label);
-            setFont(MD3Type.font(MD3Type.LABEL_MEDIUM));
             putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.LABEL_MEDIUM);
+            applyLabelFont();
 
             stateLayer = MD3StateLayer.install(this);
 
@@ -409,8 +483,22 @@ public class MD3NavigationRail extends JPanel {
             this.label = label;
 
             setToolTipText(label);
+            applyLabelFont();
             revalidate();
             repaint();
+        }
+
+        private void applyLabelFont() {
+            setFont(MD3Type.font(MD3Type.LABEL_MEDIUM, this.label));
+        }
+
+        @Override
+        public void updateUI() {
+            super.updateUI();
+
+            if (label != null) {
+                applyLabelFont();
+            }
         }
 
         @Override
@@ -460,7 +548,8 @@ public class MD3NavigationRail extends JPanel {
             FontMetrics metrics = getFontMetrics(getFont());
 
             return new Dimension(UIScale.scale(MD3Spacing.NAV_RAIL_WIDTH),
-                    UIScale.scale(ITEM_HEIGHT) + metrics.getHeight() + UIScale.scale(MD3Spacing.XS));
+                    UIScale.scale(INDICATOR_TOP + MD3Spacing.NAV_ITEM_INDICATOR_HEIGHT + LABEL_GAP
+                            + ITEM_BOTTOM) + metrics.getHeight());
         }
 
         @Override
@@ -483,7 +572,7 @@ public class MD3NavigationRail extends JPanel {
                 int indicatorWidth = UIScale.scale(INDICATOR_WIDTH);
                 int indicatorHeight = UIScale.scale(MD3Spacing.NAV_ITEM_INDICATOR_HEIGHT);
                 int indicatorX = (getWidth() - indicatorWidth) / 2;
-                int indicatorY = UIScale.scale(MD3Spacing.S);
+                int indicatorY = UIScale.scale(INDICATOR_TOP);
 
                 Shape indicator = MD3Shape.rounded(indicatorX, indicatorY, indicatorWidth, indicatorHeight,
                         MD3Shape.NAV_INDICATOR);
@@ -502,12 +591,17 @@ public class MD3NavigationRail extends JPanel {
                         (getWidth() - iconSize) / 2, indicatorY + (indicatorHeight - iconSize) / 2);
 
                 FontMetrics metrics = getFontMetrics(getFont());
-                int textWidth = metrics.stringWidth(label);
+                int textPad = UIScale.scale(LABEL_INSET);
+                int maxTextWidth = Math.max(0, getWidth() - textPad * 2);
+                String shown = MD3Text.fitToWidth(metrics, label, maxTextWidth);
+                int textWidth = metrics.stringWidth(shown);
 
                 g2.setFont(getFont());
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
                 g2.setColor(MD3Animated.lerp(MD3Color.onSurfaceVariant(), MD3Color.onSurface(), active));
-                g2.drawString(label, (getWidth() - textWidth) / 2,
-                        indicatorY + indicatorHeight + UIScale.scale(MD3Spacing.XS) + metrics.getAscent());
+                g2.drawString(shown, (getWidth() - textWidth) / 2,
+                        indicatorY + indicatorHeight + UIScale.scale(LABEL_GAP) + metrics.getAscent());
 
                 // the rail is one tab stop and the arrow keys move the selection within it, so the
                 // ring goes on the destination that is selected - the same thing MD3Tabs does.

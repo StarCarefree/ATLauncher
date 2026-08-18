@@ -610,10 +610,10 @@ public final class MD3Gallery {
         // the rail is 80dp wide, so its header has to be an icon-only target - a FAB fits, an
         // extended one with a label beside the icon would not
         rail.setHeader(new MD3Fab(MD3Icons.ADD, "Create instance"));
-        rail.addDestination(MD3Icons.HOME, "News");
+        rail.addDestination(MD3Icons.ARTICLE, "News");
         rail.addDestination(MD3Icons.SEARCH, "Discover");
         rail.addDestination(MD3Icons.PACKAGE, "Instances");
-        rail.addDestination(MD3Icons.LIST_VIEW, "Servers");
+        rail.addDestination(MD3Icons.DNS, "Servers");
         rail.addSeparator();
         rail.addDestination(MD3Icons.SETTINGS, "Settings");
         rail.setSelectedIndex(2);

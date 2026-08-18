@@ -289,13 +289,13 @@ public final class LauncherFrame extends JFrame implements RelocalizationListene
     private static MD3Icon.Painter iconFor(int destination) {
         switch (destination) {
             case UIConstants.LAUNCHER_NEWS_TAB:
-                return MD3Icons.HOME;
+                return MD3Icons.ARTICLE;
             case UIConstants.LAUNCHER_PACKS_TAB:
                 return MD3Icons.SEARCH;
             case UIConstants.LAUNCHER_INSTANCES_TAB:
                 return MD3Icons.PACKAGE;
             case UIConstants.LAUNCHER_SERVERS_TAB:
-                return MD3Icons.LIST_VIEW;
+                return MD3Icons.DNS;
             case UIConstants.LAUNCHER_ACCOUNTS_TAB:
                 return MD3Icons.PERSON;
             case UIConstants.LAUNCHER_TOOLS_TAB:
