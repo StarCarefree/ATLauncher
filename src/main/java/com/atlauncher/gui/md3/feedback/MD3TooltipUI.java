@@ -18,15 +18,18 @@
 package com.atlauncher.gui.md3.feedback;
 
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.util.List;
 
 import javax.swing.JComponent;
 import javax.swing.JToolTip;
+import javax.swing.SwingConstants;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicHTML;
 import javax.swing.plaf.basic.BasicToolTipUI;
@@ -82,13 +85,19 @@ public class MD3TooltipUI extends BasicToolTipUI {
 
             g2.setColor(MD3Color.inverseOnSurface());
 
-            View view = (View) c.getClientProperty(BasicHTML.propertyKey);
-
-            if (view != null) {
-                view.paint(g2, area);
+            if (MD3MixedText.isSimpleHtml(text) || !MD3MixedText.isHtml(text)) {
+                List<String> lines = MD3MixedText.displayLines(c.getFont(), text, area.width);
+                MD3MixedText.drawLines(g2, c.getFont(), lines, area.x, area.y, area.width,
+                        SwingConstants.LEADING, c.getComponentOrientation().isLeftToRight());
             } else {
-                FontMetrics metrics = c.getFontMetrics(c.getFont());
-                MD3MixedText.draw(g2, text, area.x, area.y + metrics.getAscent(), c.getFont());
+                View view = (View) c.getClientProperty(BasicHTML.propertyKey);
+
+                if (view != null) {
+                    view.paint(g2, area);
+                } else {
+                    FontMetrics metrics = c.getFontMetrics(c.getFont());
+                    MD3MixedText.draw(g2, text, area.x, area.y + metrics.getAscent(), c.getFont());
+                }
             }
         } finally {
             g2.dispose();
@@ -110,15 +119,22 @@ public class MD3TooltipUI extends BasicToolTipUI {
 
         String text = ((JToolTip) c).getTipText();
 
-        if (text == null || text.regionMatches(true, 0, "<html>", 0, 6)) {
+        if (text == null) {
             return size;
         }
 
-        FontMetrics metrics = c.getFontMetrics(c.getFont());
-        int mixed = MD3MixedText.width(c.getFont(), text);
-        int single = metrics.stringWidth(text);
+        if (MD3MixedText.isSimpleHtml(text) || !MD3MixedText.isHtml(text)) {
+            Font font = c.getFont();
+            Insets insets = c.getInsets();
+            int wrap = MD3MixedText.cssPixelWidth(text);
+            List<String> lines = MD3MixedText.displayLines(font, text, wrap);
+            Dimension block = MD3MixedText.blockSize(font, lines);
 
-        size.width += Math.max(0, mixed - single);
+            size.width = block.width + insets.left + insets.right;
+            size.height = block.height + insets.top + insets.bottom;
+
+            return size;
+        }
 
         return size;
     }

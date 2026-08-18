@@ -113,4 +113,58 @@ public class MD3MixedTextTest {
             }
         }
     }
+
+    @Test
+    public void wrappedHtmlIsPaintedAsMixedLinesNotOneHtmlFace() {
+        List<String> english = UiFonts.familiesForEnglish();
+        List<String> chinese = UiFonts.familiesForChinese();
+        String latin = null;
+
+        for (int i = 0; i < english.size(); i++) {
+            if (new Font(english.get(i), Font.PLAIN, 12).canDisplayUpTo("汉") >= 0) {
+                latin = english.get(i);
+
+                break;
+            }
+        }
+
+        assertTrue(latin != null && !chinese.isEmpty(), "no pair of faces to split wrapped HTML with");
+
+        App.settings.uiEnglishFontFamily = latin;
+        App.settings.uiChineseFontFamily = chinese.get(0);
+
+        Font base = new Font(latin, Font.PLAIN, 12);
+        String html = MD3Text.wrapToLines(new javax.swing.JLabel().getFontMetrics(base),
+                "ATM 僵尸 100 是一个很长的说明，用来强迫折行。", 80, 2);
+
+        assertTrue(MD3MixedText.isSimpleHtml(html), "the wrap is no longer the simple HTML the label paints");
+
+        List<String> lines = MD3MixedText.plainLines(html);
+        StringBuilder visible = new StringBuilder();
+
+        for (int i = 0; i < lines.size(); i++) {
+            visible.append(lines.get(i));
+        }
+
+        List<MD3MixedText.Run> runs = MD3MixedText.runs(base, visible.toString());
+        boolean sawLatin = false;
+        boolean sawCjk = false;
+
+        for (int i = 0; i < runs.size(); i++) {
+            MD3MixedText.Run run = runs.get(i);
+
+            if (run.text.contains("ATM") || run.text.contains("100")) {
+                assertEquals(latin, run.font.getFamily(), "wrapped Latin ran on the Chinese face: " + run.text);
+                sawLatin = true;
+            }
+
+            if (run.text.contains("尸")) {
+                assertEquals(chinese.get(0), run.font.getFamily(),
+                        "wrapped CJK ran on the English face: " + run.text);
+                sawCjk = true;
+            }
+        }
+
+        assertTrue(sawLatin && sawCjk, "wrapped HTML lost a script: " + visible);
+    }
 }

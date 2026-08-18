@@ -18,6 +18,7 @@
 package com.atlauncher.gui.md3;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -25,10 +26,15 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.AbstractButton;
 import javax.swing.JLabel;
+import javax.swing.SwingConstants;
 
 import com.atlauncher.themes.UiFonts;
 
@@ -45,6 +51,8 @@ public final class MD3MixedText {
     public static final String KEEP_FACE_KEY = "MD3.keepFace";
 
     private static final JLabel METRICS = new JLabel();
+
+    private static final Pattern CSS_WIDTH = Pattern.compile("(?i)width\\s*:\\s*(\\d+)px");
 
     private MD3MixedText() {
     }
@@ -202,6 +210,156 @@ public final class MD3MixedText {
         }
 
         return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    public static boolean isHtml(String text) {
+        return text != null && text.regionMatches(true, 0, "<html>", 0, 6);
+    }
+
+    /**
+     * Markup we can draw ourselves. Tables, links and images stay with Swing's HTML view.
+     */
+    public static boolean isSimpleHtml(String text) {
+        if (!isHtml(text)) {
+            return false;
+        }
+
+        String lower = text.toLowerCase(Locale.ROOT);
+
+        return lower.indexOf("<a ") < 0 && lower.indexOf("<a>") < 0 && lower.indexOf("<table") < 0
+                && lower.indexOf("<img") < 0 && lower.indexOf("<ul") < 0 && lower.indexOf("<ol") < 0
+                && lower.indexOf("<object") < 0 && lower.indexOf("<iframe") < 0;
+    }
+
+    /**
+     * Visible lines of a plain string or of the simple HTML wrap the launcher emits.
+     */
+    public static List<String> plainLines(String text) {
+        if (text == null || text.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        if (!isHtml(text)) {
+            List<String> lines = new ArrayList<String>();
+            String[] parts = text.split("\n", -1);
+
+            for (int i = 0; i < parts.length; i++) {
+                lines.add(parts[i]);
+            }
+
+            return lines;
+        }
+
+        String normalized = text.replaceAll("(?i)<br\\s*/?>", "\n").replaceAll("(?i)</p>", "\n")
+                .replaceAll("(?i)</div>", "\n").replaceAll("(?i)<[^>]+>", "");
+        normalized = unescapeHtml(normalized);
+
+        String[] parts = normalized.split("\n", -1);
+        List<String> lines = new ArrayList<String>();
+
+        for (int i = 0; i < parts.length; i++) {
+            String line = parts[i].replaceAll("[ \\t\\x0B\\f\\r]+", " ").trim();
+            lines.add(line);
+        }
+
+        while (!lines.isEmpty() && lines.get(0).isEmpty()) {
+            lines.remove(0);
+        }
+
+        while (!lines.isEmpty() && lines.get(lines.size() - 1).isEmpty()) {
+            lines.remove(lines.size() - 1);
+        }
+
+        return lines;
+    }
+
+    public static int cssPixelWidth(String html) {
+        if (html == null) {
+            return 0;
+        }
+
+        Matcher matcher = CSS_WIDTH.matcher(html);
+
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : 0;
+    }
+
+    public static List<String> displayLines(Font font, String text, int wrapWidth) {
+        List<String> lines = plainLines(text);
+
+        if (lines.size() != 1 || wrapWidth <= 0 || width(font, lines.get(0)) <= wrapWidth) {
+            return lines;
+        }
+
+        String wrapped = MD3Text.wrapToPlainLines(METRICS.getFontMetrics(font), lines.get(0), wrapWidth, 40);
+
+        return plainLines(wrapped);
+    }
+
+    public static Dimension blockSize(Font font, List<String> lines) {
+        FontMetrics metrics = METRICS.getFontMetrics(font);
+        int width = 0;
+
+        for (int i = 0; i < lines.size(); i++) {
+            width = Math.max(width, width(font, lines.get(i)));
+        }
+
+        int height = Math.max(1, lines.size()) * metrics.getHeight();
+
+        return new Dimension(width, height);
+    }
+
+    /**
+     * @return the advance of the widest line
+     */
+    public static int drawLines(Graphics2D g, Font font, List<String> lines, int x, int y, int width,
+            int horizontalAlignment, boolean leftToRight) {
+        if (lines == null || lines.isEmpty()) {
+            return 0;
+        }
+
+        FontMetrics metrics = g.getFontMetrics(font);
+        int cursor = y + metrics.getAscent();
+        int widest = 0;
+
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
+            int lineWidth = width(font, line);
+            widest = Math.max(widest, lineWidth);
+            int lineX = alignedX(x, width, lineWidth, horizontalAlignment, leftToRight);
+
+            draw(g, line, lineX, cursor, font);
+            cursor += metrics.getHeight();
+        }
+
+        return widest;
+    }
+
+    public static int alignedX(int x, int width, int lineWidth, int alignment, boolean leftToRight) {
+        boolean trailing = alignment == SwingConstants.TRAILING
+                || alignment == SwingConstants.EAST
+                || alignment == SwingConstants.RIGHT;
+        boolean leading = alignment == SwingConstants.LEADING
+                || alignment == SwingConstants.WEST
+                || alignment == SwingConstants.LEFT;
+
+        if (alignment == SwingConstants.CENTER) {
+            return x + Math.max(0, width - lineWidth) / 2;
+        }
+
+        if (trailing || (leading && !leftToRight)) {
+            return x + Math.max(0, width - lineWidth);
+        }
+
+        return x;
+    }
+
+    public static String unescapeHtml(String text) {
+        if (text == null) {
+            return "";
+        }
+
+        return text.replace("&nbsp;", " ").replace("&middot;", "·").replace("&quot;", "\"")
+                .replace("&#39;", "'").replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&");
     }
 
     /**
