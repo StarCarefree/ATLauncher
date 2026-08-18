@@ -19,12 +19,7 @@ package com.atlauncher.gui.dialogs;
 
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
-import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
@@ -36,13 +31,13 @@ import com.atlauncher.gui.dialogs.instancesettings.CommandsInstanceSettingsTab;
 import com.atlauncher.gui.dialogs.instancesettings.GeneralInstanceSettingsTab;
 import com.atlauncher.gui.dialogs.instancesettings.JavaInstanceSettingsTab;
 import com.atlauncher.gui.md3.button.MD3Button;
-import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.feedback.MD3WindowDialog;
 import com.atlauncher.gui.md3.nav.MD3Tabs;
 import com.atlauncher.managers.NotificationManager;
-import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.formdev.flatlaf.util.UIScale;
 
-public class InstanceSettingsDialog extends JDialog {
+public class InstanceSettingsDialog extends MD3WindowDialog {
     private static final int WIDTH = 800;
     private static final int HEIGHT = 600;
 
@@ -67,22 +62,11 @@ public class InstanceSettingsDialog extends JDialog {
         this.commandsInstanceSettingsTab = new CommandsInstanceSettingsTab(instance);
 
         setupComponents();
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent arg0) {
-                close();
-            }
-        });
     }
 
     private void setupComponents() {
-        setSize(WIDTH, HEIGHT);
-        setMinimumSize(new Dimension(WIDTH / 2, HEIGHT / 2));
-        setLocationRelativeTo(App.launcher.getParent());
-        setLayout(new BorderLayout());
-        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        setDialogSize(WIDTH, HEIGHT);
 
-        getContentPane().setBackground(MD3Color.surface());
         sections.setOpaque(false);
 
         addSection(GetText.tr("General"), generalInstanceSettingsTab);
@@ -93,9 +77,11 @@ public class InstanceSettingsDialog extends JDialog {
         sectionLayout.show(sections, "0");
         tabs.addChangeListener(e -> sectionLayout.show(sections, String.valueOf(tabs.getSelectedIndex())));
 
+        // the tabs name the dialog, so there is no headline over them - three words of section are
+        // more use than a fourth repeat of the instance's name
         add(tabs, BorderLayout.NORTH);
-        add(sections, BorderLayout.CENTER);
-        add(buildActionBar(), BorderLayout.SOUTH);
+        setBody(sections);
+        buildActions();
     }
 
     /**
@@ -108,7 +94,7 @@ public class InstanceSettingsDialog extends JDialog {
         scrollPane.setBorder(null);
         scrollPane.setOpaque(false);
         scrollPane.getViewport().setOpaque(false);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(UIScale.scale(MD3Spacing.L));
 
         sections.add(scrollPane, String.valueOf(tabs.getTabCount()));
         tabs.addTab(title);
@@ -118,7 +104,7 @@ public class InstanceSettingsDialog extends JDialog {
      * Settings apply on save rather than as they are changed, so the buttons that do it stay visible
      * whichever section is open and wherever it has been scrolled to.
      */
-    private JPanel buildActionBar() {
+    private void buildActions() {
         MD3Button saveButton = MD3Button.filled(GetText.tr("Save"));
         saveButton.addActionListener(arg0 -> {
             if (javaInstanceSettingsTab.isValidJavaPath() && javaInstanceSettingsTab.isValidJavaParamaters()
@@ -132,25 +118,8 @@ public class InstanceSettingsDialog extends JDialog {
         MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
         cancelButton.addActionListener(arg0 -> close());
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
-        actions.setOpaque(false);
-        actions.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
-
-        // the confirming action goes on the trailing edge
-        actions.add(cancelButton);
-        actions.add(saveButton);
-
-        JPanel bar = new JPanel(new BorderLayout());
-        bar.setOpaque(false);
-        bar.add(MD3Divider.inset(), BorderLayout.NORTH);
-        bar.add(actions, BorderLayout.CENTER);
-
-        return bar;
-    }
-
-    private void close() {
-        setVisible(false);
-        dispose();
+        setActions(cancelButton, saveButton);
+        setDefaultAction(saveButton);
     }
 
     private void saveSettings() {
@@ -160,5 +129,4 @@ public class InstanceSettingsDialog extends JDialog {
 
         this.instance.save();
     }
-
 }

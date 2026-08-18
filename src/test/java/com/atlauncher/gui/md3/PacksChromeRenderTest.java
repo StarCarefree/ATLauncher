@@ -46,6 +46,7 @@ import javax.swing.UIManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.nav.MD3Tabs;
 import com.atlauncher.gui.tabs.packbrowser.PacksNavigationPanel;
@@ -267,13 +268,19 @@ public class PacksChromeRenderTest {
         assertEquals(UIScale.scale(MD3Spacing.FIELD_HEIGHT_COMPACT), search.getPreferredSize().height,
                 "the search box is not the compact variant, so it sets the toolbar's height on its own");
 
-        // The row has to clear the tallest control in it, plus its own padding. That is the icon
-        // buttons rather than the labelled ones: their container is 40dp like everything else here,
-        // but the component is the touch target the container is centred in, and Material puts the
-        // floor for that at 48. Eight pixels once per page header, for a target a pointer can hit.
+        MD3Button add = findAddManually(toolbar);
+
+        assertNotNull(add, "Add Manually is missing, or was renamed out from under the ui test");
+        assertEquals(MD3Button.Size.SMALL, add.getButtonSize(),
+                "Add Manually is not the small size the chips and the sort arrow already are");
+        assertEquals(UIScale.scale(MD3Spacing.BUTTON_HEIGHT_SMALL), add.getPreferredSize().height,
+                "Add Manually is taller than the chips it shares the bar with");
+
+        // the labelled buttons and the sort arrow are the 32dp size the chips already are. The
+        // row is still 48dp plus padding: a filter chip's target is the 48dp floor Material puts
+        // under anything a pointer has to hit, and that target is the component
         int padding = UIScale.scale(MD3Spacing.M) + UIScale.scale(MD3Spacing.S);
-        int tallest = Math.max(MD3Spacing.BUTTON_HEIGHT, MD3Spacing.MIN_TOUCH_TARGET);
-        int expected = UIScale.scale(tallest) + padding;
+        int expected = UIScale.scale(MD3Spacing.MIN_TOUCH_TARGET) + padding;
 
         assertEquals(expected, toolbar.getPreferredSize().height,
                 "the toolbar is taller than the controls it holds, so something inside it is out of scale");
@@ -289,5 +296,23 @@ public class PacksChromeRenderTest {
         assertEquals("popularity", toolbar.getSort(), "the first sort field is not the one in effect");
         assertTrue(toolbar.isSortDescending(), "packs open sorted ascending, which puts the least popular first");
         assertEquals(0, reloads.get(), "populating the filters reloaded the grid before the user touched anything");
+    }
+
+    private static MD3Button findAddManually(Container root) {
+        for (Component c : root.getComponents()) {
+            if (c instanceof MD3Button && "Add Manually".equals(((MD3Button) c).getText())) {
+                return (MD3Button) c;
+            }
+
+            if (c instanceof Container) {
+                MD3Button found = findAddManually((Container) c);
+
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+
+        return null;
     }
 }

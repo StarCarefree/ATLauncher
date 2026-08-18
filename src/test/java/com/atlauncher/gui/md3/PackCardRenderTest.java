@@ -30,6 +30,7 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -46,7 +47,11 @@ import com.atlauncher.gui.card.packbrowser.CurseForgePackCard;
 import com.atlauncher.gui.card.packbrowser.MD3PackCard;
 import com.atlauncher.gui.card.packbrowser.ModrinthPackCard;
 import com.atlauncher.gui.layouts.CardGridLayout;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.formdev.flatlaf.util.UIScale;
 
 /**
  * Paints modpack cards from each platform in one grid.
@@ -209,6 +214,35 @@ public class PackCardRenderTest {
                 "the summary kept its 280dp wrapping width, so the card has a blank column beside it");
     }
 
+    /**
+     * Install used to share a {@code BorderLayout} with a 48dp overflow, so it painted as a 48dp
+     * stadium - a different size of button from the overflow it sat next to, and from the chips
+     * and Add on the toolbar above.
+     */
+    @Test
+    public void testActionButtonsShareTheSmallHeight() {
+        JPanel grid = buildGrid();
+
+        for (Component card : grid.getComponents()) {
+            MD3Button install = findInstall((Container) card);
+            MD3IconButton more = findOverflow((Container) card);
+
+            assertNotNull(install, "a pack card has no Install button");
+            assertEquals(MD3Button.Size.SMALL, install.getButtonSize(),
+                    "Install is not the small size a card action is");
+            assertEquals(install.getPreferredSize().height, install.getHeight(),
+                    "Install was stretched off its own size");
+            assertEquals(UIScale.scale(MD3Spacing.BUTTON_HEIGHT_SMALL), install.getHeight(),
+                    "Install is not the same height as the overflow it shares the row with");
+
+            assertNotNull(more, "a pack card has no overflow");
+            assertEquals(MD3IconButton.Size.SMALL, more.getButtonSize(),
+                    "the overflow is not the small size a card action row uses");
+            assertEquals(install.getHeight(), more.getPreferredSize().height,
+                    "Install and the overflow are different heights on the same row");
+        }
+    }
+
     /** The cover is the only child of the card's north wrapper. */
     private static Component findCover(Container card) {
         for (Component c : card.getComponents()) {
@@ -237,5 +271,39 @@ public class PackCardRenderTest {
         }
 
         return null;
+    }
+
+    private static MD3Button findInstall(Container root) {
+        for (Component c : findAll(root)) {
+            if (c instanceof MD3Button && "Install".equals(((MD3Button) c).getText())) {
+                return (MD3Button) c;
+            }
+        }
+
+        return null;
+    }
+
+    private static MD3IconButton findOverflow(Container root) {
+        for (Component c : findAll(root)) {
+            if (c instanceof MD3IconButton) {
+                return (MD3IconButton) c;
+            }
+        }
+
+        return null;
+    }
+
+    private static List<Component> findAll(Container root) {
+        List<Component> all = new ArrayList<>();
+
+        for (Component c : root.getComponents()) {
+            all.add(c);
+
+            if (c instanceof Container) {
+                all.addAll(findAll((Container) c));
+            }
+        }
+
+        return all;
     }
 }

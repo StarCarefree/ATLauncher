@@ -86,9 +86,12 @@ public final class PacksNavigationPanel extends JPanel implements Relocalization
     private final MD3FilterChip<String> minecraftVersionChip;
     private final MD3FilterChip<String> categoryChip;
     private final MD3FilterChip<String> sortChip;
-    private final MD3IconButton sortOrderButton = new MD3IconButton(MD3Icons.ARROW_DOWNWARD, "");
+    // SMALL: both sit in a row of 32dp chips. A medium Add next to those chips, and a medium
+    // icon button's 48dp target next to the chips, was two sizes of control on one bar
+    private final MD3IconButton sortOrderButton = new MD3IconButton(MD3Icons.ARROW_DOWNWARD, "",
+            MD3IconButton.Variant.STANDARD, MD3IconButton.Size.SMALL);
     private final MD3Button addManuallyButton = MD3Button.outlined(GetText.tr("Add Manually"),
-            MD3Icon.of(MD3Icons.ADD));
+            MD3Icon.of(MD3Icons.ADD)).withButtonSize(MD3Button.Size.SMALL);
     private final MD3CircularProgress loadingIndicator = MD3CircularProgress.indeterminate();
 
     private final JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S), 0));

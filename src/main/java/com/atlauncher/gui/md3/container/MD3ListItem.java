@@ -116,6 +116,22 @@ public class MD3ListItem extends JPanel {
         return item;
     }
 
+    /**
+     * As wide as the list, and never taller than its own lines.
+     *
+     * <p>
+     * A list is a {@link javax.swing.BoxLayout} panel in a scroll pane, and {@code ViewportLayout}
+     * grows a view smaller than its viewport to fill it - so a list of four items in a tall window
+     * has surplus height to hand out, and a {@code JPanel}'s default maximum of
+     * {@link Integer#MAX_VALUE} says every item will take it. Four folders in the export dialog came
+     * out spread down the whole column, each row a hundred pixels tall with its tick floating in the
+     * middle of nothing.
+     */
+    @Override
+    public Dimension getMaximumSize() {
+        return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
+    }
+
     private void applyTypography() {
         overline.setFont(MD3Type.font(MD3Type.LABEL_SMALL));
         headline.setFont(MD3Type.font(MD3Type.BODY_LARGE));

@@ -54,6 +54,7 @@ import com.atlauncher.gui.md3.MD3FittingLabel;
 import com.atlauncher.gui.md3.MD3Menus;
 import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3ButtonBar;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Badge;
 import com.atlauncher.gui.md3.container.MD3Card;
@@ -277,7 +278,21 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
             body.add(row);
         }
 
-        actionsHolder = new JPanel(new BorderLayout());
+        // leftover height is the grid matching this card to a taller neighbour. Without somewhere
+        // to put it, BoxLayout hands it to the action row, and Install comes out a different size
+        // on every card that sat next to a longer summary
+        body.add(Box.createVerticalGlue());
+
+        // cap the holder's height so a BorderLayout cannot stretch the bar the way the old west/east
+        // row stretched Install to the overflow's 48dp target
+        actionsHolder = new JPanel(new BorderLayout()) {
+            @Override
+            public Dimension getMaximumSize() {
+                Dimension preferred = getPreferredSize();
+
+                return new Dimension(Integer.MAX_VALUE, preferred.height);
+            }
+        };
         actionsHolder.setOpaque(false);
         actionsHolder.setAlignmentX(LEFT_ALIGNMENT);
         actionsHolder.add(buildActions(primary, overflow), BorderLayout.CENTER);
@@ -429,16 +444,22 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
         return MD3Text.wrapToLines(metrics, shorten(description, limit), width, 2);
     }
 
+    /**
+     * The same row the instance and server cards use. A {@link BorderLayout} here used to stretch
+     * Install to the overflow's 48dp target, so the one labelled button on the card sat at a
+     * different size from the overflow it shared the row with, and from every other control on
+     * the page.
+     */
     private JComponent buildActions(AbstractButton primary, AbstractButton... overflow) {
-        JPanel actions = new JPanel(new BorderLayout());
-        actions.setOpaque(false);
-        actions.setAlignmentX(LEFT_ALIGNMENT);
+        MD3ButtonBar actions = new MD3ButtonBar();
         actions.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
 
-        MD3Button install = MD3Button.filled(primary.getText(), null);
+        // SMALL: a card action, and the size the overflow already is. Medium made a short label
+        // like "Install" or "Add" into a 40dp stadium next to a 32dp icon
+        MD3Button install = MD3Button.filled(primary.getText(), null).withButtonSize(MD3Button.Size.SMALL);
         install.setEnabled(primary.isEnabled());
         install.addActionListener(e -> primary.doClick());
-        actions.add(install, BorderLayout.WEST);
+        actions.leading(install);
 
         List<AbstractButton> rest = new ArrayList<>();
 
@@ -451,7 +472,8 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
         boolean describable = PackDescriptionDialog.hasSomethingToShow(description) || descriptionLoader != null;
 
         if (!rest.isEmpty() || describable) {
-            MD3IconButton more = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"));
+            MD3IconButton more = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"),
+                    MD3IconButton.Variant.STANDARD, MD3IconButton.Size.SMALL);
             more.addActionListener(e -> {
                 JPopupMenu menu = new JPopupMenu();
 
@@ -474,7 +496,7 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
                 menu.show(more, 0, more.getHeight());
             });
 
-            actions.add(more, BorderLayout.EAST);
+            actions.trailing(more);
         }
 
         return actions;

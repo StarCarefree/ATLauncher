@@ -26,6 +26,9 @@ import java.util.List;
 import javax.swing.JLabel;
 import javax.swing.SwingConstants;
 
+import com.atlauncher.themes.md3.token.MD3Color;
+import com.atlauncher.themes.md3.token.MD3Type;
+
 /**
  * A label that keeps its whole string reachable: it wraps to a line cap and ellipsises the last
  * line rather than clipping mid-glyph when the card it sits on is narrower than the text.
@@ -42,6 +45,30 @@ public class MD3FittingLabel extends JLabel {
         setAlignmentX(LEFT_ALIGNMENT);
         setVerticalAlignment(SwingConstants.TOP);
         setFullText(text);
+    }
+
+    /**
+     * A muted block of explanatory copy under a heading or beside a control.
+     *
+     * <p>
+     * Dialogs used to build these by hand, and wrap them by hand against a width guessed from the
+     * dialog's own constant - so the text was laid out once, at construction, and widening the window
+     * left it broken to the width it had been guessed at. This re-fits itself whenever it is given
+     * new bounds, and keeps the whole string in its tooltip either way.
+     *
+     * <p>
+     * The caller should still {@link #fitTo(int)} it once with the width it expects, so the first
+     * measurement asks for the right height rather than for one line's worth.
+     */
+    public static MD3FittingLabel supporting(MD3Type.Role role, String text, int maxLines) {
+        MD3FittingLabel label = new MD3FittingLabel(text, maxLines);
+        label.setOpaque(false);
+        label.setFont(MD3Type.font(role, text));
+        label.putClientProperty(MD3Type.TYPE_ROLE_KEY, role);
+        label.setForeground(MD3Color.onSurfaceVariant());
+        label.setOverflowTip(text);
+
+        return label;
     }
 
     public void setFullText(String text) {

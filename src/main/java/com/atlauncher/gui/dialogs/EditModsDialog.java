@@ -23,8 +23,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ItemEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -35,9 +33,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.swing.AbstractButton;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.Timer;
@@ -58,8 +56,8 @@ import com.atlauncher.gui.components.ModsJCheckBox;
 import com.atlauncher.gui.handlers.ModsJCheckBoxTransferHandler;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
-import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.container.MD3ListContainer;
+import com.atlauncher.gui.md3.feedback.MD3WindowDialog;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3Checkbox;
 import com.atlauncher.gui.md3.input.MD3FilterChip;
@@ -77,9 +75,7 @@ import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.ModFingerprinter;
 import com.atlauncher.utils.Utils;
 
-import com.formdev.flatlaf.util.UIScale;
-
-public class EditModsDialog extends JDialog {
+public class EditModsDialog extends MD3WindowDialog {
     private static final long serialVersionUID = 7004414192679481818L;
 
     /** How long typing has to stop for before the lists are filtered. */
@@ -87,6 +83,13 @@ public class EditModsDialog extends JDialog {
 
     /** Wide enough for a mod name, and no wider - the chips need the rest of the row. */
     private static final int SEARCH_COLUMNS = 16;
+
+    /**
+     * Wide enough that the row of actions is one row: at the old 550 the last of them wrapped onto a
+     * line of its own.
+     */
+    private static final int WIDTH = 780;
+    private static final int HEIGHT = 560;
 
     private static final String SOURCE_CURSEFORGE = "curseforge";
     private static final String SOURCE_MODRINTH = "modrinth";
@@ -104,6 +107,9 @@ public class EditModsDialog extends JDialog {
     private MD3Button refreshMetadataButton;
     private MD3Checkbox selectAllEnabledModsCheckbox, selectAllDisabledModsCheckbox;
     private ArrayList<ModsJCheckBox> enabledMods, disabledMods;
+
+    /** How many mods each column is showing, which a filter changes under you. */
+    private JLabel enabledCount, disabledCount;
 
     private MD3TextField searchField;
 
@@ -124,7 +130,8 @@ public class EditModsDialog extends JDialog {
             GetText.tr("Editing Mods For {0}", instance.launcher.name), ModalityType.DOCUMENT_MODAL);
         this.instanceOrServer = instance;
 
-        setup();
+        // #. {0} is the name of the instance
+        setup(GetText.tr("Editing Mods For {0}", instance.launcher.name));
     }
 
     public EditModsDialog(Server server) {
@@ -133,24 +140,13 @@ public class EditModsDialog extends JDialog {
             GetText.tr("Editing Mods For {0}", server.name), ModalityType.DOCUMENT_MODAL);
         this.instanceOrServer = server;
 
-        setup();
+        // #. {0} is the name of the instance
+        setup(GetText.tr("Editing Mods For {0}", server.name));
     }
 
-    private void setup() {
-        // wide enough that the row of actions is one row: at the old 550 the last of them wrapped
-        // onto a line of its own
-        setSize(UIScale.scale(780), UIScale.scale(520));
-        setMinimumSize(UIScale.scale(new Dimension(550, 400)));
-        setLocationRelativeTo(App.launcher.getParent());
-        setLayout(new BorderLayout());
-        setResizable(true);
-        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent arg0) {
-                dispose();
-            }
-        });
+    private void setup(String headline) {
+        setDialogSize(WIDTH, HEIGHT, 550, 420);
+        setHeadline(headline);
 
         setupComponents();
 
@@ -161,8 +157,6 @@ public class EditModsDialog extends JDialog {
 
     private void setupComponents() {
         Analytics.sendScreenView("Edit Mods Dialog");
-
-        getContentPane().setBackground(MD3Color.surface());
 
         // the two lists used to be four nested JSplitPanes with their dividers disabled and sized to
         // zero - a layout, written as something the user could have dragged. Two equal columns is
@@ -194,18 +188,23 @@ public class EditModsDialog extends JDialog {
             disabledMods.forEach(dm -> dm.setSelected(selected));
         });
 
+        enabledCount = countLabel();
+        disabledCount = countLabel();
+
         JPanel columns = new JPanel(new GridLayout(1, 2, MD3Spacing.scale(MD3Spacing.L), 0));
         columns.setOpaque(false);
         columns.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L, 0, MD3Spacing.L));
-        columns.add(buildColumn(GetText.tr("Enabled Mods"), selectAllEnabledModsCheckbox, enabledModsPanel));
-        columns.add(buildColumn(GetText.tr("Disabled Mods"), selectAllDisabledModsCheckbox, disabledModsPanel));
+        columns.add(buildColumn(GetText.tr("Enabled Mods"), enabledCount, selectAllEnabledModsCheckbox,
+            enabledModsPanel));
+        columns.add(buildColumn(GetText.tr("Disabled Mods"), disabledCount, selectAllDisabledModsCheckbox,
+            disabledModsPanel));
 
         JPanel centre = new JPanel(new BorderLayout());
         centre.setOpaque(false);
         centre.add(buildToolbar(), BorderLayout.NORTH);
         centre.add(columns, BorderLayout.CENTER);
 
-        add(centre, BorderLayout.CENTER);
+        setBody(centre);
 
         // left aligned, because this is a toolbar rather than an action bar - there is nothing to
         // confirm here, the dialog is closed by its window control and every change is already made
@@ -214,12 +213,7 @@ public class EditModsDialog extends JDialog {
         bottomPanel.setOpaque(false);
         bottomPanel.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
 
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setOpaque(false);
-        bottom.add(MD3Divider.inset(), BorderLayout.NORTH);
-        bottom.add(bottomPanel, BorderLayout.CENTER);
-
-        add(bottom, BorderLayout.SOUTH);
+        setActionBar(bottomPanel);
 
         MD3Button addButton = MD3Button.filled(GetText.tr("Add Mod"));
         addButton.addActionListener(e -> {
@@ -312,8 +306,10 @@ public class EditModsDialog extends JDialog {
         });
         bottomPanel.add(addButton);
 
-        if (instanceOrServer instanceof Server || (instanceOrServer instanceof Instance
-            && ((Instance) instanceOrServer).launcher.enableCurseForgeIntegration)) {
+        boolean platformsEnabled = instanceOrServer instanceof Server || (instanceOrServer instanceof Instance
+            && ((Instance) instanceOrServer).launcher.enableCurseForgeIntegration);
+
+        if (platformsEnabled) {
             if (ConfigManager.getConfigItem("platforms.curseforge.modsEnabled", true)
                 || (ConfigManager.getConfigItem("platforms.modrinth.modsEnabled", true)
                 && (instanceOrServer.getLoaderVersion() != null
@@ -334,12 +330,12 @@ public class EditModsDialog extends JDialog {
             checkForUpdatesButton.addActionListener(e -> checkForUpdates());
             checkForUpdatesButton.setEnabled(false);
             bottomPanel.add(checkForUpdatesButton);
-
-            reinstallButton = MD3Button.text(GetText.tr("Reinstall"));
-            reinstallButton.addActionListener(e -> reinstall());
-            reinstallButton.setEnabled(false);
-            bottomPanel.add(reinstallButton);
         }
+
+        // the actions above act on the instance; the ones below act on whatever is ticked. They were
+        // one undivided run of six text buttons, four of them greyed out until you ticked something,
+        // which said nothing about why they were off
+        bottomPanel.add(Box.createHorizontalStrut(MD3Spacing.scale(MD3Spacing.L)));
 
         enableButton = MD3Button.text(GetText.tr("Enable Selected"));
         enableButton.addActionListener(e -> enableMods());
@@ -351,15 +347,25 @@ public class EditModsDialog extends JDialog {
         disableButton.setEnabled(false);
         bottomPanel.add(disableButton);
 
-        removeButton = MD3Button.text(GetText.tr("Remove Selected"));
-        removeButton.addActionListener(e -> removeMods());
-        removeButton.setEnabled(false);
-        bottomPanel.add(removeButton);
+        if (platformsEnabled) {
+            reinstallButton = MD3Button.text(GetText.tr("Reinstall"));
+            reinstallButton.addActionListener(e -> reinstall());
+            reinstallButton.setEnabled(false);
+            bottomPanel.add(reinstallButton);
+        }
 
         refreshMetadataButton = MD3Button.text(GetText.tr("Refresh Metadata"));
         refreshMetadataButton.addActionListener(e -> refreshMetadata());
         refreshMetadataButton.setEnabled(false);
         bottomPanel.add(refreshMetadataButton);
+
+        // last, and in the error role: deleting mods off disk is not undoable, and it looked exactly
+        // like disabling them, which is
+        removeButton = MD3Button.text(GetText.tr("Remove Selected"));
+        removeButton.setTone(MD3Button.Tone.ERROR);
+        removeButton.addActionListener(e -> removeMods());
+        removeButton.setEnabled(false);
+        bottomPanel.add(removeButton);
     }
 
     /**
@@ -422,19 +428,18 @@ public class EditModsDialog extends JDialog {
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S), 0));
         filters.setOpaque(false);
         filters.setBorder(MD3Spacing.border(0, MD3Spacing.M, 0, 0));
-        filters.add(MD3TopAppBar.centred(typeChip.getChip()));
-        filters.add(MD3TopAppBar.centred(sourceChip.getChip()));
-        filters.add(MD3TopAppBar.centred(statusChip.getChip()));
+        filters.add(typeChip.getChip());
+        filters.add(sourceChip.getChip());
+        filters.add(statusChip.getChip());
 
-        JPanel leading = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        leading.setOpaque(false);
-        leading.add(MD3TopAppBar.centred(searchField));
-
+        // the whole slot is centred, not each chip inside it: a row of 32dp chips wrapped one by one
+        // is still a 32dp row, and it was that row - not the chips in it - sitting four pixels above
+        // the 40dp search box's centre line
         JPanel toolbar = new JPanel(new BorderLayout());
         toolbar.setOpaque(false);
         toolbar.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L, 0, MD3Spacing.L));
-        toolbar.add(leading, BorderLayout.WEST);
-        toolbar.add(filters, BorderLayout.CENTER);
+        toolbar.add(MD3TopAppBar.centred(searchField), BorderLayout.WEST);
+        toolbar.add(MD3TopAppBar.centred(filters), BorderLayout.CENTER);
 
         return toolbar;
     }
@@ -533,16 +538,23 @@ public class EditModsDialog extends JDialog {
      * pass wheel events from a nested scroll pane to an outer one, and a list of {@code ModRow}s
      * has no nested scroll pane to forward from.
      */
-    private JComponent buildColumn(String title, MD3Checkbox selectAll, JPanel mods) {
+    private JComponent buildColumn(String title, JLabel count, MD3Checkbox selectAll, JPanel mods) {
         JLabel label = new JLabel(title);
         label.setFont(MD3Type.font(MD3Type.TITLE_SMALL, title));
         label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
         label.setForeground(MD3Color.primary());
 
+        JPanel heading = new JPanel(new FlowLayout(FlowLayout.LEADING, MD3Spacing.scale(MD3Spacing.S), 0));
+        heading.setOpaque(false);
+        heading.add(label);
+        heading.add(count);
+
+        // the heading is a line of text beside a 48dp tick box, so it needs centring in the band the
+        // box sets - it sat on the box's top edge otherwise
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
         header.setBorder(MD3Spacing.border(0, 0, MD3Spacing.S, 0));
-        header.add(label, BorderLayout.WEST);
+        header.add(MD3TopAppBar.centred(heading), BorderLayout.WEST);
         header.add(selectAll, BorderLayout.EAST);
 
         JPanel column = new JPanel(new BorderLayout());
@@ -551,6 +563,30 @@ public class EditModsDialog extends JDialog {
         column.add(MD3ListContainer.wrapping(mods), BorderLayout.CENTER);
 
         return column;
+    }
+
+    /**
+     * How many mods a column is showing. Numerals only - a search box that quietly drops half the
+     * list needs to say so, and a bare count needs no translating to do it.
+     */
+    private static JLabel countLabel() {
+        JLabel label = new JLabel();
+        label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.LABEL_MEDIUM);
+        label.setForeground(MD3Color.onSurfaceVariant());
+
+        return label;
+    }
+
+    private void updateCounts() {
+        if (enabledCount == null || disabledCount == null) {
+            return;
+        }
+
+        enabledCount.setText(String.valueOf(enabledMods.size()));
+        enabledCount.setFont(MD3Type.font(MD3Type.LABEL_MEDIUM, enabledCount.getText()));
+
+        disabledCount.setText(String.valueOf(disabledMods.size()));
+        disabledCount.setFont(MD3Type.font(MD3Type.LABEL_MEDIUM, disabledCount.getText()));
     }
 
     private void loadMods() {
@@ -586,6 +622,8 @@ public class EditModsDialog extends JDialog {
 
         enabledModsPanel.setPreferredSize(new Dimension(0, heightOf(enabledModsPanel)));
         disabledModsPanel.setPreferredSize(new Dimension(0, heightOf(disabledModsPanel)));
+
+        updateCounts();
     }
 
     /**

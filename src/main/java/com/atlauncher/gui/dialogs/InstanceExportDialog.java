@@ -18,12 +18,8 @@
 package com.atlauncher.gui.dialogs;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.FontMetrics;
 import java.awt.Window;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -34,10 +30,8 @@ import java.util.Optional;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -46,12 +40,11 @@ import com.atlauncher.data.Instance;
 import com.atlauncher.data.InstanceExportFormat;
 import com.atlauncher.data.MicrosoftAccount;
 import com.atlauncher.gui.md3.MD3FittingLabel;
-import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
-import com.atlauncher.gui.md3.container.MD3Card;
-import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.container.MD3Form;
 import com.atlauncher.gui.md3.container.MD3ListContainer;
 import com.atlauncher.gui.md3.container.MD3ListItem;
+import com.atlauncher.gui.md3.feedback.MD3WindowDialog;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3Checkbox;
@@ -77,7 +70,7 @@ import com.formdev.flatlaf.util.UIScale;
  * picker - the one control that grows with the instance - under a fold of fields. The form
  * (name, format, destination) sits on the leading edge; the folders take every leftover pixel.
  */
-public class InstanceExportDialog extends JDialog {
+public class InstanceExportDialog extends MD3WindowDialog {
     private static final int WIDTH = 960;
     private static final int HEIGHT = 640;
     private static final int FORM_WIDTH = 420;
@@ -96,40 +89,27 @@ public class InstanceExportDialog extends JDialog {
     private MD3Switch jointPackaging;
     private MD3Switch skipHashVerification;
     private MD3TextField saveTo;
-    private JPanel jointPackagingRow;
+    private JComponent jointPackagingRow;
+
+    /** Ticked over total, so the column says how much of the instance is going. */
+    private JLabel folderCount;
+    private MD3Checkbox selectAllFolders;
 
     public InstanceExportDialog(Instance instance) {
         // #. {0} is the name of the instance we're exporting
         super(ownerWindow(), GetText.tr("Export {0}", instance.launcher.name), ModalityType.DOCUMENT_MODAL);
         this.instance = instance;
 
-        setupComponents();
+        setDialogSize(WIDTH, HEIGHT);
 
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent arg0) {
-                close();
-            }
-        });
+        // #. {0} is the name of the instance we're exporting
+        setHeadline(GetText.tr("Export {0}", instance.launcher.name));
+        setBody(buildBody());
+        buildActions();
     }
 
     private static Window ownerWindow() {
         return App.launcher == null ? null : App.launcher.getParent();
-    }
-
-    private void setupComponents() {
-        setSize(WIDTH, HEIGHT);
-        setMinimumSize(new Dimension(WIDTH / 2, HEIGHT / 2));
-        setLocationRelativeTo(getOwner());
-        setLayout(new BorderLayout());
-        setResizable(true);
-        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-
-        getContentPane().setBackground(MD3Color.surface());
-
-        add(buildHeadline(), BorderLayout.NORTH);
-        add(buildBody(), BorderLayout.CENTER);
-        add(buildActionBar(), BorderLayout.SOUTH);
     }
 
     private JPanel buildBody() {
@@ -137,56 +117,18 @@ public class InstanceExportDialog extends JDialog {
         body.setOpaque(false);
         body.setBorder(MD3Spacing.border(0, MD3Spacing.L, 0, MD3Spacing.L));
 
-        JScrollPane form = wrapForm(buildForm());
-        form.setPreferredSize(new Dimension(UIScale.scale(FORM_WIDTH), 0));
-        form.setMinimumSize(new Dimension(UIScale.scale(FORM_WIDTH), 0));
-
-        body.add(form, BorderLayout.WEST);
+        body.add(buildForm().inScrollPane(), BorderLayout.WEST);
         body.add(buildFoldersColumn(), BorderLayout.CENTER);
 
         return body;
-    }
-
-    private JPanel buildHeadline() {
-        // #. {0} is the name of the instance we're exporting
-        String text = GetText.tr("Export {0}", instance.launcher.name);
-
-        JLabel headline = new JLabel(text);
-        headline.setFont(MD3Type.font(MD3Type.TITLE_LARGE, text));
-        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
-        headline.setForeground(MD3Color.onSurface());
-
-        JPanel top = new JPanel(new BorderLayout());
-        top.setOpaque(false);
-        top.setBorder(MD3Spacing.border(MD3Spacing.L, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
-        top.add(headline, BorderLayout.CENTER);
-
-        return top;
-    }
-
-    private JScrollPane wrapForm(JComponent form) {
-        JScrollPane scroll = new JScrollPane(form, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroll.setBorder(null);
-        scroll.setOpaque(false);
-        scroll.getViewport().setOpaque(false);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-
-        return scroll;
     }
 
     /**
      * Stacked fields, not settings rows. A settings row keeps 320dp for the control; in this
      * column that leaves a sliver for the name and wraps "The name of the instance" into "The n".
      */
-    private JPanel buildForm() {
-        JPanel form = new JPanel();
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setOpaque(false);
-        form.setBorder(MD3Spacing.border(0, 0, MD3Spacing.L, MD3Spacing.S));
-        // the scroll pane is FORM_WIDTH; without this a long path or a row of three fields
-        // grows the form and the viewport clips the switches and Browse
-        form.setMaximumSize(new Dimension(UIScale.scale(FORM_WIDTH), Integer.MAX_VALUE));
+    private MD3Form buildForm() {
+        MD3Form form = new MD3Form(FORM_WIDTH);
 
         name = field(Optional.ofNullable(instance.launcher.lastExportName).orElse(instance.launcher.name));
         version = field(Optional.ofNullable(instance.launcher.lastExportVersion).orElse(instance.launcher.version));
@@ -194,40 +136,41 @@ public class InstanceExportDialog extends JDialog {
         author = field(Optional.ofNullable(instance.launcher.lastExportAuthor)
                 .orElse(selectedAccount == null ? "" : selectedAccount.minecraftUsername));
 
-        form.add(sectionHeading(GetText.tr("Pack")));
-        form.add(sectionCard(identityRow(name, version, author)));
+        form.addSection(GetText.tr("Pack"));
+        form.addField(GetText.tr("Name"), GetText.tr("The name of the instance"), name);
+        form.addFields(GetText.tr("Version"), GetText.tr("The version of this instance"), version,
+                GetText.tr("Author"), GetText.tr("Your name"), author);
 
         format = new MD3ComboBox<>();
         format.addItem(new ComboItem<>(InstanceExportFormat.CURSEFORGE, "CurseForge"));
         format.addItem(new ComboItem<>(InstanceExportFormat.MODRINTH, "Modrinth"));
         format.addItem(new ComboItem<>(InstanceExportFormat.CURSEFORGE_AND_MODRINTH, "CurseForge & Modrinth"));
         format.addItem(new ComboItem<>(InstanceExportFormat.MULTIMC, "MultiMC"));
+        format.setToolTipText(GetText.tr("Which format to export this instance as"));
         selectDefaultFormat();
-        stretch(format);
 
         jointPackaging = new MD3Switch();
+
+        skipHashVerification = new MD3Switch();
+        skipHashVerification.setSelected(instance.launcher.lastExportSkipHashVerification != null
+                ? instance.launcher.lastExportSkipHashVerification
+                : App.settings != null && App.settings.skipExportHashVerification);
+
+        form.addSection(GetText.tr("Format"));
+        form.addControl(format);
+
         // these titles have to be the msgids the po file already holds. The first rewrite
         // shortened them, gettext answered with the English, and a Chinese session showed a
         // half-translated form
-        jointPackagingRow = switchRow(GetText.tr("Joint Packaging"),
+        jointPackagingRow = form.addToggle(GetText.tr("Joint Packaging"),
                 GetText.tr("Include single-platform mods"),
                 GetText.tr(
                         "Also include mods that are only published on the other platform. For Modrinth exports they are added as external download entries, for CurseForge exports they are kept in overrides and listed in modlist.html. You may need distribution permission from the mod authors to publish the exported pack."),
                 jointPackaging);
-        skipHashVerification = new MD3Switch();
-        boolean skipHashDefault = instance.launcher.lastExportSkipHashVerification != null
-                ? instance.launcher.lastExportSkipHashVerification
-                : App.settings != null && App.settings.skipExportHashVerification;
-        skipHashVerification.setSelected(skipHashDefault);
-
-        format.setToolTipText(GetText.tr("Which format to export this instance as"));
-
-        form.add(sectionHeading(GetText.tr("Format")));
-        form.add(sectionCard(format, jointPackagingRow,
-                switchRow(GetText.tr("Skip hash check, use metadata only"), null,
-                        GetText.tr(
-                                "By default, export fingerprints every file against CurseForge and Modrinth so mods without stored IDs can still be listed. Skip that lookup to export using only the project and file metadata already on the instance. Use this when files have been changed or hash lookup fails."),
-                        skipHashVerification)));
+        form.addToggle(GetText.tr("Skip hash check, use metadata only"), null,
+                GetText.tr(
+                        "By default, export fingerprints every file against CurseForge and Modrinth so mods without stored IDs can still be listed. Skip that lookup to export using only the project and file metadata already on the instance. Use this when files have been changed or hash lookup fails."),
+                skipHashVerification);
 
         format.addActionListener(e -> updateJointPackagingState());
         updateJointPackagingState();
@@ -235,6 +178,7 @@ public class InstanceExportDialog extends JDialog {
         saveTo = field(Optional.ofNullable(instance.launcher.lastExportSaveTo)
                 .orElse(instance.getRoot().toAbsolutePath().toString()));
         saveTo.setEnabled(!OS.isUsingFlatpak());
+        saveTo.setToolTipText(GetText.tr("Select the folder you wish to export the instance to"));
 
         MD3Button browseButton = MD3Button.outlined(GetText.tr("Browse"), MD3Icon.of(MD3Icons.FOLDER));
         browseButton.addActionListener(e -> browseForDirectory());
@@ -242,10 +186,8 @@ public class InstanceExportDialog extends JDialog {
         MD3Button resetButton = MD3Button.text(GetText.tr("Reset"));
         resetButton.addActionListener(e -> saveTo.setText(instance.getRoot().toAbsolutePath().toString()));
 
-        saveTo.setToolTipText(GetText.tr("Select the folder you wish to export the instance to"));
-
-        form.add(sectionHeading(GetText.tr("Destination")));
-        form.add(sectionCard(destinationControls(saveTo, browseButton, resetButton)));
+        form.addSection(GetText.tr("Destination"));
+        form.addControl(MD3Form.row(saveTo, browseButton, resetButton));
 
         return form;
     }
@@ -253,160 +195,8 @@ public class InstanceExportDialog extends JDialog {
     private static MD3TextField field(String value) {
         MD3TextField field = new MD3TextField(FIELD_COLUMNS);
         field.setText(value);
-        stretch(field);
 
         return field;
-    }
-
-    private static JLabel sectionHeading(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(MD3Type.font(MD3Type.TITLE_SMALL, text));
-        label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
-        label.setForeground(MD3Color.onSurfaceVariant());
-        label.setAlignmentX(LEFT_ALIGNMENT);
-        label.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.XS, MD3Spacing.XS, MD3Spacing.XS));
-
-        return label;
-    }
-
-    private static MD3Card sectionCard(JComponent... rows) {
-        MD3Card card = new MD3Card(MD3Card.Variant.FILLED);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setAlignmentX(LEFT_ALIGNMENT);
-        card.setMaximumSize(new Dimension(UIScale.scale(FORM_WIDTH), Integer.MAX_VALUE));
-
-        for (int i = 0; i < rows.length; i++) {
-            if (i > 0) {
-                card.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
-            }
-
-            card.add(rows[i]);
-        }
-
-        return card;
-    }
-
-    /**
-     * Name on its own row, version and author sharing the next. Three fields in a 420dp column
-     * clipped the author and everything to the right of it - the switches, Browse, Reset.
-     */
-    private static JPanel identityRow(MD3TextField name, MD3TextField version, MD3TextField author) {
-        JPanel column = new JPanel();
-        column.setOpaque(false);
-        column.setLayout(new BoxLayout(column, BoxLayout.Y_AXIS));
-        column.setAlignmentX(LEFT_ALIGNMENT);
-
-        JPanel nameBlock = stackedField(GetText.tr("Name"), GetText.tr("The name of the instance"), name, false);
-        JPanel versionBlock = stackedField(GetText.tr("Version"), GetText.tr("The version of this instance"), version,
-                false);
-        JPanel authorBlock = stackedField(GetText.tr("Author"), GetText.tr("Your name"), author, false);
-        stretch(nameBlock);
-        stretch(versionBlock);
-        stretch(authorBlock);
-
-        JPanel second = new JPanel();
-        second.setOpaque(false);
-        second.setLayout(new BoxLayout(second, BoxLayout.X_AXIS));
-        second.setAlignmentX(LEFT_ALIGNMENT);
-        second.add(versionBlock);
-        second.add(Box.createHorizontalStrut(UIScale.scale(MD3Spacing.S)));
-        second.add(authorBlock);
-        stretch(second);
-
-        column.add(nameBlock);
-        column.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
-        column.add(second);
-        stretch(column);
-
-        return column;
-    }
-
-    private static JPanel stackedField(String title, String help, JComponent control, boolean showHelp) {
-        JPanel block = new JPanel();
-        block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
-        block.setOpaque(false);
-        block.setAlignmentX(LEFT_ALIGNMENT);
-
-        JLabel headline = new JLabel(title);
-        headline.setFont(MD3Type.font(MD3Type.BODY_LARGE, title));
-        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_LARGE);
-        headline.setForeground(MD3Color.onSurface());
-        headline.setAlignmentX(LEFT_ALIGNMENT);
-        headline.setToolTipText(help);
-        block.add(headline);
-
-        if (showHelp && help != null && !help.isEmpty()) {
-            block.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.XS)));
-            block.add(supportingLabel(help, UIScale.scale(FORM_WIDTH - MD3Spacing.XL * 2)));
-        }
-
-        block.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
-
-        control.setAlignmentX(LEFT_ALIGNMENT);
-        block.add(control);
-
-        return block;
-    }
-
-    /**
-     * @param summary one line under the title, already a gettext msgid of its own. Null when the
-     *                title is the whole story
-     * @param help    the long explanation; always the tooltip, never a third line on the row
-     */
-    private JPanel switchRow(String title, String summary, String help, MD3Switch toggle) {
-        int textWidth = UIScale.scale(FORM_WIDTH - MD3Spacing.XL * 3);
-
-        MD3FittingLabel headline = new MD3FittingLabel(title, 2);
-        headline.setFont(MD3Type.font(MD3Type.BODY_LARGE, title));
-        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_LARGE);
-        headline.setForeground(MD3Color.onSurface());
-        headline.setToolTipText(help);
-        headline.fitTo(textWidth);
-
-        JPanel text = new JPanel();
-        text.setLayout(new BoxLayout(text, BoxLayout.Y_AXIS));
-        text.setOpaque(false);
-        headline.setAlignmentX(LEFT_ALIGNMENT);
-        text.add(headline);
-
-        if (summary != null && !summary.isEmpty()) {
-            JLabel supporting = supportingLabel(summary, textWidth);
-            supporting.setToolTipText(help);
-            text.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.XS)));
-            text.add(supporting);
-        }
-
-        JPanel row = new JPanel(new BorderLayout(UIScale.scale(MD3Spacing.M), 0));
-        row.setOpaque(false);
-        row.setAlignmentX(LEFT_ALIGNMENT);
-        row.add(text, BorderLayout.CENTER);
-        row.add(toggle, BorderLayout.EAST);
-
-        return row;
-    }
-
-    /**
-     * Wraps in both scripts. Splitting on spaces used to take a Chinese sentence for one word and
-     * then hide it behind the 80-character cutoff the first layout used.
-     */
-    private static JLabel supportingLabel(String help, int width) {
-        JLabel supporting = new JLabel();
-        supporting.setOpaque(false);
-        supporting.setFont(MD3Type.font(MD3Type.BODY_SMALL, help));
-        supporting.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_SMALL);
-        supporting.setForeground(MD3Color.onSurfaceVariant());
-        supporting.setAlignmentX(LEFT_ALIGNMENT);
-        supporting.setToolTipText(help);
-
-        FontMetrics metrics = supporting.getFontMetrics(supporting.getFont());
-        supporting.setText(MD3Text.wrapToLines(metrics, help, width, SUPPORTING_LINES));
-
-        return supporting;
-    }
-
-    private static void stretch(JComponent component) {
-        component.setAlignmentX(LEFT_ALIGNMENT);
-        component.setMaximumSize(new Dimension(Integer.MAX_VALUE, component.getPreferredSize().height));
     }
 
     private void selectDefaultFormat() {
@@ -452,70 +242,66 @@ public class InstanceExportDialog extends JDialog {
         }
     }
 
-    private static JPanel destinationControls(MD3TextField saveTo, MD3Button browse, MD3Button reset) {
-        // a long path must not set the row's preferred width, or Browse and Reset are clipped
-        Dimension fieldPref = saveTo.getPreferredSize();
-        saveTo.setPreferredSize(new Dimension(UIScale.scale(80), fieldPref.height));
-
-        JPanel row = new JPanel();
-        row.setOpaque(false);
-        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
-        row.setAlignmentX(LEFT_ALIGNMENT);
-        row.add(saveTo);
-        row.add(Box.createHorizontalStrut(UIScale.scale(MD3Spacing.S)));
-        row.add(browse);
-        row.add(Box.createHorizontalStrut(UIScale.scale(MD3Spacing.XS)));
-        row.add(reset);
-        stretch(row);
-
-        return row;
-    }
-
     /**
      * The folders take the leftover width and height. They used to be a wide row at the bottom of
      * a scrolling form, so a long instance hid them under the fold.
      */
     private JPanel buildFoldersColumn() {
-        JPanel column = new JPanel(new BorderLayout());
-        column.setOpaque(false);
-
         JLabel heading = new JLabel(GetText.tr("Folders To Export"));
         heading.setFont(MD3Type.font(MD3Type.TITLE_SMALL, heading.getText()));
         heading.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
         heading.setForeground(MD3Color.onSurfaceVariant());
+        heading.setAlignmentX(LEFT_ALIGNMENT);
 
-        String foldersHelp = GetText.tr("Select the folders you wish to include for this export");
-        JLabel supporting = supportingLabel(foldersHelp, UIScale.scale(400));
+        MD3FittingLabel supporting = MD3FittingLabel.supporting(MD3Type.BODY_SMALL,
+                GetText.tr("Select the folders you wish to include for this export"), SUPPORTING_LINES);
+        supporting.fitTo(UIScale.scale(WIDTH - FORM_WIDTH - MD3Spacing.L * 3));
 
         JPanel header = new JPanel();
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
         header.setOpaque(false);
-        header.setBorder(MD3Spacing.border(MD3Spacing.S, 0, MD3Spacing.S, 0));
-        heading.setAlignmentX(LEFT_ALIGNMENT);
-        supporting.setAlignmentX(LEFT_ALIGNMENT);
+        header.setBorder(MD3Spacing.border(MD3Spacing.XS, 0, MD3Spacing.S, 0));
         header.add(heading);
         header.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.XS)));
         header.add(supporting);
+        header.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.XS)));
+        header.add(buildFoldersSelection());
+
+        JPanel column = new JPanel(new BorderLayout());
+        column.setOpaque(false);
+        column.add(header, BorderLayout.NORTH);
+        column.add(buildFoldersList(), BorderLayout.CENTER);
+
+        updateFolderCount();
+
+        return column;
+    }
+
+    /**
+     * One tick for the lot, and how many of them are going.
+     *
+     * <p>
+     * This was a pair of "Select All" / "Select None" text buttons - two controls for one binary
+     * choice, in the visual weight of the actions that do the export. The count is numerals on
+     * purpose: it needs no translating, and there was previously no way to tell what was selected
+     * without scrolling the list and counting.
+     */
+    private JPanel buildFoldersSelection() {
+        selectAllFolders = new MD3Checkbox(GetText.tr("Select All"));
+        selectAllFolders.setOpaque(false);
+        selectAllFolders.addActionListener(e -> setAllFolders(selectAllFolders.isSelected()));
+
+        folderCount = new JLabel();
+        folderCount.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.LABEL_MEDIUM);
+        folderCount.setForeground(MD3Color.onSurfaceVariant());
 
         JPanel selection = new JPanel(new FlowLayout(FlowLayout.LEADING, UIScale.scale(MD3Spacing.S), 0));
         selection.setOpaque(false);
         selection.setAlignmentX(LEFT_ALIGNMENT);
+        selection.add(selectAllFolders);
+        selection.add(folderCount);
 
-        MD3Button selectAll = MD3Button.text(GetText.tr("Select All"));
-        selectAll.addActionListener(e -> setAllFolders(true));
-
-        MD3Button selectNone = MD3Button.text(GetText.tr("Select None"));
-        selectNone.addActionListener(e -> setAllFolders(false));
-
-        selection.add(selectAll);
-        selection.add(selectNone);
-        header.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
-        header.add(selection);
-
-        column.add(header, BorderLayout.NORTH);
-        column.add(buildFoldersList(), BorderLayout.CENTER);
-
-        return column;
+        return selection;
     }
 
     private JComponent buildFoldersList() {
@@ -545,6 +331,8 @@ public class InstanceExportDialog extends JDialog {
             empty.setForeground(MD3Color.onSurfaceVariant());
             empty.setAlignmentX(LEFT_ALIGNMENT);
             folders.add(empty);
+
+            selectAllFolders.setEnabled(false);
         }
 
         return MD3ListContainer.wrapping(folders);
@@ -561,6 +349,8 @@ public class InstanceExportDialog extends JDialog {
             } else {
                 overrides.remove(name);
             }
+
+            updateFolderCount();
         });
 
         if (isRecommendedFolder(name)) {
@@ -593,27 +383,33 @@ public class InstanceExportDialog extends JDialog {
         }
     }
 
-    private JPanel buildActionBar() {
+    /**
+     * Keeps the count and the select-all tick honest about the list below them. The tick has no
+     * indeterminate state, so a partial selection reads as clear - the count is what distinguishes
+     * "none" from "some".
+     */
+    private void updateFolderCount() {
+        if (folderCount == null) {
+            return;
+        }
+
+        folderCount.setText(overrides.size() + " / " + folderBoxes.size());
+        folderCount.setFont(MD3Type.font(MD3Type.LABEL_MEDIUM, folderCount.getText()));
+
+        if (selectAllFolders != null && !folderBoxes.isEmpty()) {
+            selectAllFolders.setSelected(overrides.size() == folderBoxes.size());
+        }
+    }
+
+    private void buildActions() {
         MD3Button exportButton = MD3Button.filled(GetText.tr("Export"));
         exportButton.addActionListener(e -> startExport());
 
         MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
         cancelButton.addActionListener(e -> close());
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
-        actions.setOpaque(false);
-        actions.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
-        actions.add(cancelButton);
-        actions.add(exportButton);
-
-        getRootPane().setDefaultButton(exportButton);
-
-        JPanel bar = new JPanel(new BorderLayout());
-        bar.setOpaque(false);
-        bar.add(MD3Divider.inset(), BorderLayout.NORTH);
-        bar.add(actions, BorderLayout.CENTER);
-
-        return bar;
+        setActions(cancelButton, exportButton);
+        setDefaultAction(exportButton);
     }
 
     @SuppressWarnings("unchecked")
@@ -665,10 +461,5 @@ public class InstanceExportDialog extends JDialog {
         }));
 
         dialog.start();
-    }
-
-    private void close() {
-        setVisible(false);
-        dispose();
     }
 }

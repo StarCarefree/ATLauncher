@@ -17,25 +17,14 @@
  */
 package com.atlauncher.gui.dialogs;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.FileDialog;
-import java.awt.FlowLayout;
-import java.awt.FontMetrics;
 import java.awt.Window;
 import java.awt.datatransfer.DataFlavor;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.List;
 import java.util.Locale;
 
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.TransferHandler;
 import javax.swing.event.DocumentEvent;
@@ -49,10 +38,9 @@ import com.atlauncher.FileSystem;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.constants.UIConstants;
 import com.atlauncher.dbus.DBusUtils;
-import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.gui.md3.button.MD3Button;
-import com.atlauncher.gui.md3.container.MD3Card;
-import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.container.MD3Form;
+import com.atlauncher.gui.md3.feedback.MD3WindowDialog;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3TextField;
@@ -60,13 +48,9 @@ import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.network.Analytics;
 import com.atlauncher.network.analytics.AnalyticsEvent;
-import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
-import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.ImportPackUtils;
 import com.atlauncher.utils.OS;
-
-import com.formdev.flatlaf.util.UIScale;
 
 /**
  * Import a pack from a CurseForge / Modrinth / MultiMC file or URL.
@@ -74,17 +58,21 @@ import com.formdev.flatlaf.util.UIScale;
  * <p>
  * This was a 500×250 GridBag of {@code URL:} / {@code File:} labels under a centred HTML pane,
  * with Import as the only action and no way to dismiss it but the window chrome. The form is now
- * the same stacked cards the exporter uses: a headline, the supported sources, and Cancel / Import
- * on an action bar. Import stays off until there is something to import.
+ * the same stacked fields the exporter uses, and Import stays off until there is something to
+ * import.
+ *
+ * <p>
+ * The two sources share one card rather than having one each. Typing in either clears the other -
+ * they are alternatives, not a pair to fill in - and two separate cards said the opposite, so the
+ * URL you had pasted vanished from a card that still looked like it was waiting for input.
  *
  * <p>
  * The no-argument constructor still shows the dialog, because the instances toolbar constructs
  * it for its side effect. Tests pass a parent and keep it hidden.
  */
-public class ImportInstanceDialog extends JDialog {
+public class ImportInstanceDialog extends MD3WindowDialog {
     private static final int WIDTH = 600;
     private static final int HEIGHT = 400;
-    private static final int HELP_LINES = 4;
 
     private final MD3TextField url;
     private final MD3TextField filePath;
@@ -108,14 +96,15 @@ public class ImportInstanceDialog extends JDialog {
         filePath = new MD3TextField(16);
         importButton = MD3Button.filled(GetText.tr("Import"));
 
-        setupComponents();
+        setDialogSize(WIDTH, HEIGHT, 520, 360);
+        setTransferHandler(new PackFileTransferHandler());
 
-        addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosing(WindowEvent e) {
-                close();
-            }
-        });
+        Analytics.sendScreenView("Import Instance Dialog");
+
+        setHeadline(GetText.tr("Import Instance"), stripBreaks(GetText.tr(
+                "Select a zip/mrpack file to import it.<br/>We currently support CurseForge, Modrinth and MultiMC exported files/urls, as well as CurseForge.com links.")));
+        setBody(buildBody());
+        buildActions();
 
         if (show) {
             setVisible(true);
@@ -126,149 +115,34 @@ public class ImportInstanceDialog extends JDialog {
         return App.launcher == null ? null : App.launcher.getParent();
     }
 
-    private void setupComponents() {
-        setSize(UIScale.scale(new Dimension(WIDTH, HEIGHT)));
-        setMinimumSize(UIScale.scale(new Dimension(520, 360)));
-        setLocationRelativeTo(getOwner());
-        setLayout(new BorderLayout());
-        setResizable(true);
-        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-
-        getContentPane().setBackground(MD3Color.surface());
-        setTransferHandler(new PackFileTransferHandler());
-
-        Analytics.sendScreenView("Import Instance Dialog");
-
-        add(buildHeadline(), BorderLayout.NORTH);
-        add(buildForm(), BorderLayout.CENTER);
-        add(buildActionBar(), BorderLayout.SOUTH);
-    }
-
-    private JPanel buildHeadline() {
-        String title = GetText.tr("Import Instance");
-
-        JLabel headline = new JLabel(title);
-        headline.setFont(MD3Type.font(MD3Type.TITLE_LARGE, title));
-        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
-        headline.setForeground(MD3Color.onSurface());
-        headline.setAlignmentX(LEFT_ALIGNMENT);
-
-        String help = stripBreaks(GetText.tr(
-                "Select a zip/mrpack file to import it.<br/>We currently support CurseForge, Modrinth and MultiMC exported files/urls, as well as CurseForge.com links."));
-
-        JLabel supporting = new JLabel();
-        supporting.setOpaque(false);
-        supporting.setFont(MD3Type.font(MD3Type.BODY_MEDIUM, help));
-        supporting.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
-        supporting.setForeground(MD3Color.onSurfaceVariant());
-        supporting.setAlignmentX(LEFT_ALIGNMENT);
-        FontMetrics metrics = supporting.getFontMetrics(supporting.getFont());
-        supporting.setText(MD3Text.wrapToLines(metrics, help, UIScale.scale(WIDTH - MD3Spacing.L * 2), HELP_LINES));
-
-        JPanel top = new JPanel();
-        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
-        top.setOpaque(false);
-        top.setBorder(MD3Spacing.border(MD3Spacing.L, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
-        top.add(headline);
-        top.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
-        top.add(supporting);
-
-        return top;
-    }
-
-    private JPanel buildForm() {
-        JPanel form = new JPanel();
-        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
-        form.setOpaque(false);
-        form.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
-
+    private JPanel buildBody() {
         listen(url, this::onUrlChanged);
         listen(filePath, this::onFileChanged);
 
         MD3Button browseButton = MD3Button.outlined(GetText.tr("Browse"), MD3Icon.of(MD3Icons.FOLDER));
         browseButton.addActionListener(e -> browseForFile());
 
-        form.add(sectionCard(stackedField(GetText.tr("URL"), url)));
-        form.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.M)));
-        form.add(sectionCard(stackedField(GetText.tr("File"), fileRow(filePath, browseButton))));
-        form.add(Box.createVerticalGlue());
+        MD3Form form = new MD3Form(WIDTH - MD3Spacing.L * 2);
+        form.addField(GetText.tr("URL"), null, url);
+        form.addDivider();
+        form.addField(GetText.tr("File"), GetText.tr("Modpack Export (.zip, .mrpack)"),
+                MD3Form.row(filePath, browseButton));
 
-        return form;
+        JPanel body = form.atTop();
+        body.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+
+        return body;
     }
 
-    private static MD3Card sectionCard(JComponent row) {
-        MD3Card card = new MD3Card(MD3Card.Variant.FILLED);
-        card.setLayout(new BorderLayout());
-        card.setAlignmentX(LEFT_ALIGNMENT);
-        card.add(row, BorderLayout.CENTER);
-        stretch(card);
-
-        return card;
-    }
-
-    private static JPanel stackedField(String title, JComponent control) {
-        JPanel block = new JPanel();
-        block.setLayout(new BoxLayout(block, BoxLayout.Y_AXIS));
-        block.setOpaque(false);
-        block.setAlignmentX(LEFT_ALIGNMENT);
-
-        JLabel headline = new JLabel(title);
-        headline.setFont(MD3Type.font(MD3Type.BODY_LARGE, title));
-        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_LARGE);
-        headline.setForeground(MD3Color.onSurface());
-        headline.setAlignmentX(LEFT_ALIGNMENT);
-        block.add(headline);
-        block.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
-
-        stretch(control);
-        block.add(control);
-
-        return block;
-    }
-
-    private static JPanel fileRow(MD3TextField filePath, MD3Button browse) {
-        Dimension pref = filePath.getPreferredSize();
-        filePath.setPreferredSize(new Dimension(UIScale.scale(80), pref.height));
-        stretch(filePath);
-
-        JPanel row = new JPanel();
-        row.setOpaque(false);
-        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
-        row.setAlignmentX(LEFT_ALIGNMENT);
-        row.add(filePath);
-        row.add(Box.createHorizontalStrut(UIScale.scale(MD3Spacing.S)));
-        row.add(browse);
-        stretch(row);
-
-        return row;
-    }
-
-    private static void stretch(JComponent component) {
-        component.setAlignmentX(LEFT_ALIGNMENT);
-        component.setMaximumSize(new Dimension(Integer.MAX_VALUE, component.getPreferredSize().height));
-    }
-
-    private JPanel buildActionBar() {
+    private void buildActions() {
         importButton.addActionListener(e -> startImport());
         importButton.setEnabled(false);
 
         MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
         cancelButton.addActionListener(e -> close());
 
-        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
-        actions.setOpaque(false);
-        actions.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
-        actions.add(cancelButton);
-        actions.add(importButton);
-
-        getRootPane().setDefaultButton(importButton);
-
-        JPanel bar = new JPanel(new BorderLayout());
-        bar.setOpaque(false);
-        bar.add(MD3Divider.inset(), BorderLayout.NORTH);
-        bar.add(actions, BorderLayout.CENTER);
-
-        return bar;
+        setActions(cancelButton, importButton);
+        setDefaultAction(importButton);
     }
 
     private void onUrlChanged() {
@@ -420,11 +294,6 @@ public class ImportInstanceDialog extends JDialog {
 
     private void changeAddButtonStatus() {
         importButton.setEnabled(!url.getText().isEmpty() || !filePath.getText().isEmpty());
-    }
-
-    private void close() {
-        setVisible(false);
-        dispose();
     }
 
     private static void listen(MD3TextField field, Runnable onChange) {
