@@ -17,8 +17,10 @@
  */
 package com.atlauncher.gui.card;
 
+import static com.atlauncher.gui.md3.MD3Menus.addAction;
+import static com.atlauncher.gui.md3.MD3Menus.addSubmenu;
+
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -30,19 +32,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.AbstractButton;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
-import javax.swing.JLabel;
-import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
-import javax.swing.JSeparator;
-import javax.swing.JTextArea;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -64,8 +61,12 @@ import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.MD3FittingLabel;
+import com.atlauncher.gui.md3.MD3MenuItem;
+import com.atlauncher.gui.md3.MD3PopupMenu;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3ButtonBar;
 import com.atlauncher.gui.md3.button.MD3IconButton;
+import com.atlauncher.gui.md3.button.MD3MenuButton;
 import com.atlauncher.gui.md3.container.MD3Badge;
 import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.gui.md3.icon.MD3Icon;
@@ -92,7 +93,8 @@ import com.formdev.flatlaf.util.UIScale;
  * The old card was a collapsible titled panel carrying fourteen visible controls - eight buttons and
  * six dropdowns holding twenty more items - which made every instance look equally urgent and left
  * no room for the cover art. Here the cover leads, the metadata is a row of badges, playing is the
- * one filled button, and everything else lives behind the overflow.
+ * one filled button - split, so offline is a chevron away rather than a menu deep - and an update
+ * steps up to a tonal button beside it. Everything else lives behind the overflow.
  *
  * <p>
  * Nothing was dropped. The original buttons and menus are still constructed and still hold all the
@@ -113,7 +115,8 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
 
     private MD3FittingLabel titleLabel;
     private MD3FittingLabel subtitleLabel;
-    private MD3Button playAction;
+    private MD3MenuButton playAction;
+    private MD3Button updateAction;
     private MD3IconButton overflowAction;
     private JPanel coverWrapper;
 
@@ -142,9 +145,9 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
                 }
             });
 
-    private final JPopupMenu playPopupMenu = new JPopupMenu();
-    private final JMenuItem playOnlinePlayMenuItem = new JMenuItem(GetText.tr("Play Online"));
-    private final JMenuItem playOfflinePlayMenuItem = new JMenuItem(GetText.tr("Play Offline"));
+    private final JPopupMenu playPopupMenu = new MD3PopupMenu();
+    private final JMenuItem playOnlinePlayMenuItem = new MD3MenuItem(GetText.tr("Play Online"));
+    private final JMenuItem playOfflinePlayMenuItem = new MD3MenuItem(GetText.tr("Play Offline"));
     private final DropDownButton playButton = new DropDownButton(GetText.tr("Play"), playPopupMenu, true,
             new MouseAdapter() {
                 @Override
@@ -313,24 +316,33 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
             badges.add(badge);
         }
 
-        JPanel actions = new JPanel(new BorderLayout());
-        actions.setOpaque(false);
-        actions.setAlignmentX(LEFT_ALIGNMENT);
-        actions.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
-
-        playAction = MD3Button.filled(GetText.tr("Play"), MD3Icon.of(MD3Icons.PLAY));
+        playAction = MD3MenuButton.filled(GetText.tr("Play"), MD3Icon.of(MD3Icons.PLAY), playPopupMenu)
+                .withSplit(true);
         playAction.setEnabled(instance.launcher.isPlayable);
         playAction.addActionListener(e -> play(false));
 
-        overflowAction = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"));
+        overflowAction = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"),
+                MD3IconButton.Variant.STANDARD, MD3IconButton.Size.SMALL);
         overflowAction.addActionListener(e -> {
             JPopupMenu menu = buildOverflowMenu();
             menu.show(overflowAction, 0, overflowAction.getHeight());
         });
 
-        actions.add(playAction, BorderLayout.WEST);
-        actions.add(overflowAction, BorderLayout.EAST);
-        actions.setMaximumSize(new Dimension(Integer.MAX_VALUE, actions.getPreferredSize().height));
+        MD3ButtonBar actions = new MD3ButtonBar();
+        actions.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
+
+        // Update is the one secondary that cannot wait behind the overflow: the badge already said
+        // there is one, and a tonal button is how Material asks for it
+        if (hasUpdate) {
+            updateAction = MD3Button.tonal(GetText.tr("Update"), MD3Icon.of(MD3Icons.REFRESH))
+                    .withButtonSize(MD3Button.Size.SMALL);
+            updateAction.addActionListener(e -> updateButton.doClick());
+            actions.leading(playAction, updateAction);
+        } else {
+            actions.leading(playAction);
+        }
+
+        actions.trailing(overflowAction);
 
         body.add(titleLabel);
         body.add(subtitleLabel);
@@ -458,7 +470,7 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
     private JPopupMenu buildOverflowMenu() {
         setEditInstanceMenuItemVisbility();
 
-        JPopupMenu menu = new JPopupMenu();
+        JPopupMenu menu = new MD3PopupMenu();
 
         addAction(menu, playOfflinePlayMenuItem);
         addAction(menu, updateButton);
@@ -484,74 +496,6 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
         addAction(menu, deleteButton);
 
         return menu;
-    }
-
-    private static void addAction(JPopupMenu menu, AbstractButton source) {
-        if (!source.isVisible()) {
-            return;
-        }
-
-        menu.add(delegateTo(source));
-    }
-
-    private static void addAction(JPopupMenu menu, AbstractButton source, String text, Runnable action) {
-        if (!source.isVisible()) {
-            return;
-        }
-
-        JMenuItem item = new JMenuItem(text);
-        item.setEnabled(source.isEnabled());
-        item.addActionListener(e -> action.run());
-        menu.add(item);
-    }
-
-    /**
-     * Folds a dropdown button's menu in as a submenu, or straight into the parent when there is no
-     * button to name it after.
-     */
-    private static void addSubmenu(JPopupMenu menu, AbstractButton source, JPopupMenu contents) {
-        if (source != null && !source.isVisible()) {
-            return;
-        }
-
-        if (source == null) {
-            for (Component c : contents.getComponents()) {
-                copyInto(menu, c);
-            }
-
-            return;
-        }
-
-        JMenu submenu = new JMenu(source.getText());
-        submenu.setEnabled(source.isEnabled());
-
-        for (Component c : contents.getComponents()) {
-            copyInto(submenu.getPopupMenu(), c);
-        }
-
-        if (submenu.getMenuComponentCount() > 0) {
-            menu.add(submenu);
-        }
-    }
-
-    private static void copyInto(JPopupMenu target, Component source) {
-        if (source instanceof JMenuItem && source.isVisible()) {
-            target.add(delegateTo((JMenuItem) source));
-        } else if (source instanceof JSeparator) {
-            target.addSeparator();
-        }
-    }
-
-    /**
-     * A menu item that forwards to the control holding the real action, so behaviour lives in one
-     * place no matter how it is surfaced.
-     */
-    private static JMenuItem delegateTo(AbstractButton source) {
-        JMenuItem item = new JMenuItem(source.getText());
-        item.setEnabled(source.isEnabled());
-        item.addActionListener(e -> source.doClick());
-
-        return item;
     }
 
     private void setupPlayPopupMenus() {
@@ -903,13 +847,13 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
                 if (e.getButton() == MouseEvent.BUTTON1 && e.getClickCount() >= 2) {
                     play(false);
                 } else if (e.getButton() == MouseEvent.BUTTON3) {
-                    JPopupMenu rightClickMenu = new JPopupMenu();
+                    JPopupMenu rightClickMenu = new MD3PopupMenu();
 
-                    JMenuItem playOnlineButton = new JMenuItem(GetText.tr("Play Online"));
+                    JMenuItem playOnlineButton = new MD3MenuItem(GetText.tr("Play Online"));
                     playOnlineButton.addActionListener(l -> play(false));
                     rightClickMenu.add(playOnlineButton);
 
-                    JMenuItem playOfflineButton = new JMenuItem(GetText.tr("Play Offline"));
+                    JMenuItem playOfflineButton = new MD3MenuItem(GetText.tr("Play Offline"));
                     playOfflineButton.addActionListener(l -> play(true));
                     rightClickMenu.add(playOfflineButton);
 
@@ -917,12 +861,12 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
                         rightClickMenu.addSeparator();
                     }
 
-                    JMenuItem reinstallItem = new JMenuItem(GetText.tr("Reinstall"));
+                    JMenuItem reinstallItem = new MD3MenuItem(GetText.tr("Reinstall"));
                     reinstallItem.addActionListener(l -> instance.startReinstall());
                     reinstallItem.setVisible(instance.isUpdatable());
                     rightClickMenu.add(reinstallItem);
 
-                    JMenuItem updateItem = new JMenuItem(GetText.tr("Update"));
+                    JMenuItem updateItem = new MD3MenuItem(GetText.tr("Update"));
                     updateItem.addActionListener(l -> instance.update());
                     updateItem.setVisible(instance.isUpdatable());
                     updateItem.setEnabled(hasUpdate && instance.launcher.isPlayable);
@@ -930,7 +874,7 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
 
                     rightClickMenu.addSeparator();
 
-                    JMenuItem supportPackItem = new JMenuItem(GetText.tr("Create Support Pack"));
+                    JMenuItem supportPackItem = new MD3MenuItem(GetText.tr("Create Support Pack"));
                     supportPackItem.addActionListener(l -> {
                         JFileChooser chooser = new JFileChooser();
                         chooser.setDialogTitle(GetText.tr("Choose location to save support pack"));
@@ -947,23 +891,23 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
                     });
                     rightClickMenu.add(supportPackItem);
 
-                    JMenuItem renameItem = new JMenuItem(GetText.tr("Rename"));
+                    JMenuItem renameItem = new MD3MenuItem(GetText.tr("Rename"));
                     renameItem.addActionListener(l -> instance.startRename());
                     rightClickMenu.add(renameItem);
 
-                    JMenuItem changeDescriptionItem = new JMenuItem(GetText.tr("Change Description"));
+                    JMenuItem changeDescriptionItem = new MD3MenuItem(GetText.tr("Change Description"));
                     changeDescriptionItem.addActionListener(l -> instance.startChangeDescription());
                     changeDescriptionItem.setVisible(instance.canChangeDescription());
                     rightClickMenu.add(changeDescriptionItem);
 
-                    JMenuItem changeImageItem = new JMenuItem(GetText.tr("Change Image"));
+                    JMenuItem changeImageItem = new MD3MenuItem(GetText.tr("Change Image"));
                     changeImageItem.addActionListener(l -> {
                         instance.startChangeImage();
                         image.setImage(instance.getImage().getImage());
                     });
                     rightClickMenu.add(changeImageItem);
 
-                    JMenuItem cloneItem = new JMenuItem(GetText.tr("Clone"));
+                    JMenuItem cloneItem = new MD3MenuItem(GetText.tr("Clone"));
                     cloneItem.addActionListener(l -> instance.startClone());
                     rightClickMenu.add(cloneItem);
                     rightClickMenu.show(image, e.getX(), e.getY());
@@ -991,7 +935,15 @@ public class InstanceCard extends MD3Card implements RelocalizationListener, Car
     @Override
     public void onRelocalization() {
         this.playButton.setText(GetText.tr("Play"));
+        this.playAction.setText(GetText.tr("Play"));
         this.updateButton.setText(GetText.tr("Update"));
+
+        if (this.updateAction != null) {
+            this.updateAction.setText(GetText.tr("Update"));
+        }
+
+        this.overflowAction.setToolTipText(GetText.tr("More options"));
+        this.overflowAction.getAccessibleContext().setAccessibleName(GetText.tr("More options"));
         this.backupButton.setText(GetText.tr("Backup"));
         this.deleteButton.setText(GetText.tr("Delete"));
         this.addButton.setText(GetText.tr("Add Mods"));

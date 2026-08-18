@@ -17,6 +17,8 @@
  */
 package com.atlauncher.gui.md3.button;
 
+import java.awt.Dimension;
+
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.UIManager;
@@ -122,6 +124,22 @@ public class MD3IconButton extends JButton {
         setButtonSize(buttonSize);
 
         return this;
+    }
+
+    /**
+     * Stays the square it asked for, unless a layout has said otherwise.
+     *
+     * <p>
+     * An icon button that is allowed to grow becomes an ellipse, or a circle floating in a
+     * rectangle that looks like padding someone forgot to remove.
+     */
+    @Override
+    public Dimension getMaximumSize() {
+        if (isMaximumSizeSet()) {
+            return super.getMaximumSize();
+        }
+
+        return getPreferredSize();
     }
 
     @Override

@@ -46,6 +46,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3ButtonBar;
 import com.atlauncher.gui.md3.button.MD3ButtonGroup;
 import com.atlauncher.gui.md3.button.MD3Fab;
 import com.atlauncher.gui.md3.button.MD3IconButton;
@@ -460,9 +461,20 @@ public final class MD3Gallery {
 
         JPanel menus = flow();
         menus.add(tag("MENU"));
-        menus.add(MD3MenuButton.filled("Play", demoMenu()));
+        menus.add(MD3MenuButton.filled("Play", MD3Icon.of(MD3Icons.PLAY), demoMenu()).withSplit(true));
         menus.add(MD3MenuButton.tonal("Open", demoMenu()).withSplit(true));
         panel.add(menus);
+
+        JPanel bar = flow();
+        bar.add(tag("BAR"));
+        MD3ButtonBar actions = new MD3ButtonBar();
+        actions.leading(MD3Button.filled("Play", MD3Icon.of(MD3Icons.PLAY)));
+        actions.leading(MD3Button.tonal("Update").withButtonSize(MD3Button.Size.SMALL));
+        actions.trailing(new MD3IconButton(MD3Icons.MORE_VERT, "More", MD3IconButton.Variant.STANDARD,
+                MD3IconButton.Size.SMALL));
+        actions.setPreferredSize(new Dimension(280, actions.getPreferredSize().height));
+        bar.add(actions);
+        panel.add(bar);
 
         JPanel groups = flow();
         groups.add(tag("GROUP"));

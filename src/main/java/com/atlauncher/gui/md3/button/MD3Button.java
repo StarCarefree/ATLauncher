@@ -18,6 +18,7 @@
 package com.atlauncher.gui.md3.button;
 
 import java.awt.Color;
+import java.awt.Dimension;
 
 import javax.swing.Icon;
 import javax.swing.JButton;
@@ -282,6 +283,12 @@ public class MD3Button extends JButton {
         return this;
     }
 
+    public MD3Button withIcon(Icon icon) {
+        setIcon(icon);
+
+        return this;
+    }
+
     /**
      * Restores the type role for the current size. The UI sets this at install time; calling it
      * again is what lets {@link #setButtonSize(Size)} change the face without rebuilding the UI.
@@ -291,6 +298,30 @@ public class MD3Button extends JButton {
 
         setFont(MD3Type.font(role));
         putClientProperty(MD3Type.TYPE_ROLE_KEY, role);
+    }
+
+    /**
+     * Stays the size it asked for, unless a layout has said otherwise.
+     *
+     * <p>
+     * A box layout hands leftover space to anyone whose maximum is larger than their preferred, so a
+     * Play that will grow and a glue that will grow share the row and both come out the wrong
+     * width. {@link MD3ButtonBar} marks the primary action as the one that may stretch; everything
+     * else keeps this default.
+     *
+     * <p>
+     * Height is never offered. A 40dp Play next to a 48dp overflow otherwise paints as a 48dp
+     * stadium - the shape is the size.
+     */
+    @Override
+    public Dimension getMaximumSize() {
+        // a copy: BoxLayout writes into the Dimension it is handed, and returning the stored
+        // one would let a single layout pass shrink the maximum for every pass after it
+        if (isMaximumSizeSet()) {
+            return new Dimension(super.getMaximumSize());
+        }
+
+        return getPreferredSize();
     }
 
     @Override

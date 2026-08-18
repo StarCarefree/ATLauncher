@@ -48,6 +48,8 @@ import com.atlauncher.Gsons;
 import com.atlauncher.data.Instance;
 import com.atlauncher.gui.card.InstanceCard;
 import com.atlauncher.gui.layouts.CardGridLayout;
+import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3MenuButton;
 import com.atlauncher.gui.md3.container.MD3Badge;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
@@ -206,6 +208,33 @@ public class InstanceCardRenderTest {
     }
 
     @Test
+    public void testPlayIsASplitMenuAndAnUpdateStepsUpBesideIt() throws Exception {
+        InstanceCard card = new InstanceCard(load("AllTheMods9"), true, "%1$s");
+        card.setSize(card.getPreferredSize());
+        layoutTree(card);
+
+        MD3MenuButton play = findPlay(card);
+
+        assertNotNull(play, "the card has no Play button");
+        assertTrue(play.isSplit(), "Play is no longer split, so offline is buried in the overflow");
+        assertEquals(play.getPreferredSize().height, play.getHeight(),
+                "Play was stretched to the overflow's height");
+
+        MD3Button update = null;
+
+        for (Component c : findAll(card)) {
+            if (c instanceof MD3Button && !(c instanceof MD3MenuButton)
+                    && "Update".equals(((MD3Button) c).getText())) {
+                update = (MD3Button) c;
+            }
+        }
+
+        assertNotNull(update, "an instance with an update has no Update button on the card");
+        assertEquals(MD3Button.Variant.TONAL, update.getVariant(),
+                "Update is not tonal, so it competes with Play");
+    }
+
+    @Test
     public void testACorruptedInstanceCannotBePlayed() throws Exception {
         Instance corrupted = load("VanillaTest");
         corrupted.launcher.isPlayable = false;
@@ -222,6 +251,16 @@ public class InstanceCardRenderTest {
         }
 
         assertTrue(foundDisabledPlay, "a corrupted instance still offers a working play button");
+    }
+
+    private static MD3MenuButton findPlay(Container root) {
+        for (Component c : findAll(root)) {
+            if (c instanceof MD3MenuButton && "Play".equals(((MD3MenuButton) c).getText())) {
+                return (MD3MenuButton) c;
+            }
+        }
+
+        return null;
     }
 
     private static java.util.List<Component> findAll(Container root) {

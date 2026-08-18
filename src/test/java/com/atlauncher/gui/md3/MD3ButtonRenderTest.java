@@ -37,6 +37,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3ButtonBar;
 import com.atlauncher.gui.md3.button.MD3ButtonGroup;
 import com.atlauncher.gui.md3.button.MD3Fab;
 import com.atlauncher.gui.md3.button.MD3IconButton;
@@ -170,6 +171,38 @@ public class MD3ButtonRenderTest {
 
         new File("build/md3-preview").mkdirs();
         ImageIO.write(image, "png", new File("build/md3-preview/button-group-dark.png"));
+    }
+
+    @Test
+    public void testAButtonRefusesExtraHeight() {
+        MD3Button button = MD3Button.filled("Play");
+
+        assertEquals(button.getPreferredSize().height, button.getMaximumSize().height,
+                "a button that will grow taller is one a card row will stretch");
+    }
+
+    @Test
+    public void testAButtonBarKeepsEachButtonTheHeightItAskedFor() {
+        MD3Button play = MD3Button.filled("Play");
+        MD3IconButton overflow = new MD3IconButton(MD3Icons.MORE_VERT, "More", MD3IconButton.Variant.STANDARD,
+                MD3IconButton.Size.SMALL);
+
+        MD3ButtonBar bar = new MD3ButtonBar();
+        bar.leading(play);
+        bar.trailing(overflow);
+        bar.setSize(280, 80);
+        layoutTree(bar);
+
+        assertEquals(play.getPreferredSize().height, play.getHeight(),
+                "the bar stretched Play to the row it was given");
+        assertEquals(overflow.getPreferredSize().height, overflow.getHeight(),
+                "the bar stretched the overflow");
+        assertEquals(play.getPreferredSize().width, play.getWidth(),
+                "Play grew instead of sitting on the leading edge");
+        assertEquals(overflow.getPreferredSize().width, overflow.getWidth(),
+                "the overflow grew instead of sitting on the trailing edge");
+        assertTrue(overflow.getX() > play.getX() + play.getWidth() + 16,
+                "the leftover width did not sit between the two groups");
     }
 
     @Test

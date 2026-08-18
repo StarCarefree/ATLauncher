@@ -54,7 +54,9 @@ import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.MD3FittingLabel;
+import com.atlauncher.gui.md3.MD3PopupMenu;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3ButtonBar;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Badge;
 import com.atlauncher.gui.md3.container.MD3Card;
@@ -228,26 +230,20 @@ public class ServerCard extends MD3Card implements RelocalizationListener, CardG
             badges.add(badge);
         }
 
-        JPanel actions = new JPanel(new BorderLayout());
-        actions.setOpaque(false);
-        actions.setAlignmentX(LEFT_ALIGNMENT);
-        actions.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
-
         launchAction = MD3Button.filled(GetText.tr("Launch"), MD3Icon.of(MD3Icons.PLAY));
         launchAction.addActionListener(e -> launch());
 
-        overflowAction = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"));
+        overflowAction = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"),
+                MD3IconButton.Variant.STANDARD, MD3IconButton.Size.SMALL);
         overflowAction.addActionListener(e -> {
             JPopupMenu menu = buildOverflowMenu();
             menu.show(overflowAction, 0, overflowAction.getHeight());
         });
 
-        actions.add(launchAction, BorderLayout.WEST);
-        actions.add(overflowAction, BorderLayout.EAST);
-
-        // a box layout shares spare height between whatever will take it, and a border layout
-        // stretches what it is given to fill - so without a ceiling the launch button grows
-        actions.setMaximumSize(new Dimension(Integer.MAX_VALUE, actions.getPreferredSize().height));
+        MD3ButtonBar actions = new MD3ButtonBar();
+        actions.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
+        actions.leading(launchAction);
+        actions.trailing(overflowAction);
 
         body.add(titleLabel);
         body.add(subtitleLabel);
@@ -302,7 +298,7 @@ public class ServerCard extends MD3Card implements RelocalizationListener, CardG
     }
 
     private JPopupMenu buildOverflowMenu() {
-        JPopupMenu menu = new JPopupMenu();
+        JPopupMenu menu = new MD3PopupMenu();
 
         addAction(menu, launchAndCloseButton);
         addAction(menu, launchWithGui);

@@ -37,7 +37,10 @@ import org.mini2Dx.gettext.GetText;
 import com.atlauncher.data.MicrosoftAccount;
 import com.atlauncher.gui.layouts.CardGridLayout;
 import com.atlauncher.gui.md3.MD3FittingLabel;
+import com.atlauncher.gui.md3.MD3MenuItem;
+import com.atlauncher.gui.md3.MD3PopupMenu;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.button.MD3ButtonBar;
 import com.atlauncher.gui.md3.button.MD3IconButton;
 import com.atlauncher.gui.md3.container.MD3Badge;
 import com.atlauncher.gui.md3.container.MD3Card;
@@ -162,23 +165,18 @@ public final class AccountCard extends MD3Card implements CardGridLayout.WidthAw
     }
 
     private JComponent buildActions(Runnable onAction, Actions actions) {
-        JPanel row = new JPanel(new BorderLayout());
-        row.setOpaque(false);
-        row.setAlignmentX(LEFT_ALIGNMENT);
-        row.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
-
         MD3Button primary = MD3Button.outlined(GetText.tr("Change Skin"));
         primary.addActionListener(e -> {
             onAction.run();
             actions.changeSkin();
         });
-        row.add(primary, BorderLayout.WEST);
 
-        MD3IconButton overflow = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"));
+        MD3IconButton overflow = new MD3IconButton(MD3Icons.MORE_VERT, GetText.tr("More options"),
+                MD3IconButton.Variant.STANDARD, MD3IconButton.Size.SMALL);
         overflow.addActionListener(e -> {
             onAction.run();
 
-            JPopupMenu menu = new JPopupMenu();
+            JPopupMenu menu = new MD3PopupMenu();
             menu.add(item(GetText.tr("Reload Skin"), actions::reloadSkin));
             menu.add(item(GetText.tr("Update Username"), actions::updateUsername));
             menu.add(item(GetText.tr("Refresh Access Token"), actions::refreshAccessToken));
@@ -187,13 +185,17 @@ public final class AccountCard extends MD3Card implements CardGridLayout.WidthAw
 
             menu.show(overflow, 0, overflow.getHeight());
         });
-        row.add(overflow, BorderLayout.EAST);
+
+        MD3ButtonBar row = new MD3ButtonBar();
+        row.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
+        row.leading(primary);
+        row.trailing(overflow);
 
         return row;
     }
 
     private static JMenuItem item(String text, Runnable action) {
-        JMenuItem menuItem = new JMenuItem(text);
+        JMenuItem menuItem = new MD3MenuItem(text);
         menuItem.addActionListener(e -> action.run());
 
         return menuItem;

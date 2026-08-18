@@ -20,8 +20,7 @@ package com.atlauncher.gui.dialogs;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
+import java.awt.Window;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -33,51 +32,67 @@ import java.util.Optional;
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
 import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.App;
-import com.atlauncher.constants.UIConstants;
 import com.atlauncher.data.Instance;
 import com.atlauncher.data.InstanceExportFormat;
 import com.atlauncher.data.MicrosoftAccount;
-import com.atlauncher.gui.components.JLabelWithHover;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.md3.container.MD3ListContainer;
+import com.atlauncher.gui.md3.container.MD3SettingsList;
+import com.atlauncher.gui.md3.icon.MD3Icon;
+import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.input.MD3Checkbox;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
+import com.atlauncher.gui.md3.input.MD3Switch;
 import com.atlauncher.gui.md3.input.MD3TextField;
 import com.atlauncher.managers.AccountManager;
 import com.atlauncher.managers.DialogManager;
 import com.atlauncher.managers.NotificationManager;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
+import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Pair;
-import com.atlauncher.utils.Utils;
-import com.atlauncher.utils.WindowUtils;
-
 import com.formdev.flatlaf.util.UIScale;
 
+/**
+ * Export an instance as a shareable pack.
+ *
+ * <p>
+ * Built as the same list of settings rows the installer and instance settings use, rather than a
+ * {@link java.awt.GridBagLayout} of right-aligned labels with a help icon. The explanations used to
+ * live in tooltips on a 16px glyph; they now sit under each setting's name.
+ */
 public class InstanceExportDialog extends JDialog {
+    private static final int WIDTH = 720;
+    private static final int HEIGHT = 680;
+    private static final int FIELD_COLUMNS = 18;
+
     private final Instance instance;
     private final List<String> overrides = new ArrayList<>();
+    private final List<MD3Checkbox> folderBoxes = new ArrayList<>();
 
-    private final JPanel topPanel = new JPanel();
-    private final JPanel bottomPanel = new JPanel();
-
-    final ImageIcon HELP_ICON = Utils.getIconImage(App.THEME.getIconPath("question"));
-
-    final GridBagConstraints gbc = new GridBagConstraints();
+    private MD3TextField name;
+    private MD3TextField version;
+    private MD3TextField author;
+    private MD3ComboBox<ComboItem<InstanceExportFormat>> format;
+    private MD3Switch jointPackaging;
+    private MD3Switch skipHashVerification;
+    private MD3TextField saveTo;
+    private MD3SettingsList.Row jointPackagingRow;
 
     public InstanceExportDialog(Instance instance) {
         // #. {0} is the name of the instance we're exporting
-        super(App.launcher.getParent(), GetText.tr("Export {0}", instance.launcher.name), ModalityType.DOCUMENT_MODAL);
+        super(ownerWindow(), GetText.tr("Export {0}", instance.launcher.name), ModalityType.DOCUMENT_MODAL);
         this.instance = instance;
 
         setupComponents();
@@ -88,241 +103,200 @@ public class InstanceExportDialog extends JDialog {
                 close();
             }
         });
+    }
 
-        WindowUtils.resizeForContent(this);
+    private static Window ownerWindow() {
+        return App.launcher == null ? null : App.launcher.getParent();
     }
 
     private void setupComponents() {
-        setLocationRelativeTo(App.launcher.getParent());
+        setSize(WIDTH, HEIGHT);
+        setMinimumSize(new Dimension(WIDTH / 2, HEIGHT / 2));
+        setLocationRelativeTo(getOwner());
         setLayout(new BorderLayout());
         setResizable(true);
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
         getContentPane().setBackground(MD3Color.surface());
 
-        topPanel.setOpaque(false);
-        topPanel.setBorder(MD3Spacing.border(MD3Spacing.XL, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
-        topPanel.setLayout(new GridBagLayout());
+        add(buildHeadline(), BorderLayout.NORTH);
+        add(wrapForm(buildForm()), BorderLayout.CENTER);
+        add(buildActionBar(), BorderLayout.SOUTH);
+    }
 
-        // Name
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
+    private JPanel buildHeadline() {
+        // #. {0} is the name of the instance we're exporting
+        String text = GetText.tr("Export {0}", instance.launcher.name);
 
-        JLabelWithHover nameLabel = new JLabelWithHover(GetText.tr("Name") + ":", HELP_ICON,
-            GetText.tr("The name of the instance"));
-        topPanel.add(nameLabel, gbc);
+        JLabel headline = new JLabel(text);
+        headline.setFont(MD3Type.font(MD3Type.TITLE_LARGE, text));
+        headline.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_LARGE);
+        headline.setForeground(MD3Color.onSurface());
 
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final MD3TextField name = new MD3TextField(30);
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        top.setBorder(MD3Spacing.border(MD3Spacing.XL, MD3Spacing.L, MD3Spacing.S, MD3Spacing.L));
+        top.add(headline, BorderLayout.CENTER);
+
+        return top;
+    }
+
+    private JScrollPane wrapForm(MD3SettingsList form) {
+        JScrollPane scroll = new JScrollPane(form, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setBorder(null);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        return scroll;
+    }
+
+    private MD3SettingsList buildForm() {
+        MD3SettingsList form = new MD3SettingsList();
+
+        form.addSection(GetText.tr("Pack"));
+
+        name = new MD3TextField(FIELD_COLUMNS);
         name.setText(Optional.ofNullable(instance.launcher.lastExportName).orElse(instance.launcher.name));
-        topPanel.add(name, gbc);
+        form.addRow(GetText.tr("Name"), GetText.tr("The name of the instance"), name);
 
-        // Version
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-
-        JLabelWithHover versionLabel = new JLabelWithHover(GetText.tr("Version") + ":", HELP_ICON,
-            GetText.tr("The version of this instance"));
-        topPanel.add(versionLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final MD3TextField version = new MD3TextField(30);
+        version = new MD3TextField(FIELD_COLUMNS);
         version.setText(Optional.ofNullable(instance.launcher.lastExportVersion).orElse(instance.launcher.version));
-        topPanel.add(version, gbc);
+        form.addRow(GetText.tr("Version"), GetText.tr("The version of this instance"), version);
 
-        // Author
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-
-        JLabelWithHover authorLabel = new JLabelWithHover(GetText.tr("Author") + ":", HELP_ICON,
-            GetText.tr("Your name"));
-        topPanel.add(authorLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final MD3TextField author = new MD3TextField(30);
-        final MicrosoftAccount selectedAccount = AccountManager.getSelectedAccount();
+        author = new MD3TextField(FIELD_COLUMNS);
+        MicrosoftAccount selectedAccount = AccountManager.getSelectedAccount();
         author.setText(Optional.ofNullable(instance.launcher.lastExportAuthor)
-            .orElse(selectedAccount == null ? "" : selectedAccount.minecraftUsername));
-        topPanel.add(author, gbc);
+                .orElse(selectedAccount == null ? "" : selectedAccount.minecraftUsername));
+        form.addRow(GetText.tr("Author"), GetText.tr("Your name"), author);
 
-        // Format
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
+        form.addSection(GetText.tr("Format"));
 
-        JLabelWithHover formatLabel = new JLabelWithHover(GetText.tr("Format") + ":", HELP_ICON,
-            GetText.tr("Which format to export this instance as"));
-        topPanel.add(formatLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final MD3ComboBox<ComboItem<InstanceExportFormat>> format = new MD3ComboBox<>();
+        format = new MD3ComboBox<>();
         format.addItem(new ComboItem<>(InstanceExportFormat.CURSEFORGE, "CurseForge"));
         format.addItem(new ComboItem<>(InstanceExportFormat.MODRINTH, "Modrinth"));
         format.addItem(new ComboItem<>(InstanceExportFormat.CURSEFORGE_AND_MODRINTH, "CurseForge & Modrinth"));
         format.addItem(new ComboItem<>(InstanceExportFormat.MULTIMC, "MultiMC"));
-        topPanel.add(format, gbc);
+        selectDefaultFormat();
+        form.addRow(GetText.tr("Format"), GetText.tr("Which format to export this instance as"), format);
+
+        jointPackaging = new MD3Switch();
+        jointPackagingRow = form.addRow(GetText.tr("Joint packaging"), GetText.tr(
+                "Also include mods that are only published on the other platform. For Modrinth exports they are added as external download entries, for CurseForge exports they are kept in overrides and listed in modlist.html. You may need distribution permission from the mod authors to publish the exported pack."),
+                jointPackaging);
+
+        skipHashVerification = new MD3Switch();
+        boolean skipHashDefault = instance.launcher.lastExportSkipHashVerification != null
+                ? instance.launcher.lastExportSkipHashVerification
+                : App.settings != null && App.settings.skipExportHashVerification;
+        skipHashVerification.setSelected(skipHashDefault);
+        form.addRow(GetText.tr("Skip hash check"), GetText.tr(
+                "By default, export fingerprints every file against CurseForge and Modrinth so mods without stored IDs can still be listed. Skip that lookup to export using only the project and file metadata already on the instance. Use this when files have been changed or hash lookup fails."),
+                skipHashVerification);
+
+        format.addActionListener(e -> updateJointPackagingState());
+        updateJointPackagingState();
+
+        form.addSection(GetText.tr("Destination"));
+
+        saveTo = new MD3TextField(24);
+        saveTo.setText(Optional.ofNullable(instance.launcher.lastExportSaveTo)
+                .orElse(instance.getRoot().toAbsolutePath().toString()));
+        saveTo.setEnabled(!OS.isUsingFlatpak());
+
+        MD3Button browseButton = MD3Button.outlined(GetText.tr("Browse"), MD3Icon.of(MD3Icons.FOLDER));
+        browseButton.addActionListener(e -> browseForDirectory());
+
+        MD3Button resetButton = MD3Button.text(GetText.tr("Reset"));
+        resetButton.addActionListener(e -> saveTo.setText(instance.getRoot().toAbsolutePath().toString()));
+
+        form.addWideRow(GetText.tr("Save to"),
+                GetText.tr("Select the folder you wish to export the instance to"),
+                destinationControls(saveTo, browseButton, resetButton));
+
+        form.addSection(GetText.tr("Folders to export"));
+        form.addWideRow(GetText.tr("Include"),
+                GetText.tr("Select the folders you wish to include for this export"),
+                buildFoldersPanel());
+
+        return form;
+    }
+
+    private void selectDefaultFormat() {
+        InstanceExportFormat preferred = App.settings == null ? InstanceExportFormat.CURSEFORGE
+                : App.settings.defaultExportFormat;
 
         for (int i = 0; i < format.getItemCount(); i++) {
             ComboItem<InstanceExportFormat> item = format.getItemAt(i);
 
-            if (item.getValue() == App.settings.defaultExportFormat) {
+            if (item.getValue() == preferred) {
                 format.setSelectedIndex(i);
-                break;
-            }
-        }
-
-        // Joint Packaging
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-
-        JLabelWithHover jointPackagingLabel = new JLabelWithHover(GetText.tr("Joint Packaging") + ":", HELP_ICON,
-            GetText.tr(
-                "Also include mods that are only published on the other platform. For Modrinth exports they are added as external download entries, for CurseForge exports they are kept in overrides and listed in modlist.html. You may need distribution permission from the mod authors to publish the exported pack."));
-        topPanel.add(jointPackagingLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final MD3Checkbox jointPackaging = new MD3Checkbox(GetText.tr("Include single-platform mods"));
-        topPanel.add(jointPackaging, gbc);
-
-        Runnable updateJointPackagingState = () -> {
-            boolean supported = ((ComboItem<InstanceExportFormat>) format.getSelectedItem())
-                .getValue() != InstanceExportFormat.MULTIMC;
-            jointPackaging.setEnabled(supported);
-            if (!supported) {
-                jointPackaging.setSelected(false);
-            }
-        };
-        format.addActionListener(e -> updateJointPackagingState.run());
-        updateJointPackagingState.run();
-
-        // Hash verification
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-
-        JLabelWithHover skipHashLabel = new JLabelWithHover(GetText.tr("Hash Verification") + ":", HELP_ICON,
-            GetText.tr(
-                "By default, export fingerprints every file against CurseForge and Modrinth so mods without stored IDs can still be listed. Skip that lookup to export using only the project and file metadata already on the instance. Use this when files have been changed or hash lookup fails."));
-        topPanel.add(skipHashLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-        final MD3Checkbox skipHashVerification = new MD3Checkbox(GetText.tr("Skip hash check, use metadata only"));
-        boolean skipHashDefault = instance.launcher.lastExportSkipHashVerification != null
-            ? instance.launcher.lastExportSkipHashVerification
-            : App.settings.skipExportHashVerification;
-        skipHashVerification.setSelected(skipHashDefault);
-        topPanel.add(skipHashVerification, gbc);
-
-        // Export File
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 1;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BELOW_BASELINE_TRAILING;
-        JLabelWithHover saveToLabel = new JLabelWithHover(GetText.tr("Save To") + ":", HELP_ICON,
-            GetText.tr("Select the folder you wish to export the instance to"));
-        topPanel.add(saveToLabel, gbc);
-
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
-
-        JPanel saveToPanel = new JPanel();
-        saveToPanel.setOpaque(false);
-        saveToPanel.setLayout(new BoxLayout(saveToPanel, BoxLayout.X_AXIS));
-
-        final MD3TextField saveTo = new MD3TextField(25);
-        saveTo.setText(Optional.ofNullable(instance.launcher.lastExportSaveTo)
-            .orElse(instance.getRoot().toAbsolutePath().toString()));
-
-        // Disable manual input on flatpak (require proper xdg selection)
-        saveTo.setEnabled(!OS.isUsingFlatpak());
-
-        MD3Button browseButton = MD3Button.outlined(GetText.tr("Browse"));
-        browseButton.addActionListener(e -> {
-            FileChooserDialog fcd = new FileChooserDialog(this,
-                GetText.tr("Select export directory"),
-                GetText.tr("Directory"),
-                GetText.tr("Select"));
-            fcd.setVisible(true);
-
-            if (fcd.wasClosed()) {
                 return;
             }
+        }
+    }
 
-            List<File> files = fcd.getChosenFiles();
+    @SuppressWarnings("unchecked")
+    private void updateJointPackagingState() {
+        ComboItem<InstanceExportFormat> selected = (ComboItem<InstanceExportFormat>) format.getSelectedItem();
+        boolean supported = selected != null && selected.getValue() != InstanceExportFormat.MULTIMC;
 
-            if (files != null && !files.isEmpty()) {
-                File dir = files.get(0);
-                saveTo.setText(dir.getAbsolutePath());
-            }
-        });
+        jointPackaging.setEnabled(supported);
+        jointPackagingRow.setEnabled(supported);
 
-        MD3Button resetButton = MD3Button.outlined(GetText.tr("Reset"));
-        resetButton.addActionListener(e -> saveTo.setText(instance.getRoot().toAbsolutePath().toString()));
+        if (!supported) {
+            jointPackaging.setSelected(false);
+        }
+    }
 
-        saveToPanel.add(saveTo);
-        saveToPanel.add(Box.createHorizontalStrut(5));
-        saveToPanel.add(browseButton);
-        saveToPanel.add(resetButton);
+    private void browseForDirectory() {
+        FileChooserDialog chooser = new FileChooserDialog(this, GetText.tr("Select export directory"),
+                GetText.tr("Directory"), GetText.tr("Select"));
+        chooser.setVisible(true);
 
-        topPanel.add(saveToPanel, gbc);
+        if (chooser.wasClosed()) {
+            return;
+        }
 
-        // Overrides
-        gbc.gridx = 0;
-        gbc.gridy++;
-        gbc.gridwidth = 1;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_TRAILING;
-        JLabelWithHover overridesLabel = new JLabelWithHover(GetText.tr("Folders To Export") + ":", HELP_ICON,
-            GetText.tr("Select the folders you wish to include for this export"));
-        topPanel.add(overridesLabel, gbc);
+        List<File> files = chooser.getChosenFiles();
 
-        gbc.gridx++;
-        gbc.insets = UIConstants.LABEL_INSETS;
-        gbc.anchor = GridBagConstraints.BASELINE_LEADING;
+        if (files != null && !files.isEmpty()) {
+            saveTo.setText(files.get(0).getAbsolutePath());
+        }
+    }
 
-        JPanel overridesPanel = new JPanel();
-        overridesPanel.setOpaque(false);
-        overridesPanel.setLayout(new BoxLayout(overridesPanel, BoxLayout.Y_AXIS));
+    private static JPanel destinationControls(MD3TextField saveTo, MD3Button browse, MD3Button reset) {
+        JPanel row = new JPanel();
+        row.setOpaque(false);
+        row.setLayout(new BoxLayout(row, BoxLayout.X_AXIS));
+        row.add(saveTo);
+        row.add(Box.createHorizontalStrut(UIScale.scale(MD3Spacing.S)));
+        row.add(browse);
+        row.add(Box.createHorizontalStrut(UIScale.scale(MD3Spacing.XS)));
+        row.add(reset);
 
-        // get all files ignoring ATLauncher specific things as well as naughtys
+        return row;
+    }
+
+    private JPanel buildFoldersPanel() {
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+
         File[] files = Optional.ofNullable(instance.getRoot().toFile()
-            .listFiles(pathname -> !pathname.getName().equalsIgnoreCase("disabledmods")
-                && !pathname.getName().equalsIgnoreCase("instance.json")
-                && !pathname.getName().equalsIgnoreCase(".fabric")
-                && !pathname.getName().equalsIgnoreCase(".quilt"))).orElse(new File[0]);
+                .listFiles(pathname -> !pathname.getName().equalsIgnoreCase("disabledmods")
+                        && !pathname.getName().equalsIgnoreCase("instance.json")
+                        && !pathname.getName().equalsIgnoreCase(".fabric")
+                        && !pathname.getName().equalsIgnoreCase(".quilt")))
+                .orElse(new File[0]);
 
         for (File filename : files) {
-            // skip any folders with no files inside
             if (filename.isDirectory() && Optional.ofNullable(filename.listFiles()).orElse(new File[0]).length == 0) {
                 continue;
             }
 
             MD3Checkbox checkBox = new MD3Checkbox(filename.getName());
-
             checkBox.addItemListener(e -> {
                 if (checkBox.isSelected()) {
                     overrides.add(checkBox.getText());
@@ -331,92 +305,144 @@ public class InstanceExportDialog extends JDialog {
                 }
             });
 
-            if (filename.getName().equalsIgnoreCase("config") || filename.getName().equalsIgnoreCase("mods")
-                || filename.getName().equalsIgnoreCase("oresources")
-                || filename.getName().equalsIgnoreCase("resourcepacks")
-                || filename.getName().equalsIgnoreCase("shaderpacks")
-                || filename.getName().equalsIgnoreCase("datapacks")
-                || filename.getName().equalsIgnoreCase("resources")
-                || filename.getName().equalsIgnoreCase("scripts")) {
+            if (isRecommendedFolder(filename.getName())) {
                 checkBox.setSelected(true);
             }
 
-            overridesPanel.add(checkBox);
+            folderBoxes.add(checkBox);
         }
 
-        MD3ListContainer overridesContainer = MD3ListContainer.wrapping(overridesPanel);
-        overridesContainer.setPreferredSize(UIScale.scale(new Dimension(350, 200)));
+        if (folderBoxes.isEmpty()) {
+            JLabel empty = new JLabel(GetText.tr("No extra folders found in this instance."));
+            empty.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
+            empty.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
+            empty.setForeground(MD3Color.onSurfaceVariant());
+            empty.setAlignmentX(LEFT_ALIGNMENT);
+            panel.add(empty);
 
-        topPanel.add(overridesContainer, gbc);
+            return panel;
+        }
 
-        // bottom panel
-        bottomPanel.setOpaque(false);
-        bottomPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
-        bottomPanel.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L));
+        JPanel folders = new JPanel();
+        folders.setOpaque(false);
+        folders.setLayout(new BoxLayout(folders, BoxLayout.Y_AXIS));
 
+        for (MD3Checkbox box : folderBoxes) {
+            folders.add(box);
+        }
+
+        MD3ListContainer list = MD3ListContainer.wrapping(folders);
+        list.setPreferredSize(UIScale.scale(new Dimension(0, 200)));
+        list.setAlignmentX(LEFT_ALIGNMENT);
+
+        JPanel selection = new JPanel(new FlowLayout(FlowLayout.LEADING, UIScale.scale(MD3Spacing.S), 0));
+        selection.setOpaque(false);
+        selection.setAlignmentX(LEFT_ALIGNMENT);
+
+        MD3Button selectAll = MD3Button.text(GetText.tr("Select all"));
+        selectAll.addActionListener(e -> setAllFolders(true));
+
+        MD3Button selectNone = MD3Button.text(GetText.tr("Select none"));
+        selectNone.addActionListener(e -> setAllFolders(false));
+
+        selection.add(selectAll);
+        selection.add(selectNone);
+
+        panel.add(selection);
+        panel.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
+        panel.add(list);
+
+        return panel;
+    }
+
+    private static boolean isRecommendedFolder(String name) {
+        return name.equalsIgnoreCase("config") || name.equalsIgnoreCase("mods")
+                || name.equalsIgnoreCase("oresources")
+                || name.equalsIgnoreCase("resourcepacks")
+                || name.equalsIgnoreCase("shaderpacks")
+                || name.equalsIgnoreCase("datapacks")
+                || name.equalsIgnoreCase("resources")
+                || name.equalsIgnoreCase("scripts");
+    }
+
+    private void setAllFolders(boolean selected) {
+        for (MD3Checkbox box : folderBoxes) {
+            box.setSelected(selected);
+        }
+    }
+
+    private JPanel buildActionBar() {
         MD3Button exportButton = MD3Button.filled(GetText.tr("Export"));
-        exportButton.addActionListener(arg0 -> {
-            instance.scanMissingMods(this);
+        exportButton.addActionListener(e -> startExport());
 
-            final ProgressDialog<Object> dialog = new ProgressDialog<>(GetText.tr("Exporting Instance"), 0,
+        MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
+        cancelButton.addActionListener(e -> close());
+
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, MD3Spacing.scale(MD3Spacing.S), 0));
+        actions.setOpaque(false);
+        actions.setBorder(MD3Spacing.border(MD3Spacing.M, MD3Spacing.L));
+        actions.add(cancelButton);
+        actions.add(exportButton);
+
+        getRootPane().setDefaultButton(exportButton);
+
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setOpaque(false);
+        bar.add(MD3Divider.inset(), BorderLayout.NORTH);
+        bar.add(actions, BorderLayout.CENTER);
+
+        return bar;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void startExport() {
+        instance.scanMissingMods(this);
+
+        final ProgressDialog<Object> dialog = new ProgressDialog<>(GetText.tr("Exporting Instance"), 0,
                 GetText.tr("Exporting Instance. Please wait..."), null, this);
 
-            dialog.addThread(new Thread(() -> {
-                InstanceExportFormat exportFormat = ((ComboItem<InstanceExportFormat>) format.getSelectedItem())
+        dialog.addThread(new Thread(() -> {
+            InstanceExportFormat exportFormat = ((ComboItem<InstanceExportFormat>) format.getSelectedItem())
                     .getValue();
 
-                Pair<Path, String> exportResult = instance.export(name.getText(), version.getText(),
-                    author.getText(),
-                    exportFormat, saveTo.getText(), overrides, jointPackaging.isSelected(),
+            Pair<Path, String> exportResult = instance.export(name.getText(), version.getText(),
+                    author.getText(), exportFormat, saveTo.getText(), overrides, jointPackaging.isSelected(),
                     skipHashVerification.isSelected());
 
-                if (exportResult.left() != null) {
-                    instance.launcher.lastExportName = name.getText();
-                    instance.launcher.lastExportVersion = version.getText();
-                    instance.launcher.lastExportAuthor = author.getText();
-                    instance.launcher.lastExportSaveTo = saveTo.getText();
-                    instance.launcher.lastExportSkipHashVerification = skipHashVerification.isSelected();
-                    instance.save();
+            if (exportResult.left() != null) {
+                instance.launcher.lastExportName = name.getText();
+                instance.launcher.lastExportVersion = version.getText();
+                instance.launcher.lastExportAuthor = author.getText();
+                instance.launcher.lastExportSaveTo = saveTo.getText();
+                instance.launcher.lastExportSkipHashVerification = skipHashVerification.isSelected();
+                instance.save();
 
-                    if ((exportFormat == InstanceExportFormat.MODRINTH
+                if ((exportFormat == InstanceExportFormat.MODRINTH
                         || exportFormat == InstanceExportFormat.CURSEFORGE_AND_MODRINTH)
                         && exportResult.right() != null && !exportResult.right().isEmpty()) {
-                        ModrinthExportOverridesDialog modrinthExportOverridesDialog = new ModrinthExportOverridesDialog(
-                            dialog, exportResult.right());
-                        modrinthExportOverridesDialog.setVisible(true);
-                    }
-
-                    NotificationManager.show(GetText.tr("Exported Instance Successfully"));
-                    if (exportFormat == InstanceExportFormat.CURSEFORGE_AND_MODRINTH) {
-                        OS.openFileExplorer(Paths.get(saveTo.getText()));
-                    } else {
-                        OS.openFileExplorer(exportResult.left(), true);
-                    }
-                } else {
-                    DialogManager.okDialog().setType(DialogManager.ERROR).setTitle(GetText.tr("Export Failed"))
-                            .setContent(GetText.tr("Failed to export instance. Check the console for details"))
-                            .show();
+                    ModrinthExportOverridesDialog overridesDialog = new ModrinthExportOverridesDialog(dialog,
+                            exportResult.right());
+                    overridesDialog.setVisible(true);
                 }
-                dialog.close();
-                close();
-            }));
 
-            dialog.start();
-        });
-        MD3Button cancelButton = MD3Button.text(GetText.tr("Cancel"));
-        cancelButton.addActionListener(arg0 -> close());
+                NotificationManager.show(GetText.tr("Exported Instance Successfully"));
 
-        // confirm goes rightmost: cancel first, export last
-        bottomPanel.add(cancelButton);
-        bottomPanel.add(exportButton);
+                if (exportFormat == InstanceExportFormat.CURSEFORGE_AND_MODRINTH) {
+                    OS.openFileExplorer(Paths.get(saveTo.getText()));
+                } else {
+                    OS.openFileExplorer(exportResult.left(), true);
+                }
+            } else {
+                DialogManager.okDialog().setType(DialogManager.ERROR).setTitle(GetText.tr("Export Failed"))
+                        .setContent(GetText.tr("Failed to export instance. Check the console for details"))
+                        .show();
+            }
 
-        JPanel bottom = new JPanel(new BorderLayout());
-        bottom.setOpaque(false);
-        bottom.add(MD3Divider.inset(), BorderLayout.NORTH);
-        bottom.add(bottomPanel, BorderLayout.CENTER);
+            dialog.close();
+            close();
+        }));
 
-        add(topPanel, BorderLayout.CENTER);
-        add(bottom, BorderLayout.SOUTH);
+        dialog.start();
     }
 
     private void close() {

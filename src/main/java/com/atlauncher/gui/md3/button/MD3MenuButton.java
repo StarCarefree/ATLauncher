@@ -110,12 +110,28 @@ public class MD3MenuButton extends MD3Button {
         return new MD3MenuButton(text, Variant.FILLED, menu);
     }
 
+    public static MD3MenuButton filled(String text, Icon icon, JPopupMenu menu) {
+        return new MD3MenuButton(text, icon, Variant.FILLED, () -> menu);
+    }
+
+    public static MD3MenuButton filled(String text, Icon icon, Supplier<JPopupMenu> menu) {
+        return new MD3MenuButton(text, icon, Variant.FILLED, menu);
+    }
+
     public static MD3MenuButton tonal(String text, JPopupMenu menu) {
         return new MD3MenuButton(text, Variant.TONAL, menu);
     }
 
+    public static MD3MenuButton tonal(String text, Icon icon, JPopupMenu menu) {
+        return new MD3MenuButton(text, icon, Variant.TONAL, () -> menu);
+    }
+
     public static MD3MenuButton outlined(String text, JPopupMenu menu) {
         return new MD3MenuButton(text, Variant.OUTLINED, menu);
+    }
+
+    public static MD3MenuButton outlined(String text, Icon icon, JPopupMenu menu) {
+        return new MD3MenuButton(text, icon, Variant.OUTLINED, () -> menu);
     }
 
     public static MD3MenuButton text(String text, JPopupMenu menu) {
