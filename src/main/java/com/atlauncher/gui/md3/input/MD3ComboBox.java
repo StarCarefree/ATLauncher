@@ -17,10 +17,15 @@
  */
 package com.atlauncher.gui.md3.input;
 
+import java.awt.Dimension;
+
 import javax.swing.ComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.UIManager;
 import javax.swing.plaf.ComboBoxUI;
+
+import com.atlauncher.gui.md3.MD3MixedText;
+import com.atlauncher.themes.md3.token.MD3Type;
 
 /**
  * A Material 3 dropdown - the control for picking one value out of a list too long, or too dull, to
@@ -100,6 +105,54 @@ public class MD3ComboBox<E> extends JComboBox<E> {
         this.variant = variant;
 
         repaint();
+    }
+
+    /**
+     * Sizes the closed control to the longest value currently in it.
+     *
+     * <p>
+     * {@link JComboBox}'s preferred width is the selected item's. A Forge build that reads
+     * {@code 14.23.5.2860 (Recommended)} then clips as soon as any shorter version is chosen, and
+     * even when it is selected the chevron's inset is not in a string width measured against the
+     * wrong font. Setting the prototype to the longest value is what Swing already uses to reserve
+     * that room.
+     */
+    public void sizeToItems() {
+        Object longest = null;
+        int width = 0;
+
+        for (int i = 0; i < getItemCount(); i++) {
+            E item = getItemAt(i);
+            String text = item == null ? "" : item.toString();
+            int next = MD3MixedText.width(MD3Type.font(MD3Type.BODY_LARGE, text), text);
+
+            if (next >= width) {
+                width = next;
+                longest = item;
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        E prototype = (E) longest;
+
+        setPrototypeDisplayValue(prototype);
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * Width may grow to fill a row; height may not. A combo dropped in {@code BorderLayout.CENTER}
+     * would otherwise become a tall slab the row never asked for.
+     */
+    @Override
+    public Dimension getMaximumSize() {
+        if (isMaximumSizeSet()) {
+            return new Dimension(super.getMaximumSize());
+        }
+
+        Dimension preferred = getPreferredSize();
+
+        return new Dimension(Integer.MAX_VALUE, preferred.height);
     }
 
     /**

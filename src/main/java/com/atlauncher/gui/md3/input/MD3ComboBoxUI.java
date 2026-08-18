@@ -42,6 +42,7 @@ import javax.swing.plaf.basic.BasicComboBoxUI;
 import javax.swing.plaf.basic.BasicComboPopup;
 import javax.swing.plaf.basic.ComboPopup;
 
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.gui.md3.icon.MD3Icon;
 import com.atlauncher.gui.md3.icon.MD3Icons;
 import com.atlauncher.gui.md3.paint.MD3Paint;
@@ -75,6 +76,12 @@ public class MD3ComboBoxUI extends BasicComboBoxUI {
 
     /** Rows past this and the menu scrolls, rather than running off the screen. */
     private static final int VISIBLE_ROWS = 12;
+
+    /**
+     * Walk this many values when no prototype has been set. Loader versions sit well under it;
+     * a combo of every Minecraft version should set a prototype rather than be measured here.
+     */
+    private static final int MEASURE_ITEMS = 64;
 
     private MD3StateLayer stateLayer;
 
@@ -293,7 +300,35 @@ public class MD3ComboBoxUI extends BasicComboBoxUI {
 
     @Override
     public Dimension getPreferredSize(JComponent c) {
-        return sized(super.getPreferredSize(c));
+        Dimension size = sized(super.getPreferredSize(c));
+
+        if (size != null && comboBox.getPrototypeDisplayValue() == null) {
+            int needed = longestValueWidth() + c.getInsets().left + c.getInsets().right;
+
+            if (needed > size.width) {
+                size.width = needed;
+            }
+        }
+
+        return size;
+    }
+
+    /**
+     * The widest label currently in the model, so a short selected value does not shrink the
+     * control under a longer one sitting in the menu.
+     */
+    private int longestValueWidth() {
+        int count = Math.min(MEASURE_ITEMS, comboBox.getItemCount());
+        int widest = 0;
+
+        for (int i = 0; i < count; i++) {
+            Object item = comboBox.getItemAt(i);
+            String text = item == null ? "" : item.toString();
+
+            widest = Math.max(widest, MD3MixedText.width(MD3Type.font(MD3Type.BODY_LARGE, text), text));
+        }
+
+        return widest;
     }
 
     @Override
@@ -400,7 +435,15 @@ public class MD3ComboBoxUI extends BasicComboBoxUI {
 
             comboBox.setMaximumRowCount(rows);
 
-            return super.computePopupBounds(x, y, Math.max(width, comboBox.getWidth()), height);
+            int needed = Math.max(width, comboBox.getWidth());
+
+            if (comboBox.getUI() instanceof MD3ComboBoxUI) {
+                MD3ComboBoxUI ui = (MD3ComboBoxUI) comboBox.getUI();
+                needed = Math.max(needed, ui.longestValueWidth() + comboBox.getInsets().left
+                        + comboBox.getInsets().right);
+            }
+
+            return super.computePopupBounds(x, y, needed, height);
         }
     }
 }

@@ -17,9 +17,6 @@
  */
 package com.atlauncher.gui.tabs;
 
-import static java.lang.Math.max;
-import static java.lang.Math.min;
-
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -29,10 +26,9 @@ import java.util.List;
 import javax.annotation.Nullable;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JComponent;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
@@ -40,7 +36,6 @@ import javax.swing.table.TableColumnModel;
 
 import org.mini2Dx.gettext.GetText;
 
-import com.atlauncher.App;
 import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.data.MCVersionRow;
 import com.atlauncher.data.minecraft.loaders.LoaderType;
@@ -48,7 +43,9 @@ import com.atlauncher.data.minecraft.loaders.LoaderVersion;
 import com.atlauncher.gui.components.LockingPreservingCaretTextSetter;
 import com.atlauncher.gui.layouts.WrapLayout;
 import com.atlauncher.gui.md3.button.MD3Button;
+import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.gui.md3.container.MD3Divider;
+import com.atlauncher.gui.md3.container.MD3ListContainer;
 import com.atlauncher.gui.md3.container.MD3Table;
 import com.atlauncher.gui.md3.input.MD3Chip;
 import com.atlauncher.gui.md3.input.MD3ComboBox;
@@ -63,17 +60,29 @@ import com.atlauncher.themes.md3.token.MD3Type;
 import com.atlauncher.utils.ComboItem;
 import com.atlauncher.viewmodel.base.ICreatePackViewModel;
 import com.atlauncher.viewmodel.impl.CreatePackViewModel;
-import com.formdev.flatlaf.ui.FlatScrollPaneBorder;
 import com.formdev.flatlaf.util.UIScale;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
 
+/**
+ * Create a vanilla instance or server.
+ *
+ * <p>
+ * Two columns, because a 1200×700 window cannot stack an identity card, eight hundred Minecraft
+ * versions and a loader picker and leave any of them usable. The form (name, description, loader)
+ * sits on the leading edge at a fixed width; the version table takes every leftover pixel, which
+ * is the only list on the page long enough to need them.
+ *
+ * <p>
+ * Loader versions used to sit in a 23px combo capped at 400px. They now fill the form column and
+ * size themselves to the longest value, so {@code 14.23.5.2860 (Recommended)} keeps its suffix.
+ */
 public class CreatePackTab extends HierarchyPanel implements Tab {
-    /** Wide enough for a long instance name without the form running the width of the window. */
-    private static final int FIELD_WIDTH = 520;
+    /** Wide enough for the loader chips to wrap once, not so wide the table starves. */
+    private static final int FORM_WIDTH = 360;
 
-    private static final int DESCRIPTION_HEIGHT = 80;
+    private static final int DESCRIPTION_HEIGHT = 72;
 
     private MD3TextField nameField;
     private MD3TextArea descriptionField;
@@ -91,6 +100,8 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
     private MD3Chip loaderTypePurpurRadioButton;
     private MD3Chip loaderTypeQuiltRadioButton;
     private MD3ComboBox<ComboItem<LoaderVersion>> loaderVersionsDropDown;
+    private JPanel loaderVersionRow;
+    private MD3Card loaderCard;
     private MD3Button createServerButton;
     private MD3Button createInstanceButton;
     private ICreatePackViewModel viewModel;
@@ -146,17 +157,36 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
     }
 
     /**
-     * A label over a section of the form, in the launcher's own type scale.
+     * A heading over a group, in the same role the settings page uses for its sections.
      */
     private static JLabel sectionLabel(String text) {
+        return sectionLabel(text, MD3Spacing.M);
+    }
+
+    private static JLabel sectionLabel(String text, int top) {
         JLabel label = new JLabel(text);
         label.setFont(MD3Type.font(MD3Type.TITLE_SMALL, text));
         label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.TITLE_SMALL);
-        label.setForeground(MD3Color.primary());
+        label.setForeground(MD3Color.onSurfaceVariant());
         label.setAlignmentX(LEFT_ALIGNMENT);
-        label.setBorder(MD3Spacing.border(MD3Spacing.L, 0, MD3Spacing.S, 0));
+        label.setBorder(MD3Spacing.border(top, MD3Spacing.XS, MD3Spacing.S, MD3Spacing.XS));
 
         return label;
+    }
+
+    private static JLabel fieldLabel(String text) {
+        JLabel label = new JLabel(text);
+        label.setFont(MD3Type.font(MD3Type.BODY_LARGE, text));
+        label.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_LARGE);
+        label.setForeground(MD3Color.onSurface());
+        label.setAlignmentX(LEFT_ALIGNMENT);
+
+        return label;
+    }
+
+    private static void stretchWidth(JComponent component) {
+        component.setAlignmentX(LEFT_ALIGNMENT);
+        component.setMaximumSize(new Dimension(Integer.MAX_VALUE, component.getPreferredSize().height));
     }
 
     private static JPanel chipRow() {
@@ -169,76 +199,129 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
     }
 
     private void setupMainPanel() {
-        JPanel mainPanel = new JPanel(new BorderLayout());
+        setOpaque(true);
+        setBackground(MD3Color.surface());
+
+        JPanel mainPanel = new JPanel(new BorderLayout(UIScale.scale(MD3Spacing.L), 0));
         mainPanel.setOpaque(false);
         mainPanel.setBorder(MD3Spacing.border(MD3Spacing.S, MD3Spacing.L, 0, MD3Spacing.L));
+
+        mainPanel.add(buildFormColumn(), BorderLayout.WEST);
+        mainPanel.add(buildMinecraftColumn(), BorderLayout.CENTER);
+
+        add(mainPanel, BorderLayout.CENTER);
+    }
+
+    /**
+     * Name, description and loader. Fixed width so the version table's column never depends on how
+     * long a Forge build string is.
+     */
+    private JPanel buildFormColumn() {
+        JPanel form = new JPanel();
+        form.setLayout(new BoxLayout(form, BoxLayout.Y_AXIS));
+        form.setOpaque(false);
+        form.setPreferredSize(new Dimension(UIScale.scale(FORM_WIDTH), 0));
+        form.setMinimumSize(new Dimension(UIScale.scale(FORM_WIDTH), 0));
+
+        form.add(buildIdentityCard());
+        form.add(buildLoaderSection());
+        form.add(Box.createVerticalGlue());
+
+        return form;
+    }
+
+    /**
+     * The version list, and the chips that decide what is in it. This is the page; everything else
+     * is there to describe the row you pick.
+     */
+    private JPanel buildMinecraftColumn() {
+        JPanel column = new JPanel(new BorderLayout());
+        column.setOpaque(false);
 
         JPanel header = new JPanel();
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
         header.setOpaque(false);
+        header.add(sectionLabel(GetText.tr("Minecraft Version"), 0));
+        header.add(buildMinecraftFilters());
+        header.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.S)));
 
-        // Name
+        column.add(header, BorderLayout.NORTH);
+        column.add(buildVersionTable(), BorderLayout.CENTER);
+
+        return column;
+    }
+
+    private MD3Card buildIdentityCard() {
+        MD3Card card = new MD3Card(MD3Card.Variant.FILLED);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+
         nameField.setLabel(GetText.tr("Instance Name"));
-        nameField.setAlignmentX(LEFT_ALIGNMENT);
-        nameField.setMaximumSize(new Dimension(UIScale.scale(FIELD_WIDTH), nameField.getPreferredSize().height));
+        stretchWidth(nameField);
         LockingPreservingCaretTextSetter nameFieldSetter = new LockingPreservingCaretTextSetter(nameField);
-        addDisposable(viewModel.name().subscribe((it) -> nameFieldSetter.setText(it.orElse(null))));
+        addDisposable(viewModel.name().subscribe(it -> nameFieldSetter.setText(it.orElse(null))));
         nameField.addKeyListener(new StatefulTextKeyAdapter(
-            (e) -> viewModel.setName(nameField.getText()),
-            (e) -> nameFieldSetter.setLocked(true),
-            (e) -> SwingUtilities.invokeLater(() -> nameFieldSetter.setLocked(false))));
-        header.add(nameField);
+                e -> viewModel.setName(nameField.getText()),
+                e -> nameFieldSetter.setLocked(true),
+                e -> SwingUtilities.invokeLater(() -> nameFieldSetter.setLocked(false))));
+        card.add(nameField);
 
-        // Description
-        header.add(sectionLabel(GetText.tr("Description")));
+        card.add(Box.createVerticalStrut(MD3Spacing.scale(MD3Spacing.M)));
 
-        JComponent descriptionScrollPane = descriptionField.contained(DESCRIPTION_HEIGHT);
-        descriptionScrollPane.setAlignmentX(LEFT_ALIGNMENT);
-        descriptionScrollPane.setPreferredSize(new Dimension(UIScale.scale(FIELD_WIDTH),
-                UIScale.scale(DESCRIPTION_HEIGHT)));
-        descriptionScrollPane.setMaximumSize(descriptionScrollPane.getPreferredSize());
+        JLabel descriptionLabel = fieldLabel(GetText.tr("Description"));
+        descriptionLabel.setBorder(MD3Spacing.border(0, 0, MD3Spacing.XS, 0));
+        card.add(descriptionLabel);
+
+        JComponent description = descriptionField.contained(DESCRIPTION_HEIGHT);
+        description.setAlignmentX(LEFT_ALIGNMENT);
+        description.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIScale.scale(DESCRIPTION_HEIGHT)));
         LockingPreservingCaretTextSetter descriptionFieldSetter = new LockingPreservingCaretTextSetter(
-            descriptionField);
-        addDisposable(viewModel.description().subscribe((it) -> descriptionFieldSetter.setText(it.orElse(null))));
+                descriptionField);
+        addDisposable(viewModel.description().subscribe(it -> descriptionFieldSetter.setText(it.orElse(null))));
         descriptionField.addKeyListener(new StatefulTextKeyAdapter(
-            (e) -> viewModel.setDescription(descriptionField.getText()),
-            (e) -> descriptionFieldSetter.setLocked(true),
-            (e) -> SwingUtilities.invokeLater(() -> descriptionFieldSetter.setLocked(false))));
-        header.add(descriptionScrollPane);
+                e -> viewModel.setDescription(descriptionField.getText()),
+                e -> descriptionFieldSetter.setLocked(true),
+                e -> SwingUtilities.invokeLater(() -> descriptionFieldSetter.setLocked(false))));
+        card.add(description);
+        stretchWidth(card);
 
-        // Minecraft Version, and which kinds of it to list
-        header.add(sectionLabel(GetText.tr("Minecraft Version")));
+        return card;
+    }
 
-        JPanel minecraftVersionFilterPanel = chipRow();
+    private JPanel buildMinecraftFilters() {
+        JPanel filters = chipRow();
+        filters.setAlignmentX(LEFT_ALIGNMENT);
 
-        setupReleaseCheckbox(minecraftVersionFilterPanel);
-        setupExperimentsCheckbox(minecraftVersionFilterPanel);
-        setupSnapshotsCheckbox(minecraftVersionFilterPanel);
-        setupOldBetasCheckbox(minecraftVersionFilterPanel);
-        setupOldAlphasCheckbox(minecraftVersionFilterPanel);
+        setupReleaseCheckbox(filters);
+        setupExperimentsCheckbox(filters);
+        setupSnapshotsCheckbox(filters);
+        setupOldBetasCheckbox(filters);
+        setupOldAlphasCheckbox(filters);
 
-        header.add(minecraftVersionFilterPanel);
-        header.add(Box.createVerticalStrut(MD3Spacing.scale(MD3Spacing.M)));
+        return filters;
+    }
 
-        mainPanel.add(header, BorderLayout.NORTH);
-
-        // the version list is what this page is mostly about, so it takes the space left over
-        // rather than sitting in a 450x300 box with empty window around it
-        JScrollPane minecraftVersionScrollPane = new JScrollPane(
-            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        minecraftVersionScrollPane.setBorder(new FlatScrollPaneBorder());
+    private JComponent buildVersionTable() {
         setupMinecraftVersionsTable();
-        minecraftVersionScrollPane.setViewportView(minecraftVersionTable);
-        mainPanel.add(minecraftVersionScrollPane, BorderLayout.CENTER);
 
-        JPanel footer = new JPanel();
-        footer.setLayout(new BoxLayout(footer, BoxLayout.Y_AXIS));
-        footer.setOpaque(false);
+        MD3ListContainer versions = MD3ListContainer.wrapping(minecraftVersionTable);
+        versions.setMinimumSize(new Dimension(0, UIScale.scale(160)));
 
-        // Loader Type
-        footer.add(sectionLabel(GetText.tr("Loader")));
+        return versions;
+    }
+
+    private JPanel buildLoaderSection() {
+        JPanel section = new JPanel();
+        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
+        section.setOpaque(false);
+        section.setBorder(MD3Spacing.border(MD3Spacing.S, 0, MD3Spacing.S, 0));
+
+        section.add(sectionLabel(GetText.tr("Loader")));
+
+        loaderCard = new MD3Card(MD3Card.Variant.FILLED);
+        loaderCard.setLayout(new BoxLayout(loaderCard, BoxLayout.Y_AXIS));
 
         JPanel loaderTypePanel = chipRow();
+        loaderTypePanel.setAlignmentX(LEFT_ALIGNMENT);
 
         setupLoaderNoneButton(loaderTypePanel);
         setupLoaderFabricButton(loaderTypePanel);
@@ -249,65 +332,72 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
         setupLoaderPurpurButton(loaderTypePanel);
         setupLoaderQuiltButton(loaderTypePanel);
 
-        footer.add(loaderTypePanel);
+        loaderCard.add(loaderTypePanel);
+        loaderCard.add(buildLoaderVersionRow());
 
-        // Loader Version
-        JPanel loaderVersionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, MD3Spacing.scale(MD3Spacing.S), 0));
-        loaderVersionPanel.setOpaque(false);
-        loaderVersionPanel.setAlignmentX(LEFT_ALIGNMENT);
-        loaderVersionPanel.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
+        // WrapLayout sizes itself as one long row until it has a real width. Give it the
+        // form column's inner width so the card's height includes the wrapped chips and
+        // the version dropdown is not clipped off.
+        loaderTypePanel.setSize(UIScale.scale(FORM_WIDTH - MD3Spacing.L * 2), 1);
+        stretchWidth(loaderCard);
 
-        JLabel loaderVersionLabel = new JLabel(GetText.tr("Loader Version") + ":");
-        loaderVersionLabel.setFont(MD3Type.font(MD3Type.BODY_MEDIUM));
-        loaderVersionLabel.putClientProperty(MD3Type.TYPE_ROLE_KEY, MD3Type.BODY_MEDIUM);
-        loaderVersionLabel.setForeground(MD3Color.onSurfaceVariant());
-        loaderVersionPanel.add(loaderVersionLabel);
+        section.add(loaderCard);
+
+        return section;
+    }
+
+    /**
+     * Label above the combo, not beside it. The form column is only {@value #FORM_WIDTH}dp; a
+     * recommended Forge build and a label cannot share that line without clipping.
+     */
+    private JPanel buildLoaderVersionRow() {
+        loaderVersionRow = new JPanel();
+        loaderVersionRow.setLayout(new BoxLayout(loaderVersionRow, BoxLayout.Y_AXIS));
+        loaderVersionRow.setOpaque(false);
+        loaderVersionRow.setAlignmentX(LEFT_ALIGNMENT);
+        loaderVersionRow.setBorder(MD3Spacing.border(MD3Spacing.M, 0, 0, 0));
+
+        JLabel loaderVersionLabel = fieldLabel(GetText.tr("Loader version"));
+        loaderVersionLabel.setBorder(MD3Spacing.border(0, 0, MD3Spacing.XS, 0));
+        loaderVersionRow.add(loaderVersionLabel);
+
+        stretchWidth(loaderVersionsDropDown);
+        loaderVersionRow.add(loaderVersionsDropDown);
 
         addDisposable(viewModel.loaderVersionsDropDownEnabled().subscribe(loaderVersionsDropDown::setEnabled));
 
-        addDisposable(viewModel.loaderVersions().subscribe((loaderVersionsOptional) -> {
+        addDisposable(viewModel.loaderVersions().subscribe(loaderVersionsOptional -> {
             loaderVersionsDropDown.removeAllItems();
+
             if (!loaderVersionsOptional.isPresent()) {
                 setEmpty();
             } else {
-                int loaderVersionLength = 0;
-
-                List<LoaderVersion> loaderVersions = loaderVersionsOptional.get();
-
-                for (LoaderVersion version : loaderVersions) {
-                    // ensures that font width is taken into account
-                    loaderVersionLength = max(
-                        loaderVersionLength,
-                        getFontMetrics(App.THEME.getNormalFont())
-                            .stringWidth(version.toString()) + 25);
-
+                for (LoaderVersion version : loaderVersionsOptional.get()) {
                     loaderVersionsDropDown.addItem(new ComboItem<>(version, version.toString()));
                 }
 
-                // ensures that the dropdown is at least 200 px wide
-                loaderVersionLength = max(200, loaderVersionLength);
-
-                // ensures that there is a maximum width of 400 px to prevent overflow
-                loaderVersionLength = min(400, loaderVersionLength);
-                loaderVersionsDropDown.setPreferredSize(new Dimension(loaderVersionLength, 23));
-
+                loaderVersionsDropDown.sizeToItems();
             }
         }));
-        addDisposable(viewModel.selectedLoaderVersionIndex().subscribe((index) -> {
+
+        addDisposable(viewModel.selectedLoaderVersionIndex().subscribe(index -> {
             if (loaderVersionsDropDown.getItemAt(index) != null) {
                 loaderVersionLastChange = System.currentTimeMillis();
                 loaderVersionsDropDown.setSelectedIndex(index);
             }
         }));
-        loaderVersionsDropDown.addActionListener((e) -> {
+
+        loaderVersionsDropDown.addActionListener(e -> {
             // A user cannot change the loader version in under 100 ms. It is physically
             // impossible.
-            if (e.getWhen() > (loaderVersionLastChange + 100)) {
+            if (e.getWhen() > loaderVersionLastChange + 100) {
+                @SuppressWarnings("unchecked")
                 ComboItem<LoaderVersion> comboItem = (ComboItem<LoaderVersion>) loaderVersionsDropDown
-                    .getSelectedItem();
+                        .getSelectedItem();
 
                 if (comboItem != null) {
                     LoaderVersion version = comboItem.getValue();
+
                     if (version != null) {
                         viewModel.setLoaderVersion(version);
                     }
@@ -315,24 +405,19 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
             }
         });
 
-        addDisposable(viewModel.loaderLoading().subscribe((it) -> {
-            loaderVersionsDropDown.removeAllItems();
-            if (it) {
+        addDisposable(viewModel.loaderLoading().subscribe(loading -> {
+            if (loading) {
+                loaderVersionsDropDown.removeAllItems();
                 loaderVersionsDropDown.addItem(new ComboItem<>(null, GetText.tr("Getting Loader Versions")));
-            } else {
-                setEmpty();
             }
         }));
 
-        loaderVersionPanel.add(loaderVersionsDropDown);
-        footer.add(loaderVersionPanel);
-
-        mainPanel.add(footer, BorderLayout.SOUTH);
-        add(mainPanel, BorderLayout.CENTER);
+        return loaderVersionRow;
     }
 
     private void setEmpty() {
         loaderVersionsDropDown.addItem(new ComboItem<>(null, GetText.tr("Select Loader First")));
+        loaderVersionsDropDown.sizeToItems();
     }
 
     private void setupLoaderQuiltButton(JPanel loaderTypePanel) {
@@ -571,9 +656,13 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
         TableColumnModel cm = minecraftVersionTable.getColumnModel();
         cm.getColumn(0).setResizable(false);
         cm.getColumn(1).setResizable(false);
-        cm.getColumn(1).setMaxWidth(200);
+        cm.getColumn(1).setMinWidth(UIScale.scale(112));
+        cm.getColumn(1).setPreferredWidth(UIScale.scale(140));
+        cm.getColumn(1).setMaxWidth(UIScale.scale(168));
         cm.getColumn(2).setResizable(false);
-        cm.getColumn(2).setMaxWidth(200);
+        cm.getColumn(2).setMinWidth(UIScale.scale(88));
+        cm.getColumn(2).setPreferredWidth(UIScale.scale(104));
+        cm.getColumn(2).setMaxWidth(UIScale.scale(128));
         minecraftVersionTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
     }
 
@@ -674,6 +763,8 @@ public class CreatePackTab extends HierarchyPanel implements Tab {
         loaderTypePurpurRadioButton = null;
         loaderTypeQuiltRadioButton = null;
         loaderVersionsDropDown = null;
+        loaderVersionRow = null;
+        loaderCard = null;
         createServerButton = null;
         createInstanceButton = null;
     }

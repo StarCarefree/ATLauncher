@@ -177,6 +177,29 @@ public class ComboBoxRenderTest {
      * settings taller for a label the row already has on its other side.
      */
     @Test
+    public void testALongLoaderVersionFitsEvenWhenAShorterOneIsSelected() {
+        MD3ComboBox<ComboItem<String>> box = new MD3ComboBox<>();
+        String longVersion = "14.23.5.2860 (Recommended)";
+
+        box.addItem(new ComboItem<>("long", longVersion));
+        box.addItem(new ComboItem<>("short", "1.2.3"));
+        box.setSelectedIndex(1);
+
+        int text = com.atlauncher.gui.md3.MD3MixedText.width(
+                com.atlauncher.themes.md3.token.MD3Type.font(
+                        com.atlauncher.themes.md3.token.MD3Type.BODY_LARGE, longVersion),
+                longVersion);
+        int insets = box.getInsets().left + box.getInsets().right;
+
+        assertTrue(box.getPreferredSize().width >= text + insets,
+                "a recommended Forge version is clipped when a shorter build is selected");
+        assertEquals(UIScale.scale(MD3Spacing.FIELD_HEIGHT_COMPACT), box.getPreferredSize().height,
+                "sizing to the items changed the combo's height");
+        assertEquals(box.getPreferredSize().height, box.getMaximumSize().height,
+                "the combo will grow taller than a settings row");
+    }
+
+    @Test
     public void testItIsTheHeightASettingsRowCanAbsorb() {
         assertEquals(UIScale.scale(MD3Spacing.FIELD_HEIGHT_COMPACT),
                 combo(MD3ComboBox.Variant.OUTLINED).getPreferredSize().height,
