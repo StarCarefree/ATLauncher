@@ -167,4 +167,151 @@ public class MD3MixedTextTest {
 
         assertTrue(sawLatin && sawCjk, "wrapped HTML lost a script: " + visible);
     }
+
+    @Test
+    public void aLatinStringIsOneRunOnTheEnglishFace() {
+        Pair pair = pair();
+        App.settings.uiEnglishFontFamily = pair.latin;
+        App.settings.uiChineseFontFamily = pair.cjk;
+
+        Font base = new Font(pair.latin, Font.PLAIN, 12);
+        List<MD3MixedText.Run> runs = MD3MixedText.runs(base, "All the Mods 10");
+
+        assertEquals(1, runs.size(), "a Latin-only string was still split: " + runs.size());
+        assertEquals(pair.latin, runs.get(0).font.getFamily(), "Latin left the English face");
+    }
+
+    @Test
+    public void aChineseStringIsOneRunOnTheChineseFace() {
+        Pair pair = pair();
+        App.settings.uiEnglishFontFamily = pair.latin;
+        App.settings.uiChineseFontFamily = pair.cjk;
+
+        Font base = new Font(pair.latin, Font.PLAIN, 12);
+        List<MD3MixedText.Run> runs = MD3MixedText.runs(base, "僵尸入侵");
+
+        assertEquals(1, runs.size(), "a Chinese-only string was still split: " + runs.size());
+        assertEquals(pair.cjk, runs.get(0).font.getFamily(), "CJK left the Chinese face");
+    }
+
+    @Test
+    public void rangeWidthMatchesTheSubstring() {
+        Pair pair = pair();
+        App.settings.uiEnglishFontFamily = pair.latin;
+        App.settings.uiChineseFontFamily = pair.cjk;
+
+        Font base = new Font(pair.latin, Font.PLAIN, 12);
+        String text = "ATM 僵尸 100";
+        MD3MixedText.Layout layout = MD3MixedText.layout(base, text);
+
+        assertEquals(MD3MixedText.width(base, text.substring(0, 5)), layout.width(0, 5),
+                "a prefix of a mixed string did not match measuring the substring");
+        assertEquals(layout.width(), layout.width(0, text.length()),
+                "the full-range width drifted from the layout total");
+    }
+
+    @Test
+    public void changingTheChineseFaceIsVisibleOnTheSameString() {
+        Pair pair = pair();
+        String otherCjk = otherChinese(pair.cjk);
+
+        if (otherCjk == null) {
+            return;
+        }
+
+        App.settings.uiEnglishFontFamily = pair.latin;
+        App.settings.uiChineseFontFamily = pair.cjk;
+
+        Font base = new Font(pair.latin, Font.PLAIN, 12);
+        String text = "ATM 僵尸 100";
+
+        assertEquals(pair.cjk, cjkFamilyOf(MD3MixedText.runs(base, text)),
+                "the first Chinese pick did not land");
+
+        App.settings.uiChineseFontFamily = otherCjk;
+
+        assertEquals(otherCjk, cjkFamilyOf(MD3MixedText.runs(base, text)),
+                "cached runs kept the previous Chinese face after Settings changed");
+    }
+
+    @Test
+    public void ellipsisStillFitsAndMarksTheCut() {
+        Pair pair = pair();
+        App.settings.uiEnglishFontFamily = pair.latin;
+        App.settings.uiChineseFontFamily = pair.cjk;
+
+        Font base = new Font(pair.latin, Font.PLAIN, 12);
+        String text = "僵尸入侵 100 天 All the Mods";
+        int full = MD3MixedText.width(base, text);
+        String cut = MD3MixedText.ellipsisToWidth(base, text, Math.max(12, full / 3));
+
+        assertTrue(cut.endsWith("…"), "a line that did not fit was not marked: " + cut);
+        assertTrue(cut.length() < text.length() + 1, "the ellipsis did not shorten the line: " + cut);
+        assertTrue(MD3MixedText.width(base, cut) <= full,
+                "the ellipsised line is wider than the original");
+    }
+
+    @Test
+    public void latinAndCjkFacesAreReusedForTheSameBase() {
+        Pair pair = pair();
+        App.settings.uiEnglishFontFamily = pair.latin;
+        App.settings.uiChineseFontFamily = pair.cjk;
+
+        Font base = new Font(pair.latin, Font.PLAIN, 12);
+
+        assertTrue(UiFonts.latinFace(base) == UiFonts.latinFace(base),
+                "the English face was rebuilt for every character");
+        assertTrue(UiFonts.cjkFace(base) == UiFonts.cjkFace(base),
+                "the Chinese face was rebuilt for every character");
+    }
+
+    private static String cjkFamilyOf(List<MD3MixedText.Run> runs) {
+        for (int i = 0; i < runs.size(); i++) {
+            if (runs.get(i).text.contains("尸")) {
+                return runs.get(i).font.getFamily();
+            }
+        }
+
+        return null;
+    }
+
+    private static String otherChinese(String used) {
+        List<String> chinese = UiFonts.familiesForChinese();
+
+        for (int i = 0; i < chinese.size(); i++) {
+            if (!chinese.get(i).equals(used)) {
+                return chinese.get(i);
+            }
+        }
+
+        return null;
+    }
+
+    private static Pair pair() {
+        List<String> english = UiFonts.familiesForEnglish();
+        List<String> chinese = UiFonts.familiesForChinese();
+        String latin = null;
+
+        for (int i = 0; i < english.size(); i++) {
+            if (new Font(english.get(i), Font.PLAIN, 12).canDisplayUpTo("汉") >= 0) {
+                latin = english.get(i);
+
+                break;
+            }
+        }
+
+        assertTrue(latin != null && !chinese.isEmpty(), "no pair of faces to split a mixed string with");
+
+        return new Pair(latin, chinese.get(0));
+    }
+
+    private static final class Pair {
+        final String latin;
+        final String cjk;
+
+        Pair(String latin, String cjk) {
+            this.latin = latin;
+            this.cjk = cjk;
+        }
+    }
 }

@@ -124,6 +124,7 @@ public final class MD3Text {
         BreakIterator breaks = BreakIterator.getLineInstance();
         breaks.setText(flat);
 
+        MD3MixedText.Layout layout = MD3MixedText.layout(metrics.getFont(), flat);
         int lineStart = 0;
         int lineEnd = 0;
         int consumed = 0;
@@ -131,8 +132,7 @@ public final class MD3Text {
         for (int end = breaks.following(0); end != BreakIterator.DONE; end = breaks.following(end)) {
             // a run with no break opportunity inside it is wider than the box on its own; it still
             // gets a line to itself and is truncated below rather than left to push the layout out
-            if (lineEnd == lineStart
-                    || MD3MixedText.width(metrics.getFont(), flat.substring(lineStart, end).trim()) <= width) {
+            if (lineEnd == lineStart || trimmedWidth(layout, flat, lineStart, end) <= width) {
                 lineEnd = end;
 
                 continue;
@@ -160,6 +160,22 @@ public final class MD3Text {
         }
 
         return lines;
+    }
+
+    /**
+     * {@link String#trim()} width of {@code flat[start, end)}, using the layout of the whole
+     * line so wrapping a Chinese paragraph does not re-split every prefix.
+     */
+    private static int trimmedWidth(MD3MixedText.Layout layout, String flat, int start, int end) {
+        while (start < end && flat.charAt(start) <= ' ') {
+            start++;
+        }
+
+        while (end > start && flat.charAt(end - 1) <= ' ') {
+            end--;
+        }
+
+        return layout.width(start, end);
     }
 
     /**

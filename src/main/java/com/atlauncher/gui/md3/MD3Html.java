@@ -26,6 +26,7 @@ import javax.swing.event.HyperlinkEvent;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 
+import com.atlauncher.themes.UiFonts;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
@@ -112,21 +113,42 @@ public final class MD3Html {
         styles.addStyleSheet(kit.getStyleSheet());
 
         Font body = MD3Type.font(MD3Type.BODY_MEDIUM);
-
         Font heading = MD3Type.font(MD3Type.TITLE_SMALL);
+        String bodyStack = cssFontStack(body);
+        String headingStack = cssFontStack(heading);
 
-        styles.addRule("body { font-family: " + body.getFamily() + "; font-size: " + body.getSize()
+        styles.addRule("body { font-family: " + bodyStack + "; font-size: " + body.getSize()
                 + "pt; color: " + hex(MD3Color.onSurfaceVariant()) + "; background: transparent; margin: 0; }");
         styles.addRule("p { margin: 0; }");
         styles.addRule("a { color: " + hex(MD3Color.primary()) + "; text-decoration: underline; }");
         styles.addRule("b, strong { font-weight: bold; color: " + hex(MD3Color.onSurface()) + "; }");
-        styles.addRule("h1, h2, h3 { font-family: " + heading.getFamily() + "; font-size: " + heading.getSize()
+        styles.addRule("h1, h2, h3 { font-family: " + headingStack + "; font-size: " + heading.getSize()
                 + "pt; font-weight: bold; color: " + hex(MD3Color.onSurface()) + "; margin: " + MD3Spacing.M
                 + "px 0 " + MD3Spacing.S + "px 0; }");
 
         kit.setStyleSheet(styles);
 
         return kit;
+    }
+
+    /**
+     * English face first, Chinese face next. Swing's HTML kit still picks one family for a
+     * block, but a stack keeps CJK from falling through to a face that has no glyphs when the
+     * fragment was not already marked up by {@link MD3MixedText#toHtml}.
+     */
+    private static String cssFontStack(Font font) {
+        String latin = quoteFamily(font.getFamily());
+        String cjk = quoteFamily(UiFonts.cjkFace(font).getFamily());
+
+        if (latin.equals(cjk)) {
+            return latin;
+        }
+
+        return latin + ", " + cjk;
+    }
+
+    private static String quoteFamily(String family) {
+        return "'" + family.replace("'", "") + "'";
     }
 
     private static String hex(Color color) {

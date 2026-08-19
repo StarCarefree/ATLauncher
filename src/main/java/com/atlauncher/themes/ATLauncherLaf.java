@@ -34,6 +34,7 @@ import javax.swing.UIManager;
 
 import com.atlauncher.App;
 import com.atlauncher.data.Language;
+import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.managers.LogManager;
 import com.atlauncher.themes.md3.MD3Bridge;
 import com.atlauncher.themes.md3.token.MD3Color;
@@ -328,6 +329,9 @@ public class ATLauncherLaf extends FlatLaf {
     }
 
     public void updateUIFonts() {
+        UiFonts.invalidate();
+        MD3MixedText.invalidate();
+
         // The base fonts may have changed with the language, so the defaults have to be put back
         // before the type scale is rebuilt from them. The tree walk below repairs the windows that
         // are already open; these are what everything opened afterwards is built from, and without

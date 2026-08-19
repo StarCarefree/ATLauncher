@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.WeakHashMap;
 
 import com.atlauncher.App;
 import com.atlauncher.utils.Resources;
@@ -52,7 +53,30 @@ public final class UiFonts {
     public static final String LATIN_SAMPLE = "Aa";
     public static final String CJK_SAMPLE = "汉字";
 
+    /**
+     * Latin / CJK pair derived from a component font. Entries drop when the base
+     * font is collected; {@link #invalidate()} drops them when Settings change.
+     */
+    private static final Map<Font, ScriptFaces> FACES = Collections
+            .synchronizedMap(new WeakHashMap<Font, ScriptFaces>());
+
+    private static List<String> englishFamilies;
+    private static List<String> chineseFamilies;
+    private static String cachedThemeLatinFamily;
+    private static Boolean cachedThemeLatinDisableCustomFonts;
+
     private UiFonts() {
+    }
+
+    /**
+     * Settings or the theme face changed. Mixed painting keeps derived faces and
+     * measured runs; without this a Chinese pick would keep drawing the previous
+     * one until the English face object itself was replaced.
+     */
+    public static void invalidate() {
+        FACES.clear();
+        cachedThemeLatinFamily = null;
+        cachedThemeLatinDisableCustomFonts = null;
     }
 
     /**
@@ -137,34 +161,32 @@ public final class UiFonts {
      * setting. Mixed painting asks here for each character.
      */
     public static Font latinFace(Font base) {
-        String family = explicitEnglishFamily();
-
-        if (family == null) {
-            family = themeLatinFace(base == null ? Font.PLAIN : base.getStyle(),
-                    base == null ? 12f : base.getSize2D()).getFamily();
-        }
-
-        return sameCut(base, family);
+        return faces(base).latin;
     }
 
     /**
      * The Chinese face at {@code base}'s size, weight and tracking.
      */
     public static Font cjkFace(Font base) {
-        String family = explicitChineseFamily();
-
-        if (family == null) {
-            family = SYSTEM;
-        }
-
-        return sameCut(base, family);
+        return faces(base).cjk;
     }
 
     /**
      * The bundled English family the theme uses when Settings left English on automatic.
      */
     public static String themeLatinFamily() {
-        return themeLatinFace(Font.PLAIN, 12f).getFamily();
+        boolean disableCustom = App.settings != null && App.settings.disableCustomFonts;
+
+        if (cachedThemeLatinFamily != null
+                && cachedThemeLatinDisableCustomFonts != null
+                && cachedThemeLatinDisableCustomFonts.booleanValue() == disableCustom) {
+            return cachedThemeLatinFamily;
+        }
+
+        cachedThemeLatinFamily = themeLatinFace(Font.PLAIN, 12f).getFamily();
+        cachedThemeLatinDisableCustomFonts = Boolean.valueOf(disableCustom);
+
+        return cachedThemeLatinFamily;
     }
 
     /**
@@ -174,23 +196,23 @@ public final class UiFonts {
      * draw - Arabic on a Latin theme face, for example.
      */
     public static Font faceFor(Font base, int codePoint) {
+        ScriptFaces faces = faces(base);
+
         if (isCjk(codePoint)) {
-            return cjkFace(base);
+            return faces.cjk;
         }
 
-        Font latin = latinFace(base);
-
-        if (latin.canDisplay(codePoint)) {
-            return latin;
+        // the English picker only lists faces that can draw Latin; ASCII never needs
+        // canDisplay, which is the expensive part of walking a mixed string
+        if (codePoint < 128 || faces.latin.canDisplay(codePoint)) {
+            return faces.latin;
         }
 
-        Font cjk = cjkFace(base);
-
-        if (cjk.canDisplay(codePoint)) {
-            return cjk;
+        if (faces.cjk.canDisplay(codePoint)) {
+            return faces.cjk;
         }
 
-        return latin;
+        return faces.latin;
     }
 
     public static boolean isCjk(int codePoint) {
@@ -206,12 +228,57 @@ public final class UiFonts {
                 || (codePoint >= 0x20000 && codePoint <= 0x2FA1F);
     }
 
+    public static boolean containsCjk(String text) {
+        if (text == null || text.isEmpty()) {
+            return false;
+        }
+
+        int i = 0;
+        int length = text.length();
+
+        while (i < length) {
+            int codePoint = text.codePointAt(i);
+
+            if (isCjk(codePoint)) {
+                return true;
+            }
+
+            i += Character.charCount(codePoint);
+        }
+
+        return false;
+    }
+
     public static List<String> familiesForEnglish() {
-        return familiesThatCanDraw(LATIN_SAMPLE);
+        List<String> cached = englishFamilies;
+
+        if (cached != null) {
+            return cached;
+        }
+
+        synchronized (UiFonts.class) {
+            if (englishFamilies == null) {
+                englishFamilies = Collections.unmodifiableList(familiesThatCanDraw(LATIN_SAMPLE));
+            }
+
+            return englishFamilies;
+        }
     }
 
     public static List<String> familiesForChinese() {
-        return familiesThatCanDraw(CJK_SAMPLE);
+        List<String> cached = chineseFamilies;
+
+        if (cached != null) {
+            return cached;
+        }
+
+        synchronized (UiFonts.class) {
+            if (chineseFamilies == null) {
+                chineseFamilies = Collections.unmodifiableList(familiesThatCanDraw(CJK_SAMPLE));
+            }
+
+            return chineseFamilies;
+        }
     }
 
     /**
@@ -288,11 +355,78 @@ public final class UiFonts {
     }
 
     private static Font namedFace(String family, int style, float size) {
-        if (family.equals(themeLatinFace(style, size).getFamily())) {
+        if (family.equals(themeLatinFamily())) {
             return themeLatinFace(style, size);
         }
 
         return face(family, style, size);
+    }
+
+    /**
+     * One latin / CJK pair per component font, so walking a mixed string does not
+     * build a new face for every code point.
+     */
+    private static ScriptFaces faces(Font base) {
+        if (base == null) {
+            return new ScriptFaces(explicitEnglishFamily(), explicitChineseFamily(),
+                    disableCustomFonts(), sameCut(null, latinFamily()), sameCut(null, cjkFamily()));
+        }
+
+        String english = explicitEnglishFamily();
+        String chinese = explicitChineseFamily();
+        boolean disableCustom = disableCustomFonts();
+        ScriptFaces cached = FACES.get(base);
+
+        if (cached != null && cached.matches(english, chinese, disableCustom)) {
+            return cached;
+        }
+
+        ScriptFaces faces = new ScriptFaces(english, chinese, disableCustom, sameCut(base, latinFamily()),
+                sameCut(base, cjkFamily()));
+        FACES.put(base, faces);
+
+        return faces;
+    }
+
+    private static String latinFamily() {
+        String family = explicitEnglishFamily();
+
+        return family != null ? family : themeLatinFamily();
+    }
+
+    private static String cjkFamily() {
+        String family = explicitChineseFamily();
+
+        return family != null ? family : SYSTEM;
+    }
+
+    private static boolean disableCustomFonts() {
+        return App.settings != null && App.settings.disableCustomFonts;
+    }
+
+    private static boolean sameNullable(String a, String b) {
+        return a == null ? b == null : a.equals(b);
+    }
+
+    private static final class ScriptFaces {
+        private final String english;
+        private final String chinese;
+        private final boolean disableCustom;
+        final Font latin;
+        final Font cjk;
+
+        ScriptFaces(String english, String chinese, boolean disableCustom, Font latin, Font cjk) {
+            this.english = english;
+            this.chinese = chinese;
+            this.disableCustom = disableCustom;
+            this.latin = latin;
+            this.cjk = cjk;
+        }
+
+        boolean matches(String english, String chinese, boolean disableCustom) {
+            return this.disableCustom == disableCustom && sameNullable(this.english, english)
+                    && sameNullable(this.chinese, chinese);
+        }
     }
 
     private static String firstSet(String primary, String fallback) {

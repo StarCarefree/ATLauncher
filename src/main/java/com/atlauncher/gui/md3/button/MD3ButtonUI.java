@@ -553,6 +553,17 @@ public class MD3ButtonUI extends BasicButtonUI {
 
         size.height = Math.max(size.height, UIScale.scale(minimumHeight()));
 
+        if (c instanceof AbstractButton) {
+            AbstractButton button = (AbstractButton) c;
+            String text = button.getText();
+
+            if (text != null && !text.isEmpty() && button.getFont() != null) {
+                int mixed = MD3MixedText.width(button.getFont(), text);
+                int single = button.getFontMetrics(button.getFont()).stringWidth(text);
+                size.width += Math.max(0, mixed - single);
+            }
+        }
+
         if (c instanceof MD3Button) {
             size.width = Math.max(size.width, UIScale.scale(MD3Spacing.BUTTON_MIN_WIDTH));
         }
