@@ -232,6 +232,19 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
                 "This will remember the windows positions and size so they keep the same size and position when you restart the launcher."),
             rememberWindowSizePosition);
 
+        MD3Switch enableLauncherAutoUpdate = new MD3Switch();
+        enableLauncherAutoUpdate.addItemListener(
+                e -> viewModel.setEnableLauncherAutoUpdate(e.getStateChange() == ItemEvent.SELECTED));
+        addDisposable(viewModel.getEnableLauncherAutoUpdate().subscribe(enableLauncherAutoUpdate::setSelected));
+
+        MD3Button downloadsPage = MD3Button.outlined(GetText.tr("Downloads Page"));
+        downloadsPage.addActionListener(e -> OS.openWebBrowser(Constants.LAUNCHER_DOWNLOADS_URL));
+
+        addRow(GetText.tr("Automatic Launcher Updates"), GetText.tr(
+                "When enabled, the launcher replaces itself on startup from {0}. Turn this off to keep the version you have. The official downloads page is {1}.",
+                Constants.launcherBinaryUrl(), Constants.LAUNCHER_DOWNLOADS_URL),
+                group(enableLauncherAutoUpdate, downloadsPage));
+
         addSection(GetText.tr("Launching"));
 
         // Keep Launcher Open

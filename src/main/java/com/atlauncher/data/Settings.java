@@ -101,6 +101,11 @@ public class Settings {
     public boolean useNativeFilePicker = OS.isMac();
     public boolean useRecycleBin = true;
     public boolean enableArmSupport = true;
+    /**
+     * When true the launcher replaces itself on startup if a newer build is on the CDN.
+     * The CLI {@code --no-launcher-update} flag still wins.
+     */
+    public boolean enableLauncherAutoUpdate = true;
 
     // Mods
     public ModPlatform defaultModPlatform = ModPlatform.CURSEFORGE;

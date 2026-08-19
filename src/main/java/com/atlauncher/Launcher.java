@@ -176,13 +176,8 @@ public class Launcher {
             File thisFile = new File(Update.class.getProtectionDomain().getCodeSource().getLocation().getPath());
             String path = thisFile.getCanonicalPath();
             path = URLDecoder.decode(path, "UTF-8");
-            String toget;
             String saveAs = thisFile.getName();
-            if (path.contains(".exe")) {
-                toget = "exe";
-            } else {
-                toget = "jar";
-            }
+            String extension = path.contains(".exe") ? "exe" : "jar";
             File newFile = FileSystem.TEMP.resolve(saveAs).toFile();
             LogManager.info("Downloading Launcher Update");
             Analytics.trackEvent(AnalyticsEvent.simpleEvent("launcher_update"));
@@ -191,7 +186,7 @@ public class Launcher {
                 GetText.tr("Downloading Launcher Update"));
             progressDialog.addThread(new Thread(() -> {
                 com.atlauncher.network.Download download = com.atlauncher.network.Download.build()
-                    .setUrl(String.format("%s/%s.%s", Constants.DOWNLOAD_SERVER, Constants.LAUNCHER_NAME, toget))
+                    .setUrl(Constants.launcherBinaryUrl(extension))
                     .withHttpClient(Network.createProgressClient(progressDialog)).downloadTo(newFile.toPath());
 
                 progressDialog.setTotalBytes(download.getFilesize());
@@ -388,15 +383,22 @@ public class Launcher {
 
         LogManager.debug("Checking for launcher update");
         if (launcherHasUpdate()) {
-            if (App.noLauncherUpdate) {
+            if (App.noLauncherUpdate || !App.settings.enableLauncherAutoUpdate) {
+                if (!App.settings.enableLauncherAutoUpdate && !App.noLauncherUpdate) {
+                    LogManager.info("Launcher update available, but automatic updates are disabled");
+
+                    return;
+                }
+
                 int ret = DialogManager.okDialog().setTitle("Launcher Update Available")
                     .setContent(new HTMLBuilder().center().split(80).text(GetText.tr(
-                            "An update to the launcher is available. Please update via your package manager or manually by visiting https://atlauncher.com/downloads to get the latest features and bug fixes."))
+                            "An update to the launcher is available. Please update via your package manager or manually by visiting {0} to get the latest features and bug fixes.",
+                            Constants.LAUNCHER_DOWNLOADS_URL))
                         .build())
                     .addOption(GetText.tr("Visit Downloads Page")).setType(DialogManager.INFO).show();
 
                 if (ret == 1) {
-                    OS.openWebBrowser("https://atlauncher.com/downloads");
+                    OS.openWebBrowser(Constants.LAUNCHER_DOWNLOADS_URL);
                 }
 
                 return;
@@ -412,7 +414,7 @@ public class Launcher {
                             + "the update and replace the old exe/jar file."))
                         .build())
                     .setType(DialogManager.ERROR).show();
-                OS.openWebBrowser("https://atlauncher.com/downloads");
+                OS.openWebBrowser(Constants.LAUNCHER_DOWNLOADS_URL);
                 Analytics.endSession();
                 System.exit(0);
             }

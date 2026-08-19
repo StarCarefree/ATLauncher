@@ -90,7 +90,8 @@ public class GeneralSettingsViewModel implements SettingsListener {
             _rememberWindowSizePosition = BehaviorSubject.create(),
             _useNativeFilePicker = BehaviorSubject.create(),
             _useRecycleBin = BehaviorSubject.create(),
-            enableArmSupport = BehaviorSubject.create();
+            enableArmSupport = BehaviorSubject.create(),
+            _enableLauncherAutoUpdate = BehaviorSubject.create();
 
     private List<LauncherTheme> themes = null;
 
@@ -122,6 +123,7 @@ public class GeneralSettingsViewModel implements SettingsListener {
         _rememberWindowSizePosition.onNext(App.settings.rememberWindowSizePosition);
         _useNativeFilePicker.onNext(App.settings.useNativeFilePicker);
         _useRecycleBin.onNext(App.settings.useRecycleBin);
+        _enableLauncherAutoUpdate.onNext(App.settings.enableLauncherAutoUpdate);
     }
 
     /**
@@ -705,6 +707,15 @@ public class GeneralSettingsViewModel implements SettingsListener {
 
     public void setEnableArmSupport(boolean b) {
         App.settings.enableArmSupport = b;
+        SettingsManager.post();
+    }
+
+    public Observable<Boolean> getEnableLauncherAutoUpdate() {
+        return _enableLauncherAutoUpdate.observeOn(SwingSchedulers.edt());
+    }
+
+    public void setEnableLauncherAutoUpdate(boolean enabled) {
+        App.settings.enableLauncherAutoUpdate = enabled;
         SettingsManager.post();
     }
 }

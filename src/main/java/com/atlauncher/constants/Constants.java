@@ -56,6 +56,7 @@ public class Constants {
     public static final LauncherVersion VERSION;
     public static final String LAUNCHER_NAME = "ATLauncher";
     public static final String LAUNCHER_WEBSITE = "https://atlauncher.com";
+    public static final String LAUNCHER_DOWNLOADS_URL = "https://atlauncher.com/downloads";
     public static final String DEFAULT_THEME_CLASS = "com.atlauncher.themes.Dark";
     public static final String GA_TRACKING_ID = "UA-88820616-7";
     public static final String CROWDIN_URL = "https://crowdin.com/project/atlauncher";
@@ -245,5 +246,16 @@ public class Constants {
 
     public static void setBaseCdnPath(String baseCdnPath) {
         DOWNLOAD_SERVER = BASE_CDN_PROTOCOL + BASE_CDN_DOMAIN + baseCdnPath;
+    }
+
+    /**
+     * Where the running launcher binary is fetched from when it updates itself.
+     */
+    public static String launcherBinaryUrl() {
+        return launcherBinaryUrl(OS.usingExe() ? "exe" : "jar");
+    }
+
+    public static String launcherBinaryUrl(String extension) {
+        return DOWNLOAD_SERVER + "/" + LAUNCHER_NAME + "." + extension;
     }
 }
