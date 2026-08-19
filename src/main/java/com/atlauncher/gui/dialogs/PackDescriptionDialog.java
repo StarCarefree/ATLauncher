@@ -47,6 +47,7 @@ import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Elevation;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
+import com.atlauncher.utils.Html;
 import com.atlauncher.utils.Markdown;
 import com.atlauncher.utils.OS;
 import com.formdev.flatlaf.util.UIScale;
@@ -196,8 +197,14 @@ public final class PackDescriptionDialog {
         pane.setBorder(null);
 
         pane.addHyperlinkListener(e -> {
-            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED && e.getURL() != null) {
-                OS.openWebBrowser(e.getURL());
+            if (e.getEventType() != HyperlinkEvent.EventType.ACTIVATED) {
+                return;
+            }
+
+            String href = Html.hrefOf(e.getURL(), e.getDescription());
+
+            if (href != null) {
+                OS.openWebBrowser(href);
             }
         });
 
@@ -278,13 +285,16 @@ public final class PackDescriptionDialog {
             return "";
         }
 
-        if (looksLikeHtml(description)) {
-            return description;
+        // a CurseForge page is HTML and should stay HTML. A README that happens to contain an
+        // <a href> is still Markdown - running that through sanitize would leave ## headings as
+        // text, and running it through Markdown without rewriting the tag would escape it
+        if (Html.looksLike(description) && !looksLikeMarkdown(description)) {
+            return Html.sanitize(description);
         }
 
         // prose keeps the shape its author gave it; Markdown follows Markdown's rules, where a
         // single newline is a space and paragraphs are wrapped in the source on purpose
-        return Markdown.render(linkify(description), !looksLikeMarkdown(description));
+        return Markdown.render(linkify(Html.anchorsToMarkdown(description)), !looksLikeMarkdown(description));
     }
 
     /**
@@ -312,17 +322,19 @@ public final class PackDescriptionDialog {
         return markdown.replaceAll(BARE_URL, "<$1>");
     }
 
-    private static boolean looksLikeHtml(String description) {
-        return description.matches("(?is).*<(p|br|div|ul|ol|li|h[1-6]|strong|em|a\\s)[^>]*>.*");
-    }
-
     /**
      * The document takes the theme's own type and colours rather than the editor kit's defaults,
      * which are a black-on-white serif face that looks like a different application.
+     *
+     * <p>
+     * The kit's default sheet is kept underneath: replacing it wholesale dropped list markers,
+     * table borders and {@code <pre>} wrapping, which is why a CurseForge description full of
+     * those looked like a wall of text.
      */
     private static HTMLEditorKit buildEditorKit() {
         HTMLEditorKit kit = new HTMLEditorKit();
         StyleSheet styles = new StyleSheet();
+        styles.addStyleSheet(kit.getStyleSheet());
 
         Font body = MD3Type.font(MD3Type.BODY_MEDIUM);
         // the type scale puts titleSmall and bodyMedium at the same size, so a document styled with
@@ -330,25 +342,32 @@ public final class PackDescriptionDialog {
         // paragraphs under them - two steps up the scale is what makes it read as a document
         Font major = MD3Type.font(MD3Type.TITLE_LARGE);
         Font minor = MD3Type.font(MD3Type.TITLE_MEDIUM);
+        String onSurface = hex(MD3Color.onSurface());
+        String muted = hex(MD3Color.onSurfaceVariant());
+        String line = hex(MD3Color.outlineVariant());
 
         // this is what the reader came for, so it takes onSurface rather than the muted variant
         styles.addRule("body { font-family: " + body.getFamily() + "; font-size: " + body.getSize() + "pt; color: "
-                + hex(MD3Color.onSurface()) + "; background: " + hex(MD3Elevation.surface(MD3Elevation.LEVEL3))
-                + "; margin: 0; }");
+                + onSurface + "; background: " + hex(MD3Elevation.surface(MD3Elevation.LEVEL3)) + "; margin: 0; }");
         styles.addRule("p { margin: 0 0 " + MD3Spacing.M + "px 0; }");
         styles.addRule("h1, h2 { font-family: " + major.getFamily() + "; font-size: " + major.getSize()
-                + "pt; font-weight: bold; color: " + hex(MD3Color.onSurface()) + "; margin: " + MD3Spacing.L + "px 0 "
-                + MD3Spacing.S + "px 0; }");
+                + "pt; font-weight: bold; color: " + onSurface + "; margin: 0 0 " + MD3Spacing.S + "px 0; }");
         styles.addRule("h3, h4, h5, h6 { font-family: " + minor.getFamily() + "; font-size: " + minor.getSize()
-                + "pt; font-weight: bold; color: " + hex(MD3Color.onSurface()) + "; margin: " + MD3Spacing.M + "px 0 "
+                + "pt; font-weight: bold; color: " + onSurface + "; margin: " + MD3Spacing.M + "px 0 "
                 + MD3Spacing.XS + "px 0; }");
-        styles.addRule("a { color: " + hex(MD3Color.primary()) + "; }");
+        styles.addRule("a { color: " + hex(MD3Color.primary()) + "; text-decoration: underline; }");
         styles.addRule("ul, ol { margin: 0 0 " + MD3Spacing.M + "px " + MD3Spacing.L + "px; }");
         styles.addRule("li { margin: 0 0 " + MD3Spacing.XS + "px 0; }");
-        styles.addRule("code, pre { font-family: monospaced; color: " + hex(MD3Color.onSurfaceVariant()) + "; }");
-        styles.addRule("blockquote { margin: 0 0 " + MD3Spacing.M + "px " + MD3Spacing.M + "px; color: "
-                + hex(MD3Color.onSurfaceVariant()) + "; }");
-        styles.addRule("hr { border-color: " + hex(MD3Color.outlineVariant()) + "; }");
+        styles.addRule("code, pre { font-family: monospaced; color: " + muted + "; }");
+        styles.addRule("pre { margin: 0 0 " + MD3Spacing.M + "px 0; }");
+        styles.addRule("blockquote { margin: 0 0 " + MD3Spacing.M + "px " + MD3Spacing.M + "px; color: " + muted
+                + "; }");
+        styles.addRule("hr { border-color: " + line + "; }");
+        styles.addRule("table { margin: 0 0 " + MD3Spacing.M + "px 0; border-width: 1px; border-style: solid; "
+                + "border-color: " + line + "; }");
+        styles.addRule("td, th { padding: " + MD3Spacing.XS + "px " + MD3Spacing.S + "px; border-width: 1px; "
+                + "border-style: solid; border-color: " + line + "; }");
+        styles.addRule("th { font-weight: bold; }");
 
         kit.setStyleSheet(styles);
 

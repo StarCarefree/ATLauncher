@@ -44,7 +44,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextPane;
 import javax.swing.SwingUtilities;
-import javax.swing.event.HyperlinkEvent;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -54,6 +53,7 @@ import com.atlauncher.constants.Constants;
 import com.atlauncher.data.Contributor;
 import com.atlauncher.gui.components.BackgroundImageLabel;
 import com.atlauncher.gui.components.SocialLinks;
+import com.atlauncher.gui.md3.MD3Html;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Card;
 import com.atlauncher.gui.md3.nav.MD3Tabs;
@@ -219,27 +219,24 @@ public class AboutTab extends HierarchyPanel implements Tab {
     }
 
     private JScrollPane documentPane(String resource) {
-        JEditorPane document = new JEditorPane("text/html", "");
-        document.setEditable(false);
-        document.setFocusable(false);
-        document.addHyperlinkListener(e -> {
-            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                OS.openWebBrowser(e.getURL());
-            }
-        });
+        String html = "";
 
         try (BufferedReader reader = new BufferedReader(
             new InputStreamReader(App.class.getResourceAsStream(resource), StandardCharsets.UTF_8))) {
-            document.setText(
-                new HTMLBuilder()
+            html = new HTMLBuilder()
                     .text(reader.lines().collect(Collectors.joining("<br/>"))
                         .replace("%YEAR%", new SimpleDateFormat("yyyy").format(new Date())))
-                    .build());
+                    .build();
         } catch (Exception e) {
             LogManager.logStackTrace(e);
         }
 
+        JEditorPane document = MD3Html.pane(html);
+
         JScrollPane scrollPane = new JScrollPane(document);
+        scrollPane.setBorder(null);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
         scrollPane.setPreferredSize(new Dimension(0, UIScale.scale(DOCUMENT_HEIGHT)));
         SwingUtilities.invokeLater(() -> scrollPane.getVerticalScrollBar().setValue(0));
 

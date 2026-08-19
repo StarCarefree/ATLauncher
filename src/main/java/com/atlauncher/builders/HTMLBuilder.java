@@ -19,12 +19,27 @@ package com.atlauncher.builders;
 
 import java.awt.Font;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.atlauncher.App;
 import com.atlauncher.gui.md3.MD3MixedText;
 import com.atlauncher.themes.ATLauncherLaf;
 
 public final class HTMLBuilder {
+    /**
+     * Markup the launcher puts in these strings itself. Everything else is prose and is escaped,
+     * including a stray {@code <} in "Minecraft < 1.6".
+     *
+     * <p>
+     * {@link MD3MixedText#toHtml} used to run over the whole body, which escaped
+     * {@code <a href="...">} into visible source - so the accounts empty state, the Microsoft
+     * login prompt, and every other string that already contained a link rendered the tags
+     * instead of the link.
+     */
+    private static final Pattern MARKUP = Pattern.compile(
+            "(?is)</?(?:a|b|i|u|em|strong|br|p|div|span|ul|ol|li|font|h[1-6])\\b[^>]*>");
+
     public boolean center = false;
     public String text;
     public Integer split;
@@ -90,16 +105,17 @@ public final class HTMLBuilder {
             return "";
         }
 
-        String[] parts = body.split("(?i)<br\\s*/?>");
+        Matcher matcher = MARKUP.matcher(body);
         StringBuilder html = new StringBuilder();
+        int last = 0;
 
-        for (int i = 0; i < parts.length; i++) {
-            if (i > 0) {
-                html.append("<br/>");
-            }
-
-            html.append(MD3MixedText.toHtml(font, parts[i]));
+        while (matcher.find()) {
+            html.append(MD3MixedText.toHtml(font, body.substring(last, matcher.start())));
+            html.append(matcher.group());
+            last = matcher.end();
         }
+
+        html.append(MD3MixedText.toHtml(font, body.substring(last)));
 
         return html.toString();
     }

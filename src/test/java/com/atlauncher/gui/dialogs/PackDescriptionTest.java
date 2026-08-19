@@ -20,6 +20,7 @@ package com.atlauncher.gui.dialogs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Component;
@@ -41,8 +42,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.atlauncher.gui.card.packbrowser.MD3PackCard;
+import com.atlauncher.gui.md3.MD3Text;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Elevation;
+import com.atlauncher.utils.Html;
 
 /**
  * How a modpack's description reaches the user.
@@ -202,10 +205,105 @@ public class PackDescriptionTest {
      * the same failure as showing Markdown syntax, just the other way round.
      */
     @Test
-    public void testHtmlDescriptionsAreLeftAlone() {
+    public void testHtmlDescriptionsAreKeptAsHtml() {
         String html = "<p>Already <strong>html</strong>.</p>";
 
         assertEquals(html, PackDescriptionDialog.asHtml(html));
+    }
+
+    /**
+     * CurseForge authors paint with inline colour, drop in images, and embed a video. None of that
+     * belongs in a themed dialog: the colours fight the surface, and JEditorPane fetching images
+     * on the event thread is how opening a description used to freeze the launcher.
+     */
+    @Test
+    public void testHtmlFromAPlatformIsSanitized() {
+        String html = "<h2>All The Mods</h2>"
+                + "<img src=\"https://example.com/banner.png\" alt=\"Banner\">"
+                + "<p style=\"color:#ffffff\">White on CurseForge.</p>"
+                + "<font color=\"red\">A warning.</font>"
+                + "<iframe src=\"https://youtube.com/embed/x\"></iframe>"
+                + "<ul><li>Quests</li></ul>";
+
+        String shown = PackDescriptionDialog.asHtml(html);
+
+        assertTrue(shown.contains("<h2>"), "the heading was thrown away with the junk");
+        assertTrue(shown.contains("<li>Quests</li>"), "the list was thrown away with the junk");
+        assertTrue(shown.contains("Banner"), "an image's alt text did not survive");
+        assertTrue(shown.contains("White on CurseForge."), "the painted paragraph was dropped");
+        assertTrue(shown.contains("A warning."), "font-wrapped text was dropped");
+        assertFalse(shown.contains("<img"), "an image tag is still in the document");
+        assertFalse(shown.contains("iframe"), "an embed is still in the document");
+        assertFalse(shown.contains("color:#ffffff"), "inline colour is still in the document");
+        assertFalse(shown.contains("<font"), "a font tag is still in the document");
+    }
+
+    /**
+     * CurseForge wraps its banners and social buttons in {@code <a href>}. Stripping the picture
+     * used to leave an empty tag, so the link was in the document and painted as nothing.
+     */
+    @Test
+    public void testALinkedImageKeepsAClickableAddress() {
+        String html = "<p><a href=\"https://example.com/pack\"><img src=\"x.png\" alt=\"Download\"></a></p>"
+                + "<p><a href=\"/linkout?remoteUrl=https%3A%2F%2Fwiki.example.com\"><img src=\"y.png\"></a></p>";
+
+        String shown = PackDescriptionDialog.asHtml(html);
+
+        assertTrue(shown.contains("href=\"https://example.com/pack\""), "the banner's address was dropped");
+        assertTrue(shown.contains("Download"), "the banner's alt text did not become the link's face");
+        assertTrue(shown.contains("href=\"https://www.curseforge.com/linkout?remoteUrl="),
+                "a relative linkout was not resolved against CurseForge");
+        assertTrue(shown.contains("https://wiki.example.com"),
+                "a picture-only linkout has no text, so the destination should be");
+        assertFalse(shown.contains("<img"), "an image tag is still wrapping the link");
+    }
+
+    /**
+     * A README that uses an HTML anchor rather than Markdown's {@code [text](url)} is still a
+     * Markdown document. Treating it as HTML left the headings as hashes; treating it as Markdown
+     * without rewriting the tag escaped the link into visible source.
+     */
+    @Test
+    public void testAnHtmlAnchorInMarkdownStillBecomesALink() {
+        String markdown = "## Setup\n\nSee <a href=\"https://wiki.example.com/start\">the wiki</a>.";
+
+        String html = PackDescriptionDialog.asHtml(markdown);
+
+        assertTrue(html.contains("<h2>"), "the heading was not rendered, so the file was treated as HTML");
+        assertTrue(html.contains("href=\"https://wiki.example.com/start\""),
+                "the HTML anchor came through as text");
+        assertFalse(html.contains("&lt;a"), "the HTML anchor was escaped instead of rendered");
+    }
+
+    @Test
+    public void testResolveHrefMakesRelativeAndBareAddressesOpenable() {
+        assertEquals("https://example.com/a", Html.resolveHref("https://example.com/a"));
+        assertEquals("http://192.168.1.8/wiki", Html.resolveHref("http://192.168.1.8/wiki"));
+        assertEquals("https://cdn.example.com/x", Html.resolveHref("//cdn.example.com/x"));
+        assertEquals("https://www.curseforge.com/minecraft/modpacks/foo",
+                Html.resolveHref("/minecraft/modpacks/foo"));
+        assertEquals("https://www.example.com/x", Html.resolveHref("www.example.com/x"));
+        assertNull(Html.resolveHref("javascript:alert(1)"));
+        assertNull(Html.resolveHref("#section"));
+    }
+
+    /**
+     * An HTML description on a card used to show the tags: shorten escaped them instead of
+     * dropping them, so a CurseForge summary read {@code <p>A large kitchen sink...}.
+     */
+    @Test
+    public void testTheCardSummaryDoesNotShowHtmlTags() {
+        TestPackCard card = new TestPackCard("<p>A <strong>large</strong> kitchen sink pack.</p>");
+        JLabel summary = summaryOf(card);
+
+        assertNotNull(summary, "the card has no summary to read");
+
+        String visible = MD3Text.plain(summary.getText());
+
+        assertTrue(visible.contains("large"), "the summary lost the words: " + visible);
+        assertFalse(visible.contains("<p>"), "the summary is still showing tags: " + visible);
+        assertFalse(visible.contains("&lt;"), "the tags were escaped rather than dropped: " + visible);
+        assertEquals("A large kitchen sink pack.", Html.toPlain("<p>A <strong>large</strong> kitchen sink pack.</p>"));
     }
 
     @Test
@@ -240,5 +338,48 @@ public class PackDescriptionTest {
         }
 
         assertTrue(themed, "nothing in the document is the theme's link colour, so it kept the kit's defaults");
+    }
+
+    /**
+     * What CurseForge actually sends: headings, a list, a table, a code block, and the junk
+     * {@link #testHtmlFromAPlatformIsSanitized} already dropped.
+     */
+    @Test
+    public void testHtmlFromAPlatformRenders() throws Exception {
+        String html = "<h2>All The Mods 9</h2>"
+                + "<p>A <b>kitchen sink</b> pack. See <a href=\"https://example.com\">the site</a>.</p>"
+                + "<p><a href=\"/linkout?remoteUrl=https%3A%2F%2Fwiki.example.com\">"
+                + "<img src=\"https://example.com/banner.png\" alt=\"Wiki\"></a></p>"
+                + "<p style=\"color:#ffffff\">Quests, 400+ mods, and a custom progression.</p>"
+                + "<ul><li>Applied Energistics 2</li><li>Mekanism</li><li>Create</li></ul>"
+                + "<h3>Requirements</h3>"
+                + "<table><tr><th>Loader</th><th>RAM</th></tr>"
+                + "<tr><td>Forge 1.20.1</td><td>8 GB</td></tr></table>"
+                + "<pre>allocate 8192M</pre>";
+
+        JEditorPane pane = PackDescriptionDialog.buildPane(html);
+        pane.setSize(640, 420);
+        pane.doLayout();
+
+        BufferedImage image = new BufferedImage(640, 420, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = image.createGraphics();
+
+        try {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setColor(MD3Elevation.surface(MD3Elevation.LEVEL3));
+            g.fillRect(0, 0, 640, 420);
+            pane.paint(g);
+        } finally {
+            g.dispose();
+        }
+
+        new File("build/md3-preview").mkdirs();
+        ImageIO.write(image, "png", new File("build/md3-preview/pack-description-html-dark.png"));
+
+        String shown = PackDescriptionDialog.asHtml(html);
+
+        assertTrue(shown.contains("<table>"), "the table did not survive sanitizing");
+        assertTrue(shown.contains("<pre>"), "the code block did not survive sanitizing");
+        assertFalse(shown.contains("<img"), "an image tag is still in the rendered document");
     }
 }

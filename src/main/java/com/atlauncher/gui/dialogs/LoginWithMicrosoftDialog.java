@@ -38,7 +38,6 @@ import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import javax.swing.event.HyperlinkEvent;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -55,6 +54,7 @@ import com.atlauncher.data.microsoft.OauthTokenResponse;
 import com.atlauncher.data.microsoft.Profile;
 import com.atlauncher.data.microsoft.XboxLiveAuthErrorResponse;
 import com.atlauncher.data.microsoft.XboxLiveAuthResponse;
+import com.atlauncher.gui.md3.MD3Html;
 import com.atlauncher.gui.md3.button.MD3Button;
 import com.atlauncher.gui.md3.container.MD3Divider;
 import com.atlauncher.gui.panels.LoadingPanel;
@@ -174,15 +174,7 @@ public final class LoginWithMicrosoftDialog extends JDialog {
         });
         linkPanel.add(openLinkButton);
 
-        JEditorPane infoPane = new JEditorPane("text/html", "");
-        infoPane.setEditable(false);
-        infoPane.setHighlighter(null);
-        infoPane.setFocusable(false);
-        infoPane.addHyperlinkListener(e -> {
-            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                OS.openWebBrowser(e.getURL());
-            }
-        });
+        JEditorPane infoPane = MD3Html.pane("");
         infoPane.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
 
         bottomPanel.add(infoPane, BorderLayout.CENTER);

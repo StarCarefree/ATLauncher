@@ -18,7 +18,6 @@
 package com.atlauncher.gui.tabs.accounts;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.util.List;
 
@@ -29,7 +28,6 @@ import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.event.HyperlinkEvent;
 
 import org.mini2Dx.gettext.GetText;
 
@@ -40,6 +38,7 @@ import com.atlauncher.gui.card.AccountCard;
 import com.atlauncher.gui.dialogs.LoginWithMicrosoftDialog;
 import com.atlauncher.gui.dialogs.ProgressDialog;
 import com.atlauncher.gui.layouts.CardGridLayout;
+import com.atlauncher.gui.md3.MD3Html;
 import com.atlauncher.gui.md3.nav.MD3TopAppBar;
 import com.atlauncher.gui.panels.HierarchyPanel;
 import com.atlauncher.gui.tabs.Tab;
@@ -47,7 +46,6 @@ import com.atlauncher.managers.DialogManager;
 import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
-import com.atlauncher.utils.OS;
 import com.atlauncher.utils.Utils;
 import com.atlauncher.viewmodel.base.IAccountsViewModel;
 import com.atlauncher.viewmodel.impl.AccountsViewModel;
@@ -160,7 +158,7 @@ public class AccountsTab extends HierarchyPanel implements Tab {
         empty.add(heading);
         empty.add(Box.createVerticalStrut(UIScale.scale(MD3Spacing.M)));
 
-        JEditorPane info = new JEditorPane("text/html", new HTMLBuilder().center().text(GetText.tr(
+        JEditorPane info = MD3Html.pane(new HTMLBuilder().center().text(GetText.tr(
                 "In order to login and use ATLauncher modpacks, " +
                     "you must authenticate with your existing " +
                     "Minecraft/Mojang account. You must own and have paid " +
@@ -172,16 +170,8 @@ public class AccountsTab extends HierarchyPanel implements Tab {
                     "Minecraft here</a>. ATLauncher doesn't work with cracked" +
                     " accounts."))
             .build());
-        info.setEditable(false);
-        info.setFocusable(false);
-        info.setOpaque(false);
         info.setAlignmentX(CENTER_ALIGNMENT);
-        info.setMaximumSize(new Dimension(UIScale.scale(READING_WIDTH), Integer.MAX_VALUE));
-        info.addHyperlinkListener(e -> {
-            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                OS.openWebBrowser(e.getURL());
-            }
-        });
+        MD3Html.wrapTo(info, UIScale.scale(READING_WIDTH));
 
         empty.add(info);
 

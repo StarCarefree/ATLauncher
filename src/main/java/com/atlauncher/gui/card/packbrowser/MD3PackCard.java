@@ -64,6 +64,7 @@ import com.atlauncher.themes.md3.token.MD3Color;
 import com.atlauncher.themes.md3.token.MD3Shape;
 import com.atlauncher.themes.md3.token.MD3Spacing;
 import com.atlauncher.themes.md3.token.MD3Type;
+import com.atlauncher.utils.Html;
 import com.atlauncher.workers.BackgroundImageWorker;
 import com.formdev.flatlaf.util.UIScale;
 
@@ -531,16 +532,12 @@ public abstract class MD3PackCard extends MD3Card implements CardGridLayout.Widt
      * README, and a card that grows to fit one breaks the grid for all of them.
      *
      * <p>
-     * Some summaries arrive as Markdown. Rendering it properly would mean an HTML view per card,
-     * which is what the old cards did and what made them 155px tall regardless of content; at this
-     * length, dropping the syntax reads better than honouring it.
+     * Some summaries arrive as Markdown, others as HTML. Rendering either properly would mean an
+     * HTML view per card, which is what the old cards did and what made them 155px tall regardless
+     * of content; at this length, dropping the markup reads better than honouring it.
      */
     private static String shorten(String description, int limit) {
-        String flat = description
-                .replaceAll("!?\\[([^\\]]*)\\]\\([^)]*\\)", "$1")
-                .replaceAll("[*_`#>]", "")
-                .replaceAll("\\s+", " ")
-                .trim();
+        String flat = Html.toPlain(description);
 
         if (flat.length() <= limit) {
             return flat;

@@ -18,6 +18,7 @@
 package com.atlauncher.gui.md3;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Component;
@@ -31,13 +32,17 @@ import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
+import javax.swing.BoxLayout;
+import javax.swing.JEditorPane;
 import javax.swing.JPanel;
 import javax.swing.UIManager;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mini2Dx.gettext.GetText;
 
 import com.atlauncher.Gsons;
+import com.atlauncher.builders.HTMLBuilder;
 import com.atlauncher.data.MicrosoftAccount;
 import com.atlauncher.gui.card.AccountCard;
 import com.atlauncher.gui.layouts.CardGridLayout;
@@ -230,5 +235,65 @@ public class AccountCardRenderTest {
         }
 
         return false;
+    }
+
+    /**
+     * The empty state is how a new user is told to buy Minecraft. The link used to be escaped into
+     * visible source by {@code HTMLBuilder}, so the sentence ended with the tag instead of with
+     * somewhere to click.
+     */
+    @Test
+    public void testTheEmptyStateKeepsTheBuyMinecraftLink() throws Exception {
+        String html = new HTMLBuilder().center().text(GetText.tr(
+                "In order to login and use ATLauncher modpacks, " +
+                    "you must authenticate with your existing " +
+                    "Minecraft/Mojang account. You must own and have paid " +
+                    "for the Minecraft Java edition " +
+                    "(not the Windows 10 edition) and use the same " +
+                    "login here.<br><br>If you don't have an existing " +
+                    "account, you can get one " +
+                    "<a href=\"https://atl.pw/create-account\">by buying " +
+                    "Minecraft here</a>. ATLauncher doesn't work with cracked" +
+                    " accounts."))
+            .build();
+
+        assertTrue(html.contains("href=\"https://atl.pw/create-account\""),
+                "the buy-Minecraft address is not a link");
+        assertFalse(html.contains("&lt;a"), "the empty state is still showing the tag instead of the link");
+
+        JPanel empty = new JPanel();
+        empty.setLayout(new BoxLayout(empty, BoxLayout.Y_AXIS));
+        empty.setOpaque(true);
+        empty.setBackground(MD3Color.surface());
+        empty.setBorder(MD3Spacing.border(MD3Spacing.XXL, MD3Spacing.L));
+
+        JEditorPane info = MD3Html.pane(html);
+        info.setAlignmentX(Component.CENTER_ALIGNMENT);
+        MD3Html.wrapTo(info, 560);
+        empty.add(info);
+        empty.setSize(new Dimension(720, 320));
+        layoutTree(empty);
+
+        BufferedImage image = new BufferedImage(720, 320, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = image.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        MD3Gallery.applyDesktopFontHints(g);
+        g.setColor(MD3Color.surface());
+        g.fillRect(0, 0, 720, 320);
+        empty.paint(g);
+        g.dispose();
+
+        new File("build/md3-preview").mkdirs();
+        ImageIO.write(image, "png", new File("build/md3-preview/accounts-empty-dark.png"));
+
+        boolean themedLink = false;
+
+        for (int y = 0; y < 320 && !themedLink; y += 2) {
+            for (int x = 0; x < 720 && !themedLink; x += 2) {
+                themedLink = image.getRGB(x, y) == MD3Color.primary().getRGB();
+            }
+        }
+
+        assertTrue(themedLink, "nothing in the empty state is the theme's link colour");
     }
 }
