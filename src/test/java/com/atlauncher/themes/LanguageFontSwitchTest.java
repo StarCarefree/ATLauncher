@@ -86,6 +86,19 @@ public class LanguageFontSwitchTest {
                 "the theme's face draws Chinese now, so nothing below is proving anything");
     }
 
+    @Test
+    public void automaticEnglishIsJetBrainsMono() {
+        startUpIn(Locale.ENGLISH);
+
+        String name = (App.THEME.getNormalFont().getFamily() + " "
+                + App.THEME.getNormalFont().getFontName()).toLowerCase(Locale.ROOT);
+
+        assertTrue(name.contains("jetbrains"),
+                "automatic English is " + App.THEME.getNormalFont().getFontName() + ", not JetBrains Mono");
+        assertEquals(UiFonts.themeLatinFamily(), App.THEME.getNormalFont().getFamily(),
+                "the UI face and the mixed-text Latin face disagreed");
+    }
+
     /**
      * Puts UIManager into the state the launcher starts in, which is what {@code App.modifyLAF}
      * leaves behind. Without this the defaults hold whatever face FlatLaf picked off the platform -

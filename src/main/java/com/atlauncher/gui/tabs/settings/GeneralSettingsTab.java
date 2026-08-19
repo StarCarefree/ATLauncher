@@ -370,25 +370,7 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
             combo.addItem(options.get(i));
         }
 
-        combo.setRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
-                    boolean cellHasFocus) {
-                super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-
-                if (value instanceof ComboItem) {
-                    Object familyValue = ((ComboItem<?>) value).getValue();
-                    String family = familyValue instanceof String ? (String) familyValue : UiFonts.AUTO;
-
-                    if (family != null && !family.isEmpty()) {
-                        setFont(new Font(family, Font.PLAIN, getFont().getSize()));
-                        putClientProperty(MD3MixedText.KEEP_FACE_KEY, Boolean.TRUE);
-                    }
-                }
-
-                return this;
-            }
-        });
+        combo.setRenderer(new FontPickerRenderer());
 
         addDisposable(selected.subscribe(combo::setSelectedIndex));
 
@@ -402,6 +384,54 @@ public class GeneralSettingsTab extends AbstractSettingsTab {
         MD3Type.ensureCanDisplay(combo);
 
         return combo;
+    }
+
+    /**
+     * Previews each installed family in its own face, then puts the face back for Auto / System
+     * and for any family that cannot draw its own name.
+     *
+     * <p>
+     * The same renderer paints every row and the closed value. Leaving {@code KEEP_FACE} set
+     * after a family row meant "自动（系统）" was then drawn with the English face. Switching
+     * English onto a Latin-only family made that label empty boxes, and only the rows whose
+     * preview face still had CJK stayed readable.
+     */
+    static final class FontPickerRenderer extends DefaultListCellRenderer {
+        @Override
+        public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+                boolean cellHasFocus) {
+            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+
+            String label = getText() == null ? "" : getText();
+            Font preview = previewFace(value, getFont());
+
+            if (preview != null && preview.canDisplayUpTo(label) < 0) {
+                setFont(preview);
+                putClientProperty(MD3MixedText.KEEP_FACE_KEY, Boolean.TRUE);
+            } else {
+                setFont(MD3Type.font(MD3Type.BODY_LARGE));
+                putClientProperty(MD3MixedText.KEEP_FACE_KEY, Boolean.FALSE);
+            }
+
+            return this;
+        }
+
+        private static Font previewFace(Object value, Font current) {
+            if (!(value instanceof ComboItem)) {
+                return null;
+            }
+
+            Object familyValue = ((ComboItem<?>) value).getValue();
+            String family = familyValue instanceof String ? (String) familyValue : UiFonts.AUTO;
+
+            if (family == null || family.isEmpty()) {
+                return null;
+            }
+
+            int size = current != null && current.getSize() > 0 ? current.getSize() : 12;
+
+            return new Font(family, Font.PLAIN, size);
+        }
     }
 
     @Override

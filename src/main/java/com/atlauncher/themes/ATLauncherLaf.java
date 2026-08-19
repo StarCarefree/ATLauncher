@@ -56,9 +56,9 @@ public class ATLauncherLaf extends FlatLaf {
      */
     public static final String CONSOLE_FONT_KEY = "ATL.consoleFont";
 
-    private final String defaultFontName = "OpenSans-Regular";
-    private final String defaultBoldFontName = "OpenSans-Bold";
-    private final String consoleFontName = "JetBrainsMono-Medium";
+    private final String defaultFontName = UiFonts.THEME_LATIN_FONT;
+    private final String defaultBoldFontName = UiFonts.THEME_LATIN_FONT;
+    private final String consoleFontName = UiFonts.THEME_LATIN_FONT;
     private final String tabFontName = "Oswald-Regular";
 
     public static boolean install() {

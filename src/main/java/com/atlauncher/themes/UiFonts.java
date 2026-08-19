@@ -50,6 +50,12 @@ public final class UiFonts {
     /** The JRE's logical sans, which is the OS UI face on every platform we ship. */
     public static final String SYSTEM = Font.SANS_SERIF;
 
+    /**
+     * Bundled English face used when Settings left English on automatic. The same
+     * file the console uses, so Latin UI and the log share one family.
+     */
+    public static final String THEME_LATIN_FONT = "JetBrainsMono-Medium";
+
     public static final String LATIN_SAMPLE = "Aa";
     public static final String CJK_SAMPLE = "汉字";
 
@@ -155,7 +161,7 @@ public final class UiFonts {
      * The English face at {@code base}'s size, weight and tracking.
      *
      * <p>
-     * Automatic English is the theme's Latin face (Open Sans), never the component's own font. A
+     * Automatic English is the theme's Latin face (JetBrains Mono), never the component's own font. A
      * Chinese locale still swaps the UI default onto a face that can draw CJK so unmigrated Swing
      * controls are not empty boxes - but that default must not steal Latin glyphs from the English
      * setting. Mixed painting asks here for each character.
@@ -320,9 +326,7 @@ public final class UiFonts {
             return face(SYSTEM, style, size);
         }
 
-        String bundled = (style & Font.BOLD) != 0 ? "OpenSans-Bold" : "OpenSans-Regular";
-
-        return Resources.makeFont(bundled).deriveFont(style, size);
+        return Resources.makeFont(THEME_LATIN_FONT).deriveFont(style, size);
     }
 
     /**
